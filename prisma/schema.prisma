@@ -1,0 +1,117 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Bot {
+  id          String         @id @default(uuid())
+  name        String
+  username    String
+  tokenEnvVar String         @default("TELEGRAM_BOT_TOKEN")
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  config      BotConfig?
+  buttons     BotButton[]
+  deletions   ScheduledDeletion[]
+  users       TelegramUser[]
+  auditLogs   AuditLog[]
+
+  @@map("bots")
+}
+
+model BotConfig {
+  id             String   @id @default(uuid())
+  botId          String   @unique
+  bot            Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  welcomeMessage String   @db.Text
+  menuConfig     Json?
+  updatedAt      DateTime @updatedAt
+
+  @@map("bot_configs")
+}
+
+model TelegramUser {
+  id           String   @id @default(uuid())
+  botId        String
+  bot          Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  telegramId   BigInt
+  telegramPhNo String?
+  firstName    String?
+  lastName     String?
+  username     String?
+  languageCode String?
+  firstSeenAt  DateTime @default(now())
+  lastSeenAt   DateTime @default(now())
+
+  @@unique([botId, telegramId])
+  @@index([botId])
+  @@map("telegram_users")
+}
+
+model AdminUser {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String
+  role         String     @default("SUPER_ADMIN") // SUPER_ADMIN | VIEWER
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  auditLogs    AuditLog[]
+
+  @@map("admin_users")
+}
+
+model AuditLog {
+  id          String     @id @default(uuid())
+  adminUserId String?
+  adminUser   AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+  botId       String?
+  bot         Bot?       @relation(fields: [botId], references: [id], onDelete: SetNull)
+  action      String
+  details     Json?
+  createdAt   DateTime   @default(now())
+
+  @@index([botId])
+  @@map("audit_logs")
+}
+
+model BotButton {
+  id                String   @id @default(uuid())
+  botId             String
+  bot               Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  label             String
+  actionType        String   @default("SEND_TEXT") // "SEND_TEXT" | "REQUEST_CONTACT"
+  replyText         String?  @db.Text
+  autoDeleteReply   Boolean  @default(false)
+  deleteAfterSeconds Int     @default(30)
+  isEnabled         Boolean  @default(true)
+  order             Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([botId])
+  @@map("bot_buttons")
+}
+
+model ScheduledDeletion {
+  id         String   @id @default(uuid())
+  botId      String
+  bot        Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  chatId     String
+  messageId  Int
+  deleteAt   DateTime
+  status     String   @default("PENDING") // "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED"
+  retryCount Int      @default(0)
+  lastError  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([botId])
+  @@index([status, deleteAt])
+  @@map("scheduled_deletions")
+}
