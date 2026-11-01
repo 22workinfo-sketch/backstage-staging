@@ -28,7 +28,9 @@ export function MenuBuilder({ botId, initialButtons }: MenuBuilderProps) {
 
   // Form states for adding/editing
   const [formLabel, setFormLabel] = useState("");
-  const [formActionType, setFormActionType] = useState<"SEND_TEXT" | "REQUEST_CONTACT">("SEND_TEXT");
+  const [formActionType, setFormActionType] = useState<
+    "SEND_TEXT" | "REQUEST_CONTACT" | "JOIN_CHANNELS"
+  >("SEND_TEXT");
   const [formReplyText, setFormReplyText] = useState("");
   const [formAutoDelete, setFormAutoDelete] = useState(false);
   const [formDeleteAfterSeconds, setFormDeleteAfterSeconds] = useState(30);
@@ -59,7 +61,13 @@ export function MenuBuilder({ botId, initialButtons }: MenuBuilderProps) {
     const btn = buttons[index];
     setEditingIndex(index);
     setFormLabel(btn.label);
-    setFormActionType(btn.actionType === "REQUEST_CONTACT" ? "REQUEST_CONTACT" : "SEND_TEXT");
+    setFormActionType(
+      btn.actionType === "REQUEST_CONTACT"
+        ? "REQUEST_CONTACT"
+        : btn.actionType === "JOIN_CHANNELS"
+        ? "JOIN_CHANNELS"
+        : "SEND_TEXT"
+    );
     setFormReplyText(btn.replyText || "");
     setFormAutoDelete(Boolean(btn.autoDeleteReply));
     setFormDeleteAfterSeconds(btn.deleteAfterSeconds || 30);
@@ -114,9 +122,16 @@ export function MenuBuilder({ botId, initialButtons }: MenuBuilderProps) {
       if (formAutoDelete) {
         const delay = Math.floor(formDeleteAfterSeconds);
         if (isNaN(delay) || delay < 5 || delay > 86400) {
-          setFormError("Auto-delete delay must be an integer between 5 and 86,400 seconds (24 hours).");
+          setFormError(
+            "Auto-delete delay must be an integer between 5 and 86,400 seconds (24 hours)."
+          );
           return;
         }
+      }
+    } else if (formActionType === "JOIN_CHANNELS") {
+      if (formReplyText.trim().length > 2000) {
+        setFormError("Prompt text cannot exceed 2000 characters.");
+        return;
       }
     }
 
@@ -124,14 +139,21 @@ export function MenuBuilder({ botId, initialButtons }: MenuBuilderProps) {
       ...(editingIndex !== null ? { id: buttons[editingIndex].id } : {}),
       label: trimmedLabel,
       actionType: formActionType,
-      replyText: formActionType === "SEND_TEXT" ? formReplyText.trim() : null,
+      replyText:
+        formActionType === "SEND_TEXT"
+          ? formReplyText.trim()
+          : formActionType === "JOIN_CHANNELS"
+          ? formReplyText.trim() ||
+            "Please join our official channels below, then tap 'Check Joined' to verify your membership."
+          : null,
       autoDeleteReply: formActionType === "SEND_TEXT" ? formAutoDelete : false,
       deleteAfterSeconds:
         formActionType === "SEND_TEXT" && formAutoDelete
           ? Math.floor(formDeleteAfterSeconds || 30)
           : 30,
       isEnabled: formIsEnabled,
-      order: editingIndex !== null ? buttons[editingIndex].order : buttons.length,
+      order:
+        editingIndex !== null ? buttons[editingIndex].order : buttons.length,
     };
 
     if (editingIndex !== null) {
@@ -281,7 +303,11 @@ export function MenuBuilder({ botId, initialButtons }: MenuBuilderProps) {
                 >
                   <span className="flex-1 text-center font-medium">{btn.label}</span>
                   <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-300">
-                    {btn.actionType === "REQUEST_CONTACT" ? "Phone" : "Text"}
+                    {btn.actionType === "REQUEST_CONTACT"
+                      ? "Phone"
+                      : btn.actionType === "JOIN_CHANNELS"
+                      ? "Channels"
+                      : "Text"}
                   </span>
                 </div>
               ))
@@ -344,11 +370,15 @@ export function MenuBuilder({ botId, initialButtons }: MenuBuilderProps) {
                         className={`rounded px-2 py-0.5 text-[11px] font-semibold ${
                           btn.actionType === "REQUEST_CONTACT"
                             ? "bg-purple-950/70 text-purple-400 border border-purple-800/50"
+                            : btn.actionType === "JOIN_CHANNELS"
+                            ? "bg-emerald-950/70 text-emerald-400 border border-emerald-800/50"
                             : "bg-blue-950/70 text-blue-400 border border-blue-800/50"
                         }`}
                       >
                         {btn.actionType === "REQUEST_CONTACT"
                           ? "REQUEST_CONTACT"
+                          : btn.actionType === "JOIN_CHANNELS"
+                          ? "JOIN_CHANNELS"
                           : "SEND_TEXT"}
                       </span>
                       {btn.actionType === "SEND_TEXT" && btn.autoDeleteReply && (
@@ -380,6 +410,11 @@ export function MenuBuilder({ botId, initialButtons }: MenuBuilderProps) {
                     {btn.actionType === "REQUEST_CONTACT" && (
                       <p className="mt-1 text-xs text-purple-400 font-mono">
                         Prompts user to share personal phone number (with ownership check)
+                      </p>
+                    )}
+                    {btn.actionType === "JOIN_CHANNELS" && (
+                      <p className="mt-1 text-xs text-emerald-400 font-mono">
+                        Sends inline Join Channel buttons and "Check Joined" verification
                       </p>
                     )}
                   </div>
@@ -499,7 +534,7 @@ export function MenuBuilder({ botId, initialButtons }: MenuBuilderProps) {
                 <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
                   Action Type
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <label
                     className={`flex flex-col p-3 rounded-lg border cursor-pointer transition ${
                       formActionType === "SEND_TEXT"
@@ -517,7 +552,7 @@ export function MenuBuilder({ botId, initialButtons }: MenuBuilderProps) {
                         className="text-blue-500 focus:ring-blue-400"
                       />
                       <span className="text-sm font-semibold text-slate-100">
-                        Send Text Reply
+                        Send Text
                       </span>
                     </div>
                     <span className="mt-1 text-xs text-slate-400 pl-6">
@@ -542,15 +577,60 @@ export function MenuBuilder({ botId, initialButtons }: MenuBuilderProps) {
                         className="text-purple-500 focus:ring-purple-400"
                       />
                       <span className="text-sm font-semibold text-slate-100">
-                        Request Contact
+                        Phone Number
                       </span>
                     </div>
                     <span className="mt-1 text-xs text-slate-400 pl-6">
                       Telegram phone share button (with ownership validation)
                     </span>
                   </label>
+
+                  <label
+                    className={`flex flex-col p-3 rounded-lg border cursor-pointer transition ${
+                      formActionType === "JOIN_CHANNELS"
+                        ? "border-emerald-500 bg-emerald-950/40"
+                        : "border-slate-800 bg-slate-950/60 hover:bg-slate-800/50"
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="radio"
+                        name="actionType"
+                        value="JOIN_CHANNELS"
+                        checked={formActionType === "JOIN_CHANNELS"}
+                        onChange={() => setFormActionType("JOIN_CHANNELS")}
+                        className="text-emerald-500 focus:ring-emerald-400"
+                      />
+                      <span className="text-sm font-semibold text-slate-100">
+                        Join Channels
+                      </span>
+                    </div>
+                    <span className="mt-1 text-xs text-slate-400 pl-6">
+                      Inline channel buttons & membership check
+                    </span>
+                  </label>
                 </div>
               </div>
+
+              {formActionType === "JOIN_CHANNELS" && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+                    Instructions / Prompt Text (Optional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={formReplyText}
+                    onChange={(e) => setFormReplyText(e.target.value)}
+                    maxLength={2000}
+                    className="w-full rounded-lg bg-slate-950 border border-slate-700 p-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 font-sans"
+                    placeholder="Please join our official channels below, then tap 'Check Joined' to verify your membership."
+                  />
+                  <div className="mt-1 text-right text-[11px] text-slate-400">
+                    {formReplyText.length} / 2000 (Defaults to standard message
+                    if empty)
+                  </div>
+                </div>
+              )}
 
               {formActionType === "SEND_TEXT" && (
                 <>

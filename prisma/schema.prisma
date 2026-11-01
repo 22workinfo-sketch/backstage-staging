@@ -17,6 +17,7 @@ model Bot {
   updatedAt   DateTime       @updatedAt
   config      BotConfig?
   buttons     BotButton[]
+  channels    BotChannel[]
   deletions   ScheduledDeletion[]
   users       TelegramUser[]
   auditLogs   AuditLog[]
@@ -114,4 +115,22 @@ model ScheduledDeletion {
   @@index([botId])
   @@index([status, deleteAt])
   @@map("scheduled_deletions")
+}
+
+model BotChannel {
+  id             String   @id @default(uuid())
+  botId          String
+  bot            Bot      @relation(fields: [botId], references: [id], onDelete: Cascade)
+  name           String
+  telegramChatId String
+  inviteLink     String
+  buttonLabel    String
+  isRequired     Boolean  @default(true)
+  isEnabled      Boolean  @default(true)
+  order          Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([botId])
+  @@map("bot_channels")
 }

@@ -265,7 +265,7 @@ export async function updateBotWelcomeMessage(input: UpdateWelcomeMessageInput) 
 export interface ButtonInput {
   id?: string;
   label: string;
-  actionType: "SEND_TEXT" | "REQUEST_CONTACT" | string;
+  actionType: "SEND_TEXT" | "REQUEST_CONTACT" | "JOIN_CHANNELS" | string;
   replyText?: string | null;
   autoDeleteReply?: boolean;
   deleteAfterSeconds?: number;
@@ -325,9 +325,13 @@ export async function saveBotButtons(
     }
     seenLabels.add(normalizedLabel);
 
-    if (btn.actionType !== "SEND_TEXT" && btn.actionType !== "REQUEST_CONTACT") {
+    if (
+      btn.actionType !== "SEND_TEXT" &&
+      btn.actionType !== "REQUEST_CONTACT" &&
+      btn.actionType !== "JOIN_CHANNELS"
+    ) {
       throw new Error(
-        `Button "${trimmedLabel}" has an unsupported action type: ${btn.actionType}. Only SEND_TEXT and REQUEST_CONTACT are supported.`
+        `Button "${trimmedLabel}" has an unsupported action type: ${btn.actionType}. Only SEND_TEXT, REQUEST_CONTACT, and JOIN_CHANNELS are supported.`
       );
     }
 
@@ -353,6 +357,12 @@ export async function saveBotButtons(
             `Button "${trimmedLabel}" has invalid auto-delete delay: ${btn.deleteAfterSeconds}. Delay must be between 5 and 86400 seconds (24 hours).`
           );
         }
+      }
+    } else if (btn.actionType === "JOIN_CHANNELS") {
+      if (btn.replyText && btn.replyText.trim().length > 2000) {
+        throw new Error(
+          `Prompt text for "${trimmedLabel}" exceeds maximum length of 2000 characters.`
+        );
       }
     }
   }
@@ -458,23 +468,40 @@ export async function handleTelegramText(botId: string, text: string) {
 
   const trimmedText = text.trim();
 
-  // Find enabled SEND_TEXT button for this bot matching the exact label
+  // Find enabled button for this bot matching the exact label (SEND_TEXT or JOIN_CHANNELS)
   const button = await prisma.botButton.findFirst({
     where: {
       botId,
       label: trimmedText,
       isEnabled: true,
-      actionType: "SEND_TEXT",
+      actionType: { in: ["SEND_TEXT", "JOIN_CHANNELS"] },
     },
   });
 
-  if (!button || !button.replyText) {
+  if (!button) {
     return { handled: false };
   }
 
-  return {
-    handled: true,
-    replyText: button.replyText,
-    button,
-  };
+  if (button.actionType === "SEND_TEXT") {
+    if (!button.replyText) return { handled: false };
+    return {
+      handled: true,
+      actionType: "SEND_TEXT",
+      replyText: button.replyText,
+      button,
+    };
+  }
+
+  if (button.actionType === "JOIN_CHANNELS") {
+    const defaultPrompt =
+      "Please join our official channels below, then tap 'Check Joined' to verify your membership.";
+    return {
+      handled: true,
+      actionType: "JOIN_CHANNELS",
+      replyText: button.replyText || defaultPrompt,
+      button,
+    };
+  }
+
+  return { handled: false };
 }

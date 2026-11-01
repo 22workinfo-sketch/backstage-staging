@@ -35,9 +35,9 @@ export function BotdeskMenuPage({
   const [showModal, setShowModal] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [formLabel, setFormLabel] = useState("");
-  const [formAction, setFormAction] = useState<"SEND_TEXT" | "REQUEST_CONTACT">(
-    "SEND_TEXT"
-  );
+  const [formAction, setFormAction] = useState<
+    "SEND_TEXT" | "REQUEST_CONTACT" | "JOIN_CHANNELS"
+  >("SEND_TEXT");
   const [formReply, setFormReply] = useState("");
   const [formAutoDelete, setFormAutoDelete] = useState(false);
   const [formDeleteSeconds, setFormDeleteSeconds] = useState(30);
@@ -90,7 +90,11 @@ export function BotdeskMenuPage({
     setEditingIndex(index);
     setFormLabel(b.label);
     setFormAction(
-      b.actionType === "REQUEST_CONTACT" ? "REQUEST_CONTACT" : "SEND_TEXT"
+      b.actionType === "REQUEST_CONTACT"
+        ? "REQUEST_CONTACT"
+        : b.actionType === "JOIN_CHANNELS"
+        ? "JOIN_CHANNELS"
+        : "SEND_TEXT"
     );
     setFormReply(b.replyText || "");
     setFormAutoDelete(Boolean(b.autoDeleteReply));
@@ -144,13 +148,24 @@ export function BotdeskMenuPage({
           return;
         }
       }
+    } else if (formAction === "JOIN_CHANNELS") {
+      if (formReply.trim().length > 2000) {
+        setFormError("Prompt text cannot exceed 2000 characters.");
+        return;
+      }
     }
 
     const item: BotButtonDTO = {
       ...(editingIndex !== null ? { id: buttons[editingIndex].id } : {}),
       label: trimmedLabel,
       actionType: formAction,
-      replyText: formAction === "SEND_TEXT" ? formReply.trim() : null,
+      replyText:
+        formAction === "SEND_TEXT"
+          ? formReply.trim()
+          : formAction === "JOIN_CHANNELS"
+          ? formReply.trim() ||
+            "Please join our official channels below, then tap 'Check Joined' to verify your membership."
+          : null,
       autoDeleteReply: formAction === "SEND_TEXT" ? formAutoDelete : false,
       deleteAfterSeconds:
         formAction === "SEND_TEXT" && formAutoDelete
@@ -264,6 +279,11 @@ export function BotdeskMenuPage({
         "📱 [Telegram Native Contact Request Prompt]\n\n" +
         "Telegram prompts the user: 'Share your phone number with this bot?'\n" +
         "Bot Backstage verifies contact.user_id === sender.id before saving.";
+    } else if (btn.actionType === "JOIN_CHANNELS") {
+      botReplyText =
+        (btn.replyText ||
+          "Please join our official channels below, then tap 'Check Joined' to verify your membership.") +
+        "\n\n[📢 Join Channel]  [🔄 Check Joined]";
     } else {
       botReplyText =
         btn.replyText || "This button has no configured reply text.";
@@ -376,11 +396,15 @@ export function BotdeskMenuPage({
                           className={`botdesk-badge text-[11px] ${
                             btn.actionType === "REQUEST_CONTACT"
                               ? "paused"
+                              : btn.actionType === "JOIN_CHANNELS"
+                              ? "blue"
                               : "blue"
                           }`}
                         >
                           {btn.actionType === "REQUEST_CONTACT"
                             ? "Phone"
+                            : btn.actionType === "JOIN_CHANNELS"
+                            ? "Channels"
                             : "Text"}
                         </span>
                         {btn.actionType === "SEND_TEXT" &&
@@ -401,6 +425,11 @@ export function BotdeskMenuPage({
                       {btn.actionType === "SEND_TEXT" && btn.replyText && (
                         <p className="text-xs text-[var(--muted)] mt-1 line-clamp-1 italic">
                           "{btn.replyText}"
+                        </p>
+                      )}
+                      {btn.actionType === "JOIN_CHANNELS" && (
+                        <p className="text-xs text-[var(--muted)] mt-1 line-clamp-1 italic">
+                          "{btn.replyText || "Please join our official channels below, then tap 'Check Joined' to verify your membership."}"
                         </p>
                       )}
                     </div>
@@ -582,15 +611,41 @@ export function BotdeskMenuPage({
                   value={formAction}
                   onChange={(e) =>
                     setFormAction(
-                      e.target.value as "SEND_TEXT" | "REQUEST_CONTACT"
+                      e.target.value as
+                        | "SEND_TEXT"
+                        | "REQUEST_CONTACT"
+                        | "JOIN_CHANNELS"
                     )
                   }
                   className="botdesk-select text-xs"
                 >
                   <option value="SEND_TEXT">Send text</option>
                   <option value="REQUEST_CONTACT">Request phone number</option>
+                  <option value="JOIN_CHANNELS">
+                    Join channels & check membership
+                  </option>
                 </select>
               </div>
+
+              {formAction === "JOIN_CHANNELS" && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
+                    Instructions / Prompt Text (Optional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    maxLength={2000}
+                    value={formReply}
+                    onChange={(e) => setFormReply(e.target.value)}
+                    placeholder="Please join our official channels below, then tap 'Check Joined' to verify your membership."
+                    className="botdesk-textarea text-xs"
+                  />
+                  <span className="text-[11px] text-[var(--muted)] text-right block mt-0.5">
+                    {formReply.length} / 2000 (Defaults to standard message if
+                    empty)
+                  </span>
+                </div>
+              )}
 
               {formAction === "SEND_TEXT" && (
                 <>

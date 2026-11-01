@@ -96,6 +96,7 @@ The admin web panel follows the clean **Botdesk** design system with a dedicated
 
 - **▦ Bots** (`/dashboard`): Overview of connected bots, search, metrics, live welcome message editor, registered users table, and conversation simulator.
 - **▦ Bot menu** (`/menu`): Dedicated Bot Menu Builder with side-by-side Telegram preview simulator, button reordering, enable/disable toggles, and auto-delete settings.
+- **📢 Channels** (`/channels`): Dedicated Channel Manager to configure channels/groups, private or public invite links, required vs. optional gating, and voluntary Telegram membership verification.
 - **♙ Staff & access** (`/staff`): Transparent overview of administrator access, role permissions (Owner, Admin, Staff), and local security architecture.
 - **≡ Activity** (`/activity`): Real-time audit log timeline loading configuration changes and menu updates directly from PostgreSQL.
 - **⚙ Workspace** (`/workspace`): System health, long polling runner status, database connection, and production roadmap.
@@ -105,12 +106,13 @@ The admin web panel follows the clean **Botdesk** design system with a dedicated
 1. Open **Bot menu** from the sidebar (or visit `http://127.0.0.1:3000/menu`).
 2. **Add a Button**:
    - Click **＋ Add button**.
-   - Enter a label (e.g. `🕒 Working Hours` or `📍 Office Location`, max 64 chars).
+   - Enter a label (e.g. `🕒 Working Hours` or `📢 Official Channels`, max 64 chars).
    - Select an **Action Type**:
      - **Send Text Reply (`SEND_TEXT`)**: Enter the text message the bot will send when the button is tapped (max 2000 chars).
        - **Auto-Delete Bot Reply (Optional)**: Check this toggle to automatically delete the bot's reply message after a delay.
        - **Delete After (Seconds)**: Set the delay in seconds (between 5 and 86,400 seconds / up to 24h). Default is 30s.
      - **Request Contact (`REQUEST_CONTACT`)**: Telegram's phone-sharing button with built-in ownership validation.
+     - **Join Channels & Check Membership (`JOIN_CHANNELS`)**: Sends an inline keyboard with URLs to configured enabled channels plus a `🔄 Check Joined` callback button.
    - Click **Save button**.
 3. **Edit a Button**: Click **Edit** on any button to change its label, reply text, or auto-delete configuration.
 4. **Enable / Disable**: Click **Disable** to temporarily hide a button from the keyboard without deleting it.
@@ -123,7 +125,47 @@ The admin web panel follows the clean **Botdesk** design system with a dedicated
 
 ---
 
-## 7. How to Test the MVP Flow End-to-End
+## 7. Managing Channels & Voluntary Membership Verification
+
+### Step A: Bot Channel Administrator Setup (Crucial Requirement)
+Telegram's `getChatMember` API requires the bot to be an **Administrator** in private channels or supergroups to query member status. If the bot is not an admin, Telegram returns `400 Bad Request: chat not found` or `bot is not a member of the chat`.
+1. In Telegram, open your channel settings -> **Administrators** -> **Add Administrator**.
+2. Search for your bot username (e.g. `@your_test_bot`).
+3. Grant the bot basic administrator rights (**"Manage Chat"** or **"Invite Users via Link"**).
+4. For public channels, note the username (e.g. `@my_channel`).
+5. For private channels, note the numeric ID (e.g. `-1001234567890`) and create a join link (e.g. `https://t.me/+AbCdEfGh123`).
+
+### Step B: Configure Channels in Backstage
+1. In Backstage sidebar, click **📢 Channels** (or visit `http://127.0.0.1:3000/channels`).
+2. Click **＋ Add channel**.
+3. Fill in the details:
+   - **Channel Name**: Human-readable name (e.g. `Official Announcements`).
+   - **Telegram Chat ID / Username**: Channel username (`@announcements`) or numeric ID (`-100...`).
+   - **Invite Link**: Valid Telegram invite URL (`https://t.me/...` or `https://telegram.me/...`).
+   - **Button Label**: Text displayed on the Telegram inline button (e.g. `📢 Join Announcements`).
+   - **Required for Verification**: Toggle ON for required channels, OFF for optional channels.
+   - **Active (Enabled)**: Toggle ON to include in the bot's inline keyboard.
+4. Click **Add Channel**, then click **Save Channels Changes** to persist to PostgreSQL.
+
+### Step C: How the User Flow Works (Voluntary User Action Only)
+> [!IMPORTANT]
+> The bot **NEVER** claims or attempts to automatically join users to channels. Joining each channel requires the user's voluntary tap in Telegram.
+1. User taps the menu button configured with `JOIN_CHANNELS` (e.g. `📢 Channels & Community`).
+2. The bot sends a message with inline URL buttons for each enabled channel and a bottom `🔄 Check Joined` callback button.
+3. The user voluntarily taps each channel button to join them in Telegram.
+4. The user returns to the bot and taps `🔄 Check Joined`.
+5. The bot receives Telegram's callback query, extracts the tamper-proof user ID from `ctx.from.id`, and calls `getChatMember` for each configured channel.
+6. **Result**:
+   - If all required channels are joined (`creator`, `administrator`, `member`, or `restricted` with `is_member: true`), the bot confirms: `✅ Verification Complete! You have joined all required channels.`
+   - If any required channels are missing, the bot clearly lists which channels still need to be joined.
+   - If an API or permission error occurs (e.g. bot not an admin in channel), the bot clearly explains the issue and **NEVER** treats an error as verified.
+
+### Note on Auto-Approval (Phase 5 / Future Roadmap):
+Telegram channels configured with "Request Admin Approval" (Join Requests) are not automatically approved in this phase. The bot currently verifies active membership via `getChatMember`. Automatic processing of `chat_join_request` webhooks is scheduled for Phase 5.
+
+---
+
+## 8. How to Test the MVP Flow End-to-End
 
 > [!IMPORTANT]
 > - Use **only your own test Telegram account** and test phone number for local verification.
@@ -158,10 +200,18 @@ The admin web panel follows the clean **Botdesk** design system with a dedicated
    - If you forward a third-party contact card, the bot detects the mismatch and politely rejects it:
      `⚠️ We could not verify this phone number. To protect your account, we only accept your own personal contact...`
    - Your existing verified phone number is preserved in the database.
-7. **Inspect in Admin Panel**:
+7. **Test `JOIN_CHANNELS` Flow**:
+   - In `/channels`, configure your test channel (with the bot added as administrator) and mark it **Required**.
+   - In `/menu`, add a menu button `📢 Official Channels` with action `JOIN_CHANNELS`. Click **Save Menu Changes**.
+   - In Telegram, send `/start` and tap `📢 Official Channels`.
+   - The bot sends an inline keyboard with `📢 Join [Channel Name]` and `🔄 Check Joined`.
+   - Before joining, tap `🔄 Check Joined`: the bot reports `⚠️ Please join the required channels: "[Channel Name]" before verifying again.`
+   - Tap `📢 Join [Channel Name]` and join the channel in Telegram.
+   - Tap `🔄 Check Joined` again: the bot verifies your membership and confirms `✅ Verification Complete! You have joined all required channels.`
+8. **Inspect in Admin Panel**:
    - In your browser, open `http://127.0.0.1:3000/bots/00000000-0000-0000-0000-000000000001`.
    - The user table shows your `telegram_id`, name, `@username`, and verified phone number.
-8. **Test Live Menu Updates**:
+9. **Test Live Menu Updates**:
    - In the Admin Panel, add a new button (e.g. `🎁 Bonus Info`) and click **Save Menu Changes**.
    - In Telegram, send `/start`.
    - Telegram immediately updates your keyboard to show the new button.
@@ -169,17 +219,17 @@ The admin web panel follows the clean **Botdesk** design system with a dedicated
 
 ---
 
-## 8. Running Automated Tests
-Run the 41 automated unit and integration tests anytime:
+## 9. Running Automated Tests
+Run the 53 automated unit and integration tests anytime:
 ```powershell
 npm.cmd test
 ```
 - Tests for bcrypt hashing, jose JWT sessions, and mock request guards run using **in-memory mocks**.
-- Tests for health check, user upsert, contact persistence, greeting updates, menu CRUD, auto-delete scheduling, atomic sweeper claiming, error resilience, and cross-bot isolation run against **real local PostgreSQL**.
+- Tests for health check, user upsert, contact persistence, greeting updates, menu CRUD, channel management, getChatMember membership evaluation, API route guards, auto-delete scheduling, atomic sweeper claiming, error resilience, and cross-bot isolation run against **real local PostgreSQL**.
 
 ---
 
-## 9. Current Limitations & Scope
+## 10. Current Limitations & Scope
 - **Single-Admin MVP**: Admin-to-bot granular authorization is not yet implemented. Any authenticated admin can manage the bot menu.
 - **Reply Keyboard Only**: Buttons appear as a native Telegram chat keyboard (one per row). Inline keyboards and Telegram Mini Apps are not included in this phase.
 - **Client Caching in Telegram**: Telegram caches reply keyboards locally on the client until the bot sends a message with an updated `reply_markup` (such as on `/start`).

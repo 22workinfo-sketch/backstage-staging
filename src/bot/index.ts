@@ -9,6 +9,10 @@ import {
   scheduleMessageDeletion,
   processDueDeletions,
 } from "../lib/deletion-service";
+import {
+  getBotChannels,
+  checkUserChannelMemberships,
+} from "../lib/channel-service";
 
 dotenv.config();
 
@@ -130,7 +134,7 @@ bot.on(":contact", async (ctx) => {
   }
 });
 
-// Handle dynamic reply keyboard button presses (SEND_TEXT)
+// Handle dynamic reply keyboard button presses (SEND_TEXT and JOIN_CHANNELS)
 bot.on("message:text", async (ctx, next) => {
   const text = ctx.message?.text;
   if (!text || text.startsWith("/")) {
@@ -139,35 +143,64 @@ bot.on("message:text", async (ctx, next) => {
 
   try {
     const result = await handleTelegramText(botId, text);
-    if (result.handled && result.replyText) {
-      // 1. Send the configured reply to Telegram
-      const sent = await ctx.reply(result.replyText);
-      console.log(
-        `[Bot Runner] Handled menu action for button "${text}" (user ${ctx.from?.id})`
-      );
-
-      // 2. If auto-delete is enabled, schedule persistent deletion in PostgreSQL
-      // Notice: Countdown timer starts strictly AFTER Telegram confirms message was sent!
-      if (result.button?.autoDeleteReply && result.button?.deleteAfterSeconds) {
-        try {
-          await scheduleMessageDeletion({
-            botId,
-            chatId: String(sent.chat.id),
-            messageId: sent.message_id,
-            deleteAfterSeconds: result.button.deleteAfterSeconds,
-          });
-          console.log(
-            `[AutoDelete] Scheduled deletion for message ID ${sent.message_id} in chat ${sent.chat.id} after ${result.button.deleteAfterSeconds}s`
-          );
-        } catch (schedErr) {
-          console.error(
-            "[AutoDelete Error] Failed to schedule message deletion:",
-            schedErr instanceof Error ? schedErr.message : schedErr
-          );
+    if (result.handled) {
+      if (result.actionType === "JOIN_CHANNELS") {
+        // Fetch enabled channels for this bot
+        const channels = await getBotChannels(botId, true);
+        if (channels.length === 0) {
+          await ctx.reply("ℹ️ No official channels are currently configured for this bot.");
+          return;
         }
+
+        // Build Telegram Inline Keyboard with channel URL buttons and Check Joined callback button
+        const inlineKeyboard = new InlineKeyboard();
+        for (const ch of channels) {
+          inlineKeyboard.url(ch.buttonLabel, ch.inviteLink).row();
+        }
+        inlineKeyboard.text("🔄 Check Joined", `check_joined:${botId}`).row();
+
+        const promptText =
+          result.replyText ||
+          "Please join our official channels below, then tap 'Check Joined' to verify your membership.";
+
+        await ctx.reply(promptText, { reply_markup: inlineKeyboard });
+        console.log(
+          `[Bot Runner] Displayed ${channels.length} channels with inline buttons for button "${text}" (user ${ctx.from?.id})`
+        );
+        return;
       }
 
-      return;
+      // Default SEND_TEXT action
+      if (result.replyText) {
+        // 1. Send the configured reply to Telegram
+        const sent = await ctx.reply(result.replyText);
+        console.log(
+          `[Bot Runner] Handled menu action for button "${text}" (user ${ctx.from?.id})`
+        );
+
+        // 2. If auto-delete is enabled, schedule persistent deletion in PostgreSQL
+        // Notice: Countdown timer starts strictly AFTER Telegram confirms message was sent!
+        if (result.button?.autoDeleteReply && result.button?.deleteAfterSeconds) {
+          try {
+            await scheduleMessageDeletion({
+              botId,
+              chatId: String(sent.chat.id),
+              messageId: sent.message_id,
+              deleteAfterSeconds: result.button.deleteAfterSeconds,
+            });
+            console.log(
+              `[AutoDelete] Scheduled deletion for message ID ${sent.message_id} in chat ${sent.chat.id} after ${result.button.deleteAfterSeconds}s`
+            );
+          } catch (schedErr) {
+            console.error(
+              "[AutoDelete Error] Failed to schedule message deletion:",
+              schedErr instanceof Error ? schedErr.message : schedErr
+            );
+          }
+        }
+
+        return;
+      }
     }
   } catch (error) {
     console.error(
@@ -178,6 +211,80 @@ bot.on("message:text", async (ctx, next) => {
 
   // Gracefully pass unhandled text (e.g. disabled/removed buttons or standard chat)
   return next();
+});
+
+// Handle "Check Joined" callback button press
+bot.callbackQuery(/^check_joined:(.+)$/, async (ctx) => {
+  try {
+    // Acknowledge callback immediately to clear loading state in Telegram client
+    await ctx.answerCallbackQuery({ text: "Checking channel memberships..." });
+
+    const parts = (ctx.callbackQuery.data || "").split(":");
+    const targetBotId = parts[1] || botId;
+    const userId = ctx.from.id;
+
+    const summary = await checkUserChannelMemberships({
+      botId: targetBotId,
+      userId,
+      getChatMemberFn: async (chatId, uId) => {
+        return bot.api.getChatMember(chatId, uId);
+      },
+    });
+
+    let message = "";
+    if (summary.allRequiredJoined && !summary.hasErrors) {
+      message =
+        "✅ **Membership Verified!**\n\n" +
+        "Thank you! You have successfully joined all required channels.";
+      if (summary.details.length > 0) {
+        message +=
+          "\n\n" +
+          summary.details
+            .map((d) => `• **${d.channelName}**: Verified (${d.status})`)
+            .join("\n");
+      }
+    } else if (summary.hasErrors) {
+      message =
+        "⚠️ **Verification Notice**\n\n" +
+        summary.message +
+        "\n\n" +
+        summary.details
+          .filter((d) => d.status === "error")
+          .map((d) => `• **${d.channelName}**: ${d.errorMessage}`)
+          .join("\n") +
+        "\n\n_Note: Please ensure the bot is added as an Administrator to each channel to verify membership._";
+    } else {
+      message =
+        "⚠️ **Membership Verification Incomplete**\n\n" +
+        "You must join all required channels to proceed:\n\n";
+      message += summary.details
+        .map((d) => {
+          const icon = d.isJoined ? "✅" : d.isRequired ? "❌" : "⚪";
+          const statusDesc = d.isJoined
+            ? "Joined"
+            : d.isRequired
+            ? "Required — Not Joined"
+            : "Optional — Not Joined";
+          return `${icon} **${d.channelName}**: ${statusDesc}`;
+        })
+        .join("\n");
+      message +=
+        "\n\nPlease tap the channel links above to join, then tap **Check Joined** again.";
+    }
+
+    await ctx.reply(message, { parse_mode: "Markdown" });
+    console.log(
+      `[Bot Runner] Membership check completed for Telegram user ${userId}: allRequiredJoined=${summary.allRequiredJoined}`
+    );
+  } catch (error) {
+    console.error(
+      "[Bot Runner Error] Callback query check_joined error:",
+      error instanceof Error ? error.message : "Unknown error"
+    );
+    await ctx.reply(
+      "Sorry, an unexpected error occurred while checking channel membership. Please try again later."
+    );
+  }
 });
 
 // Periodic sweeper: sweeps and executes due deletions from PostgreSQL
