@@ -7,7 +7,14 @@ import { useRouter } from "next/navigation";
 export interface BotdeskLayoutProps {
   userEmail?: string;
   role?: string;
-  activeNav: "bots" | "menus" | "channels" | "staff" | "activity" | "workspace";
+  activeNav:
+    | "bots"
+    | "menus"
+    | "channels"
+    | "posts"
+    | "staff"
+    | "activity"
+    | "workspace";
   breadcrumb: string;
   children: React.ReactNode;
 }
@@ -79,6 +86,16 @@ export function BotdeskLayout({
               📢
             </span>
             <span>Channels</span>
+          </Link>
+
+          <Link
+            href="/posts"
+            className={`nav-link ${activeNav === "posts" ? "active" : ""}`}
+          >
+            <span className="nav-icon" aria-hidden="true">
+              ✉
+            </span>
+            <span>Channel posts</span>
           </Link>
 
           <Link

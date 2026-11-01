@@ -38,3 +38,6 @@ Thumbs.db
 
 # Testing coverage
 coverage/
+
+# Local uploaded media (non-public development storage)
+uploads/

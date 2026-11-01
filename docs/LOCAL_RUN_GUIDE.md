@@ -97,6 +97,7 @@ The admin web panel follows the clean **Botdesk** design system with a dedicated
 - **▦ Bots** (`/dashboard`): Overview of connected bots, search, metrics, live welcome message editor, registered users table, and conversation simulator.
 - **▦ Bot menu** (`/menu`): Dedicated Bot Menu Builder with side-by-side Telegram preview simulator, button reordering, enable/disable toggles, and auto-delete settings.
 - **📢 Channels** (`/channels`): Dedicated Channel Manager to configure channels/groups, private or public invite links, required vs. optional gating, and voluntary Telegram membership verification.
+- **✉ Channel posts** (`/posts`): Prepare, preview, draft, and publish announcements and media to Telegram channels with inline buttons and safe concurrency guards.
 - **♙ Staff & access** (`/staff`): Transparent overview of administrator access, role permissions (Owner, Admin, Staff), and local security architecture.
 - **≡ Activity** (`/activity`): Real-time audit log timeline loading configuration changes and menu updates directly from PostgreSQL.
 - **⚙ Workspace** (`/workspace`): System health, long polling runner status, database connection, and production roadmap.
@@ -165,7 +166,59 @@ Telegram channels configured with "Request Admin Approval" (Join Requests) are n
 
 ---
 
-## 8. How to Test the MVP Flow End-to-End
+## 8. Managing Channel Posts & Broadcasts (`/posts`)
+
+The Channel Post Manager allows you to draft, preview, and broadcast official announcements or photos with inline URL buttons directly to a Telegram channel.
+
+### Step A: Bot Channel Posting Rights Setup
+To post to a channel, the bot must be an **Administrator** with the **"Post Messages"** permission enabled in Telegram:
+1. In Telegram, open your target channel settings -> **Administrators** -> tap your bot (`@your_test_bot`).
+2. Verify the following permission toggle is **ON**:
+   - **Post Messages**: `Enabled` (Allows the bot to publish new messages in the channel)
+   - *(Optional: "Edit Messages of Others" and "Delete Messages" if needed in future phases)*
+3. If the bot is only a regular member or missing this right, Telegram will return `400 Bad Request: need administrator rights in the channel to post messages`.
+4. In the backstage `/posts` page, the permission status badge will automatically check and display:
+   - `✓ Can Post Messages` (green): Bot is confirmed with posting rights.
+   - `⚠️ Missing Post Permission` (yellow): Bot is administrator but "Post Messages" is toggled off.
+   - `✕ Not Channel Admin` (red): Bot is not an administrator in the channel.
+   - `? Permission Unknown` (gray): Status could not be verified (honest unknown; proceed cautiously).
+
+### Step B: Composing a Post
+1. Open **✉ Channel posts** in the sidebar (or visit `http://127.0.0.1:3000/posts`).
+2. Select your **Publishing Bot** and **Target Channel** from the dropdowns.
+3. Choose **Post Type**:
+   - **📝 Text-Only Message**: Enter your announcement (up to 4,096 characters).
+   - **🖼️ Photo with Caption**:
+     - Upload an image file (JPEG, PNG, or WebP up to 5 MB).
+     - Images are stored locally in the non-public `uploads/posts/` directory.
+     - Add an optional caption (up to 1,024 characters).
+4. **Add Inline URL Buttons** (Optional, up to 10):
+   - Click **＋ Add Button**.
+   - Enter **Button Label** (e.g. `🌐 Read Full Story`, max 64 characters).
+   - Enter **Destination URL** (HTTPS or `tg://`).
+   - Click **Add Button**.
+5. Check the **Telegram Post Preview** on the right side of the screen.
+
+### Step C: Saving Drafts & Publishing
+1. **Save Draft**:
+   - Click **💾 Save Draft** anytime to persist the post and buttons to PostgreSQL.
+   - The post appears in the **Post History & Drafts** table below with status `DRAFT`.
+2. **Publishing**:
+   - Click **🚀 Publish Now**.
+   - A confirmation dialog appears showing the target bot, channel name, post type, and inline buttons.
+   - Click **Yes, Publish to Channel**.
+   - Concurrency guards prevent double-click duplicate publishing.
+   - Upon confirmed Telegram delivery, the post updates to `PUBLISHED` with the Telegram `message_id` recorded.
+3. **Honest Delivery Statuses**:
+   - `DRAFT`: Saved locally in PostgreSQL.
+   - `SENDING`: Currently dispatching via Telegram Bot API (locked against concurrent attempts).
+   - `PUBLISHED`: Verified delivered by Telegram Bot API with message ID.
+   - `FAILED`: Definitive Telegram API error (e.g. missing post permission). Error reason is displayed.
+   - `UNKNOWN`: Network timeout occurred while awaiting Telegram confirmation. **The system NEVER auto-retries an UNKNOWN post** to avoid accidental duplicate broadcasts. Inspect your channel manually.
+
+---
+
+## 9. How to Test the MVP Flow End-to-End
 
 > [!IMPORTANT]
 > - Use **only your own test Telegram account** and test phone number for local verification.
@@ -217,22 +270,32 @@ Telegram channels configured with "Request Admin Approval" (Join Requests) are n
    - Telegram immediately updates your keyboard to show the new button.
    - Tap `🎁 Bonus Info` to verify the bot sends your new reply text!
 
+10. **Test Channel Post Publishing**:
+    - In your browser, open `http://127.0.0.1:3000/posts`.
+    - Ensure your test channel has the bot added as an administrator with "Post Messages" enabled.
+    - Compose a test post (e.g. `🔥 Special Announcement: System update complete!`).
+    - Add an inline button (Label: `🌐 Visit Portal`, URL: `https://example.com`).
+    - Click **💾 Save Draft** and verify it appears in the history table.
+    - Click **🚀 Publish Now**, confirm in the modal.
+    - The post status updates to `PUBLISHED` with its Telegram message ID.
+    - Open your Telegram app and verify the post and inline button appear in your test channel!
+
 ---
 
-## 9. Running Automated Tests
-Run the 53 automated unit and integration tests anytime:
+## 10. Running Automated Tests
+Run the 74 automated unit and integration tests anytime:
 ```powershell
 npm.cmd test
 ```
 - Tests for bcrypt hashing, jose JWT sessions, and mock request guards run using **in-memory mocks**.
-- Tests for health check, user upsert, contact persistence, greeting updates, menu CRUD, channel management, getChatMember membership evaluation, API route guards, auto-delete scheduling, atomic sweeper claiming, error resilience, and cross-bot isolation run against **real local PostgreSQL**.
+- Tests for health check, user upsert, contact persistence, greeting updates, menu CRUD, channel management, channel post drafts, local image uploads, double-submission guards, getChatMember membership evaluation, API route guards, auto-delete scheduling, atomic sweeper claiming, error resilience, and cross-bot isolation run against **real local PostgreSQL**.
 
 ---
 
-## 10. Current Limitations & Scope
-- **Single-Admin MVP**: Admin-to-bot granular authorization is not yet implemented. Any authenticated admin can manage the bot menu.
-- **Reply Keyboard Only**: Buttons appear as a native Telegram chat keyboard (one per row). Inline keyboards and Telegram Mini Apps are not included in this phase.
-- **Client Caching in Telegram**: Telegram caches reply keyboards locally on the client until the bot sends a message with an updated `reply_markup` (such as on `/start`).
+## 11. Current Limitations & Scope
+- **Single-Admin MVP**: Admin-to-bot granular authorization is not yet implemented. Any authenticated admin can manage the bot and publish posts.
+- **Single-Channel Publishing**: Posts are dispatched to one selected channel at a time. Multi-channel bulk broadcasting is scheduled for a future phase.
+- **Immediate Publishing Only**: Posts publish immediately upon confirmation. Scheduled broadcast queues (e.g. via cron or delayed job queue) are planned for the next phase.
+- **Immutable Published Posts**: Editing or deleting messages already published on Telegram is not implemented in this phase. The backstage only manages the local post record and publishing action.
+- **Local-Only Media Storage**: Image uploads are stored locally in the non-public `uploads/posts/` folder and streamed securely for preview. Cloud storage (S3/GCS) is not included in the local MVP.
 - **Telegram API Deletion Limits**: Telegram allows deleting bot messages up to 48 hours after sending. Older messages return `message can't be deleted`; our sweeper safely marks these as `FAILED` rather than retrying indefinitely.
-- **Crash Window Between Send & Schedule**: When the bot sends a message, there is a sub-millisecond window between Telegram acknowledging the sent message and PostgreSQL writing the `scheduled_deletions` record. If the node process crashes during that exact instant, the message would remain in Telegram without a scheduled deletion entry.
-- **Already-Deleted Handling**: If a user or admin manually deletes the message before the auto-delete timer expires, Telegram returns `message to delete not found`, which our sweeper safely detects and records as `COMPLETED`.

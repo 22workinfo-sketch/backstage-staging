@@ -18,6 +18,7 @@ model Bot {
   config      BotConfig?
   buttons     BotButton[]
   channels    BotChannel[]
+  posts       ChannelPost[]
   deletions   ScheduledDeletion[]
   users       TelegramUser[]
   auditLogs   AuditLog[]
@@ -130,7 +131,34 @@ model BotChannel {
   order          Int      @default(0)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  posts          ChannelPost[]
 
   @@index([botId])
   @@map("bot_channels")
+}
+
+model ChannelPost {
+  id                 String      @id @default(uuid())
+  botId              String
+  bot                Bot         @relation(fields: [botId], references: [id], onDelete: Cascade)
+  channelId          String
+  channel            BotChannel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  postType           String      @default("TEXT") // "TEXT" | "IMAGE"
+  content            String      @db.Text
+  mediaPath          String?
+  mediaOriginalName  String?
+  mediaMimeType      String?
+  mediaSizeBytes     Int?
+  buttonsConfig      Json?
+  status             String      @default("DRAFT") // "DRAFT" | "SENDING" | "PUBLISHED" | "FAILED" | "UNKNOWN"
+  telegramMessageId  Int?
+  lastError          String?     @db.Text
+  sentAt             DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  @@index([botId])
+  @@index([channelId])
+  @@index([status])
+  @@map("channel_posts")
 }
