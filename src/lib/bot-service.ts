@@ -367,15 +367,15 @@ export async function saveBotButtons(
     }
   }
 
-  // 3. Transactionally sync buttons in PostgreSQL
-  const savedButtons = await prisma.$transaction(async (tx) => {
+  // 3. Transactionally sync buttons in PostgreSQL (10s maxWait, 20s timeout, with direct fallback)
+  const executeSaveButtons = async (client: typeof prisma | any) => {
     // Collect existing button IDs in payload
     const incomingIds = buttons
       .map((b) => b.id)
       .filter((id): id is string => typeof id === "string" && id.length > 0);
 
     // Delete buttons removed by the admin for this specific bot
-    await tx.botButton.deleteMany({
+    await client.botButton.deleteMany({
       where: {
         botId,
         id: { notIn: incomingIds },
@@ -396,7 +396,7 @@ export async function saveBotButtons(
           : 30;
 
       if (b.id) {
-        const updated = await tx.botButton.upsert({
+        const updated = await client.botButton.upsert({
           where: { id: b.id },
           update: {
             label: trimmedLabel,
@@ -421,7 +421,7 @@ export async function saveBotButtons(
         });
         results.push(updated);
       } else {
-        const created = await tx.botButton.create({
+        const created = await client.botButton.create({
           data: {
             botId,
             label: trimmedLabel,
@@ -437,11 +437,23 @@ export async function saveBotButtons(
       }
     }
 
+    // Verify adminUser exists if provided to prevent foreign key errors
+    let validAdminUserId: string | null = null;
+    if (adminUserId) {
+      const adminExists = await client.adminUser.findUnique({
+        where: { id: adminUserId },
+        select: { id: true },
+      });
+      if (adminExists) {
+        validAdminUserId = adminExists.id;
+      }
+    }
+
     // 4. Record audit log
-    await tx.auditLog.create({
+    await client.auditLog.create({
       data: {
         botId,
-        adminUserId: adminUserId ?? null,
+        adminUserId: validAdminUserId,
         action: "UPDATE_BOT_MENU",
         details: {
           buttonCount: buttons.length,
@@ -451,9 +463,27 @@ export async function saveBotButtons(
     });
 
     return results;
-  });
+  };
 
-  return savedButtons;
+  try {
+    return await prisma.$transaction((tx) => executeSaveButtons(tx), {
+      maxWait: 10000,
+      timeout: 20000,
+    });
+  } catch (err: any) {
+    const errMsg = String(err?.message || err);
+    if (
+      errMsg.includes("Transaction API error") ||
+      errMsg.includes("Unable to start a transaction") ||
+      errMsg.includes("Transaction timed out")
+    ) {
+      console.warn(
+        `[BotService] Interactive transaction timed out. Falling back to direct database execution.`
+      );
+      return await executeSaveButtons(prisma);
+    }
+    throw err;
+  }
 }
 
 /**

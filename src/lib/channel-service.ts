@@ -180,14 +180,14 @@ export async function saveBotChannels(
     validateChannelInput(channels[i], i);
   }
 
-  // 3. Transactional update in PostgreSQL
-  const savedChannels = await prisma.$transaction(async (tx) => {
+  // 3. Perform update (Interactive transaction with 10s maxWait, 20s timeout, and graceful direct fallback)
+  const executeSave = async (client: typeof prisma | any) => {
     const incomingIds = channels
       .map((c) => c.id)
       .filter((id): id is string => typeof id === "string" && id.length > 0);
 
     // Delete channels removed by the admin for this bot
-    await tx.botChannel.deleteMany({
+    await client.botChannel.deleteMany({
       where: {
         botId,
         id: { notIn: incomingIds },
@@ -205,7 +205,7 @@ export async function saveBotChannels(
       const isEnabled = c.isEnabled !== undefined ? Boolean(c.isEnabled) : true;
 
       if (c.id) {
-        const updated = await tx.botChannel.upsert({
+        const updated = await client.botChannel.upsert({
           where: { id: c.id },
           update: {
             name: trimmedName,
@@ -230,7 +230,7 @@ export async function saveBotChannels(
         });
         results.push(updated);
       } else {
-        const created = await tx.botChannel.create({
+        const created = await client.botChannel.create({
           data: {
             botId,
             name: trimmedName,
@@ -249,7 +249,7 @@ export async function saveBotChannels(
     // Verify adminUser exists if provided to prevent foreign key errors
     let validAdminUserId: string | null = null;
     if (adminUserId) {
-      const adminExists = await tx.adminUser.findUnique({
+      const adminExists = await client.adminUser.findUnique({
         where: { id: adminUserId },
         select: { id: true },
       });
@@ -259,7 +259,7 @@ export async function saveBotChannels(
     }
 
     // 4. Record audit log (Invite links are intentionally OMITTED for privacy)
-    await tx.auditLog.create({
+    await client.auditLog.create({
       data: {
         botId,
         adminUserId: validAdminUserId,
@@ -273,9 +273,27 @@ export async function saveBotChannels(
     });
 
     return results;
-  });
+  };
 
-  return savedChannels;
+  try {
+    return await prisma.$transaction((tx) => executeSave(tx), {
+      maxWait: 10000,
+      timeout: 20000,
+    });
+  } catch (err: any) {
+    const errMsg = String(err?.message || err);
+    if (
+      errMsg.includes("Transaction API error") ||
+      errMsg.includes("Unable to start a transaction") ||
+      errMsg.includes("Transaction timed out")
+    ) {
+      console.warn(
+        `[ChannelService] Interactive transaction timed out. Falling back to direct database execution.`
+      );
+      return await executeSave(prisma);
+    }
+    throw err;
+  }
 }
 
 /**

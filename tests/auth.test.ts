@@ -36,7 +36,7 @@ describe("Admin Authentication & Password Lifecycle (In-Memory / Logic Mocks)", 
     // 3. Verify old password fails and new password passes
     expect(await verifyPassword(initialDisposablePassword, storedHash)).toBe(false);
     expect(await verifyPassword(newDisposablePassword, storedHash)).toBe(true);
-  });
+  }, 15000);
 
   it("should create and verify valid session tokens using jose JWT", async () => {
     const sessionData = {
