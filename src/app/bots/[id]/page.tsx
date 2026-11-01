@@ -2,7 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getAdminSession } from "@/lib/auth";
 import { getBotWithConfig, getBotUsers, getBotButtons } from "@/lib/bot-service";
-import { Navbar } from "@/components/Navbar";
+import { BotdeskLayout } from "@/components/BotdeskLayout";
 import { BotEditor } from "@/components/BotEditor";
 import { MenuBuilder } from "@/components/MenuBuilder";
 
@@ -35,17 +35,20 @@ export default async function BotDetailPage({ params }: BotPageProps) {
     "Hello! Welcome to the bot. Tap the button below to get started.";
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <Navbar userEmail={session.email} role={session.role} />
-
-      <main className="mx-auto max-w-7xl px-6 py-8">
+    <BotdeskLayout
+      userEmail={session.email}
+      role={session.role}
+      activeNav="bots"
+      breadcrumb={bot.name}
+    >
+      <div className="space-y-6">
         {/* Navigation Breadcrumb */}
-        <div className="mb-6 flex items-center space-x-2 text-sm text-slate-400">
-          <Link href="/dashboard" className="hover:text-blue-400 transition">
-            Dashboard
+        <div className="flex items-center space-x-2 text-xs text-[var(--muted)]">
+          <Link href="/dashboard" className="hover:text-[var(--accent)] transition">
+            Bots Dashboard
           </Link>
           <span>/</span>
-          <span className="font-semibold text-white">{bot.name}</span>
+          <span className="font-semibold text-[var(--text)]">{bot.name}</span>
         </div>
 
         {/* Bot Profile Header */}
@@ -202,7 +205,7 @@ export default async function BotDetailPage({ params }: BotPageProps) {
             )}
           </section>
         </div>
-      </main>
-    </div>
+      </div>
+    </BotdeskLayout>
   );
 }

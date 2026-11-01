@@ -90,27 +90,36 @@ The console will display:
 
 ---
 
-## 6. Using the Bot Menu Builder in Backstage
+## 6. Using the Botdesk Navigation & Menu Builder in Backstage
 
-You can manage your Telegram bot's reply keyboard directly from the web panel:
+The admin web panel follows the clean **Botdesk** design system with a dedicated sidebar:
 
-1. In the Admin Dashboard, click **Manage Bot →** on your test bot (`/bots/[id]`).
-2. Scroll to the **Bot Menu Builder (Reply Keyboard)** section.
-3. **Add a Button**:
-   - Click **+ Add Button**.
+- **▦ Bots** (`/dashboard`): Overview of connected bots, search, metrics, live welcome message editor, registered users table, and conversation simulator.
+- **▦ Bot menu** (`/menu`): Dedicated Bot Menu Builder with side-by-side Telegram preview simulator, button reordering, enable/disable toggles, and auto-delete settings.
+- **♙ Staff & access** (`/staff`): Transparent overview of administrator access, role permissions (Owner, Admin, Staff), and local security architecture.
+- **≡ Activity** (`/activity`): Real-time audit log timeline loading configuration changes and menu updates directly from PostgreSQL.
+- **⚙ Workspace** (`/workspace`): System health, long polling runner status, database connection, and production roadmap.
+
+### Managing Menu Buttons (in `/menu` or Bot Details):
+
+1. Open **Bot menu** from the sidebar (or visit `http://127.0.0.1:3000/menu`).
+2. **Add a Button**:
+   - Click **＋ Add button**.
    - Enter a label (e.g. `🕒 Working Hours` or `📍 Office Location`, max 64 chars).
    - Select an **Action Type**:
      - **Send Text Reply (`SEND_TEXT`)**: Enter the text message the bot will send when the button is tapped (max 2000 chars).
        - **Auto-Delete Bot Reply (Optional)**: Check this toggle to automatically delete the bot's reply message after a delay.
        - **Delete After (Seconds)**: Set the delay in seconds (between 5 and 86,400 seconds / up to 24h). Default is 30s.
      - **Request Contact (`REQUEST_CONTACT`)**: Telegram's phone-sharing button with built-in ownership validation.
-   - Click **Add to Menu**.
-4. **Edit a Button**: Click **Edit** on any button to change its label, reply text, or auto-delete configuration.
-5. **Enable / Disable**: Click **Disable** to temporarily hide a button from the keyboard without deleting it.
-6. **Reorder**: Use the **▲ (Move Up)** and **▼ (Move Down)** controls to adjust button ordering.
-7. **Preview**: Check the **Telegram User Keyboard Preview** box to see how the keyboard will appear to users in order.
-8. **Delete with Confirmation**: Click **Delete**, then confirm with **Yes, Delete**.
-9. **Save Changes**: Click **Save Menu Changes** at the bottom to write the updated menu to PostgreSQL.
+   - Click **Save button**.
+3. **Edit a Button**: Click **Edit** on any button to change its label, reply text, or auto-delete configuration.
+4. **Enable / Disable**: Click **Disable** to temporarily hide a button from the keyboard without deleting it.
+5. **Reorder**: Use the **↑ (Move Up)** and **↓ (Move Down)** controls to adjust button ordering.
+6. **Telegram Live Preview**:
+   - Test your buttons interactively in the **Telegram preview** box on the right.
+   - Tapping an auto-delete button demonstrates the countdown and message removal right in the preview!
+7. **Delete with Confirmation**: Click **Delete**, then confirm with **OK**.
+8. **Save Changes**: Click **Save Menu Changes** at the bottom to write the updated menu to PostgreSQL.
 
 ---
 

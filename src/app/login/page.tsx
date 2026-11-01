@@ -38,29 +38,29 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-slate-900">
-      <div className="w-full max-w-md rounded-2xl bg-slate-800 p-8 shadow-2xl border border-slate-700">
+    <div className="flex min-h-screen items-center justify-center p-4 bg-[var(--bg)]">
+      <div className="w-full max-w-md rounded-2xl bg-[var(--panel)] p-8 shadow-2xl border border-[var(--border)]">
         <div className="mb-8 text-center">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 text-white font-bold text-xl mb-3 shadow-lg shadow-blue-500/30">
-            TG
+          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--text)] text-[var(--bg)] font-bold text-xl mb-3 shadow-lg">
+            ↗
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">
-            Bot Backstage
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">
+            botdesk
           </h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-xs text-[var(--muted)]">
             Sign in to manage your Telegram bots
           </p>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm text-red-400">
+          <div className="mb-4 rounded-lg bg-[var(--redbg)] border border-[var(--red)] p-3 text-xs text-[var(--red)]">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
               Admin Email
             </label>
             <input
@@ -68,13 +68,13 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg bg-slate-900 border border-slate-700 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="botdesk-input text-xs"
               placeholder="admin@local.test"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
               Password
             </label>
             <input
@@ -82,7 +82,7 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg bg-slate-900 border border-slate-700 px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="botdesk-input text-xs"
               placeholder="••••••••••••"
             />
           </div>
@@ -90,15 +90,15 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50 transition"
+            className="botdesk-btn primary w-full text-xs font-semibold py-2.5"
           >
-            {loading ? "Authenticating..." : "Sign In to Backstage"}
+            {loading ? "Authenticating..." : "Sign In to Botdesk"}
           </button>
         </form>
 
-        <div className="mt-6 border-t border-slate-700/60 pt-4 text-center">
-          <p className="text-xs text-slate-400">
-            Default credentials are set in your local <code className="text-slate-300">.env</code> file.
+        <div className="mt-6 border-t border-[var(--border)] pt-4 text-center">
+          <p className="text-xs text-[var(--muted)]">
+            Default credentials are set in your local <code className="text-[var(--text)]">.env</code> file.
           </p>
         </div>
       </div>
