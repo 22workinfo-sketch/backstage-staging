@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { recordChannelActivityEvent } from "./activity-service";
 
 export interface ChannelInput {
   id?: string;
@@ -205,30 +206,37 @@ export async function saveBotChannels(
       const isEnabled = c.isEnabled !== undefined ? Boolean(c.isEnabled) : true;
 
       if (c.id) {
-        const updated = await client.botChannel.upsert({
-          where: { id: c.id },
-          update: {
-            name: trimmedName,
-            telegramChatId: trimmedChatId,
-            inviteLink: trimmedLink,
-            buttonLabel: trimmedLabel,
-            isRequired,
-            isEnabled,
-            order: index,
-          },
-          create: {
-            id: c.id,
-            botId,
-            name: trimmedName,
-            telegramChatId: trimmedChatId,
-            inviteLink: trimmedLink,
-            buttonLabel: trimmedLabel,
-            isRequired,
-            isEnabled,
-            order: index,
-          },
-        });
-        results.push(updated);
+        // Use update instead of upsert to avoid Prisma's internal interactive transaction
+        try {
+          const updated = await client.botChannel.update({
+            where: { id: c.id },
+            data: {
+              name: trimmedName,
+              telegramChatId: trimmedChatId,
+              inviteLink: trimmedLink,
+              buttonLabel: trimmedLabel,
+              isRequired,
+              isEnabled,
+              order: index,
+            },
+          });
+          results.push(updated);
+        } catch {
+          const created = await client.botChannel.create({
+            data: {
+              id: c.id,
+              botId,
+              name: trimmedName,
+              telegramChatId: trimmedChatId,
+              inviteLink: trimmedLink,
+              buttonLabel: trimmedLabel,
+              isRequired,
+              isEnabled,
+              order: index,
+            },
+          });
+          results.push(created);
+        }
       } else {
         const created = await client.botChannel.create({
           data: {
@@ -423,6 +431,29 @@ export async function checkUserChannelMemberships(
       .join(", ")}`;
   }
 
+  // Record activity events for each checked channel
+  for (const r of results) {
+    await recordChannelActivityEvent({
+      botId: options.botId,
+      channelId: r.channelId,
+      telegramChatId: r.telegramChatId,
+      channelTitle: r.channelName,
+      telegramUserId: numericUserId,
+      eventType: "MEMBERSHIP_CHECK",
+      status: r.isJoined
+        ? "joined"
+        : r.status === "error"
+        ? "unable_to_verify"
+        : "not_joined",
+      source: "MANUAL_CHECK",
+      details: {
+        rawStatus: r.status,
+        errorMessage: r.errorMessage || null,
+        isRequired: r.isRequired,
+      },
+    }).catch(() => {});
+  }
+
   return {
     botId: options.botId,
     userId: numericUserId,
@@ -435,3 +466,74 @@ export async function checkUserChannelMemberships(
     message,
   };
 }
+
+/**
+ * Checks a Telegram user's membership for a specific single channel by its DB channel ID.
+ * Returns: "joined" | "not_joined" | "verification_error"
+ * Never treats an error as joined!
+ */
+export async function checkSingleChannelMembership(
+  channelId: string,
+  userId: number | bigint,
+  getChatMemberFn: (chatId: string | number, userId: number) => Promise<any>
+): Promise<"joined" | "not_joined" | "verification_error"> {
+  const numericUserId = Number(userId);
+  if (isNaN(numericUserId) || numericUserId <= 0) {
+    return "verification_error";
+  }
+
+  const channel = await prisma.botChannel.findUnique({
+    where: { id: channelId },
+  });
+
+  if (!channel) {
+    return "verification_error";
+  }
+
+  let outcome: "joined" | "not_joined" | "verification_error" = "verification_error";
+  let rawStatus: string | null = null;
+
+  try {
+    const member = await getChatMemberFn(channel.telegramChatId, numericUserId);
+    rawStatus = (member?.status || "").toLowerCase();
+
+    if (
+      rawStatus === "creator" ||
+      rawStatus === "administrator" ||
+      rawStatus === "member"
+    ) {
+      outcome = "joined";
+    } else if (rawStatus === "restricted") {
+      outcome = member?.is_member !== false ? "joined" : "not_joined";
+    } else if (rawStatus === "left" || rawStatus === "kicked") {
+      outcome = "not_joined";
+    } else {
+      outcome = "verification_error";
+    }
+  } catch (error) {
+    // If bot is not administrator in the channel or cannot access chat, return verification_error
+    outcome = "verification_error";
+  }
+
+  await recordChannelActivityEvent({
+    botId: channel.botId,
+    channelId: channel.id,
+    telegramChatId: channel.telegramChatId,
+    channelTitle: channel.name,
+    telegramUserId: numericUserId,
+    eventType: "MEMBERSHIP_CHECK",
+    status:
+      outcome === "joined"
+        ? "joined"
+        : outcome === "not_joined"
+        ? "not_joined"
+        : "unable_to_verify",
+    source: "FLOW_CHECK",
+    details: {
+      rawStatus,
+    },
+  }).catch(() => {});
+
+  return outcome;
+}
+

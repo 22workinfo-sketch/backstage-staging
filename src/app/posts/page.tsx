@@ -3,6 +3,8 @@ import { getAdminSession } from "@/lib/auth";
 import { getAllBots } from "@/lib/bot-service";
 import { getBotChannels } from "@/lib/channel-service";
 import { getChannelPosts } from "@/lib/post-service";
+import { getUserAssignedBotIds } from "@/lib/permissions";
+import { runSchedulerCycle } from "@/worker/scheduler-worker";
 import { BotdeskLayout } from "@/components/BotdeskLayout";
 import {
   BotdeskPostsPage,
@@ -17,7 +19,14 @@ export default async function ChannelPostsPage() {
     redirect("/login");
   }
 
-  const rawBots = await getAllBots();
+  if (session.mustChangePassword) {
+    redirect("/login?changePassword=true");
+  }
+
+  const assignedIds = await getUserAssignedBotIds(session);
+  const allBots = await getAllBots();
+  const rawBots = allBots.filter((b) => assignedIds.includes(b.id));
+
   if (rawBots.length === 0) {
     redirect("/dashboard");
   }
@@ -40,6 +49,8 @@ export default async function ChannelPostsPage() {
   }
 
   const initialBotId = rawBots[0].id;
+  // Trigger opportunistic scheduler check for due posts
+  await runSchedulerCycle().catch(() => {});
   const rawPosts = await getChannelPosts(initialBotId);
 
   const initialPosts: PostItemDTO[] = rawPosts.map((p) => ({
@@ -48,15 +59,40 @@ export default async function ChannelPostsPage() {
     channelId: p.channelId,
     channelName: p.channel?.name,
     channelChatId: p.channel?.telegramChatId,
-    postType: p.postType as "TEXT" | "IMAGE",
+    postType: p.postType as "TEXT" | "IMAGE" | "VIDEO" | "ALBUM",
     content: p.content,
     mediaPath: p.mediaPath,
     mediaOriginalName: p.mediaOriginalName,
     mediaMimeType: p.mediaMimeType,
     mediaSizeBytes: p.mediaSizeBytes,
+    albumItems: (p.albumItems || []).map((item) => ({
+      id: item.id,
+      mediaType: item.mediaType as "IMAGE" | "VIDEO",
+      filePath: item.filePath,
+      originalName: item.originalName,
+      mimeType: item.mimeType,
+      sizeBytes: item.sizeBytes,
+      order: item.order,
+      hasSpoiler: item.hasSpoiler,
+    })),
     buttonsConfig: (p.buttonsConfig as any) || [],
-    status: p.status as "DRAFT" | "SENDING" | "PUBLISHED" | "FAILED" | "UNKNOWN",
+    disableNotification: p.disableNotification,
+    hasSpoiler: p.hasSpoiler,
+    sendAsDocument: p.sendAsDocument,
+    status: p.status as
+      | "DRAFT"
+      | "SCHEDULED"
+      | "SENDING"
+      | "PUBLISHED"
+      | "FAILED"
+      | "UNKNOWN"
+      | "PARTIAL",
+    scheduledAt: p.scheduledAt ? p.scheduledAt.toISOString() : null,
+    scheduledTimezone: p.scheduledTimezone || null,
+    scheduledByUserId: p.scheduledByUserId || null,
     telegramMessageId: p.telegramMessageId,
+    albumMessageIds: (p.albumMessageIds as number[]) || null,
+    buttonMessageId: p.buttonMessageId,
     lastError: p.lastError,
     sentAt: p.sentAt ? p.sentAt.toISOString() : null,
     createdAt: p.createdAt.toISOString(),

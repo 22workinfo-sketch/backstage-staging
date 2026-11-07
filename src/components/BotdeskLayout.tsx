@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -12,6 +12,7 @@ export interface BotdeskLayoutProps {
     | "menus"
     | "channels"
     | "posts"
+    | "marketing"
     | "staff"
     | "activity"
     | "workspace";
@@ -28,6 +29,41 @@ export function BotdeskLayout({
 }: BotdeskLayoutProps) {
   const router = useRouter();
   const [showAddBotModal, setShowAddBotModal] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  // Restore sidebar collapse preference from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("backstage_sidebar_collapsed");
+      if (saved === "true") {
+        setIsCollapsed(true);
+      }
+    } catch {
+      // Ignore localStorage access issues
+    }
+  }, []);
+
+  // Keyboard accessibility: Close mobile drawer on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isMobileOpen) {
+        setIsMobileOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isMobileOpen]);
+
+  const toggleCollapse = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("backstage_sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const handleLogout = async () => {
     try {
@@ -39,16 +75,48 @@ export function BotdeskLayout({
     router.refresh();
   };
 
+  const navLinks = [
+    { id: "bots", label: "Bots", href: "/dashboard", icon: "▦" },
+    { id: "menus", label: "Bot menu", href: "/menu", icon: "☰" },
+    { id: "channels", label: "Channels", href: "/channels", icon: "📢" },
+    { id: "posts", label: "Channel posts", href: "/posts", icon: "✉" },
+    { id: "marketing", label: "Marketing", href: "/marketing", icon: "📈" },
+    { id: "staff", label: "Users & access", href: "/staff", icon: "♙" },
+    { id: "activity", label: "Channel Activity", href: "/activity", icon: "≡" },
+    { id: "workspace", label: "Workspace", href: "/workspace", icon: "⚙" },
+  ];
+
   return (
-    <div className="app-shell">
-      {/* Botdesk Sidebar */}
-      <aside className="sidebar-panel">
-        <Link href="/dashboard" className="brand-title">
-          <span className="brand-mark" aria-hidden="true">
-            ↗
-          </span>
-          <span>botdesk</span>
-        </Link>
+    <div className={`app-shell ${isCollapsed ? "sidebar-collapsed" : ""}`}>
+      {/* Botdesk Desktop Sidebar */}
+      <aside
+        className={`sidebar-panel hidden md:flex ${isCollapsed ? "collapsed" : ""}`}
+        aria-label="Sidebar navigation"
+      >
+        <div className="flex items-center justify-between">
+          <Link
+            href="/dashboard"
+            className="brand-title"
+            title="Botdesk Backstage"
+            aria-label="Botdesk Home"
+          >
+            <span className="brand-mark" aria-hidden="true">
+              ↗
+            </span>
+            <span className="brand-label">botdesk</span>
+          </Link>
+
+          <button
+            type="button"
+            onClick={toggleCollapse}
+            className="sidebar-collapse-toggle"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!isCollapsed}
+          >
+            {isCollapsed ? "▶" : "◀"}
+          </button>
+        </div>
 
         <div className="workspace-box">
           <strong className="text-sm font-semibold block text-[var(--text)]">
@@ -58,75 +126,21 @@ export function BotdeskLayout({
         </div>
 
         <nav className="nav-group" aria-label="Main navigation">
-          <Link
-            href="/dashboard"
-            className={`nav-link ${activeNav === "bots" ? "active" : ""}`}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              ▦
-            </span>
-            <span>Bots</span>
-          </Link>
-
-          <Link
-            href="/menu"
-            className={`nav-link ${activeNav === "menus" ? "active" : ""}`}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              ▦
-            </span>
-            <span>Bot menu</span>
-          </Link>
-
-          <Link
-            href="/channels"
-            className={`nav-link ${activeNav === "channels" ? "active" : ""}`}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              📢
-            </span>
-            <span>Channels</span>
-          </Link>
-
-          <Link
-            href="/posts"
-            className={`nav-link ${activeNav === "posts" ? "active" : ""}`}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              ✉
-            </span>
-            <span>Channel posts</span>
-          </Link>
-
-          <Link
-            href="/staff"
-            className={`nav-link ${activeNav === "staff" ? "active" : ""}`}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              ♙
-            </span>
-            <span>Staff & access</span>
-          </Link>
-
-          <Link
-            href="/activity"
-            className={`nav-link ${activeNav === "activity" ? "active" : ""}`}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              ≡
-            </span>
-            <span>Activity</span>
-          </Link>
-
-          <Link
-            href="/workspace"
-            className={`nav-link ${activeNav === "workspace" ? "active" : ""}`}
-          >
-            <span className="nav-icon" aria-hidden="true">
-              ⚙
-            </span>
-            <span>Workspace</span>
-          </Link>
+          {navLinks.map((item) => (
+            <Link
+              key={item.id}
+              href={item.href}
+              prefetch={false}
+              className={`nav-link ${activeNav === item.id ? "active" : ""}`}
+              title={item.label}
+              aria-label={item.label}
+            >
+              <span className="nav-icon" aria-hidden="true">
+                {item.icon}
+              </span>
+              <span className="nav-link-label">{item.label}</span>
+            </Link>
+          ))}
         </nav>
 
         <footer className="sidebar-footer mt-auto text-xs text-[var(--muted)] leading-relaxed pt-4 border-t border-[var(--border)]">
@@ -136,11 +150,103 @@ export function BotdeskLayout({
         </footer>
       </aside>
 
+      {/* Mobile Drawer Backdrop */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden animate-fade-in"
+          onClick={() => setIsMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Mobile Drawer Panel */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-y-0 left-0 z-50 w-72 bg-[var(--panel)] border-r border-[var(--border)] p-6 shadow-2xl flex flex-col gap-6 md:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation drawer"
+        >
+          <div className="flex items-center justify-between">
+            <Link
+              href="/dashboard"
+              className="brand-title"
+              onClick={() => setIsMobileOpen(false)}
+            >
+              <span className="brand-mark" aria-hidden="true">
+                ↗
+              </span>
+              <span>botdesk</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsMobileOpen(false)}
+              className="botdesk-btn text-sm py-1 px-2.5 min-h-[32px]"
+              aria-label="Close menu"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="workspace-box">
+            <strong className="text-sm font-semibold block text-[var(--text)]">
+              My workspace
+            </strong>
+            <span className="text-xs text-[var(--muted)]">Telegram management</span>
+          </div>
+
+          <nav className="nav-group" aria-label="Mobile navigation">
+            {navLinks.map((item) => (
+              <Link
+                key={item.id}
+                href={item.href}
+                prefetch={false}
+                className={`nav-link ${activeNav === item.id ? "active" : ""}`}
+                onClick={() => setIsMobileOpen(false)}
+              >
+                <span className="nav-icon" aria-hidden="true">
+                  {item.icon}
+                </span>
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </nav>
+
+          <footer className="mt-auto text-xs text-[var(--muted)] pt-4 border-t border-[var(--border)]">
+            <div className="mb-3">
+              <span className="font-semibold text-[var(--text)] block truncate">
+                {userEmail}
+              </span>
+              <span className="text-[11px] font-mono text-[var(--muted)]">
+                {role}
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="botdesk-btn text-xs w-full py-2 hover:text-[var(--red)]"
+            >
+              Sign out
+            </button>
+          </footer>
+        </div>
+      )}
+
       {/* Main Work Area */}
       <main className="main-content">
         {/* Topline Bar */}
         <header className="topline-bar">
           <div className="flex items-center gap-3">
+            {/* Mobile Hamburger Button */}
+            <button
+              type="button"
+              onClick={() => setIsMobileOpen(true)}
+              className="sidebar-collapse-toggle md:hidden inline-flex"
+              title="Open Navigation Menu"
+              aria-label="Open Navigation Menu"
+            >
+              ☰
+            </button>
+
             <span className="crumb-label">
               Workspace / <strong className="text-[var(--text)]">{breadcrumb}</strong>
             </span>

@@ -2,7 +2,42 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { BotButtonDTO } from "./MenuBuilder";
+import { retryDynamicImport } from "@/lib/dynamic-retry";
+import { safeFetchJson } from "@/lib/api-client";
+
+// Dynamically import heavy canvas / flow editor components with ssr: false and retry
+// to prevent SSR issues, reduce initial page chunk size, and auto-recover from transient network ChunkLoadErrors
+const FlowBuilderV2 = dynamic(
+  () => retryDynamicImport(() => import("./flow/FlowBuilderV2").then((m) => m.FlowBuilderV2)),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-96 bg-[var(--card)] border border-[var(--border)] rounded-xl">
+        <div className="text-center space-y-3">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent" />
+          <p className="text-sm text-[var(--muted)]">Loading Visual Flow Canvas...</p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const BotdeskFlowEditor = dynamic(
+  () => retryDynamicImport(() => import("./BotdeskFlowEditor").then((m) => m.BotdeskFlowEditor)),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-96 bg-[var(--card)] border border-[var(--border)] rounded-xl">
+        <div className="text-center space-y-3">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent" />
+          <p className="text-sm text-[var(--muted)]">Loading Multi-Level Flow Editor...</p>
+        </div>
+      </div>
+    ),
+  }
+);
 
 export interface BotOption {
   id: string;
@@ -23,6 +58,7 @@ export function BotdeskMenuPage({
   initialButtonsByBot,
 }: BotdeskMenuPageProps) {
   const router = useRouter();
+  const [editorMode, setEditorMode] = useState<"visual" | "flow" | "legacy">("visual");
   const [selectedBotId, setSelectedBotId] = useState<string>(initialBotId);
   const [buttonsByBot, setButtonsByBot] = useState<Record<string, BotButtonDTO[]>>(
     initialButtonsByBot
@@ -237,20 +273,21 @@ export function BotdeskMenuPage({
     setSaveStatus(null);
 
     try {
-      const res = await fetch(`/api/bots/${selectedBotId}/menu`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ buttons }),
-      });
+      const { ok, data, error } = await safeFetchJson<{ buttons: BotButtonDTO[] }>(
+        `/api/bots/${selectedBotId}/menu`,
+        {
+          method: "PUT",
+          body: { buttons },
+        }
+      );
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to save bot menu");
+      if (!ok) {
+        throw new Error(error || "Failed to save bot menu");
       }
 
       setButtonsByBot({
         ...buttonsByBot,
-        [selectedBotId]: data.buttons || buttons,
+        [selectedBotId]: data?.buttons || buttons,
       });
 
       setSaveStatus({
@@ -312,27 +349,70 @@ export function BotdeskMenuPage({
           BOT CONFIGURATION
         </span>
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)]">
-          Bot menu builder
+          Bot menu & flow builder
         </h1>
         <p className="text-sm text-[var(--muted)] mt-1">
-          Configure reply keyboard buttons in PostgreSQL and test simulated Telegram replies.
+          Configure hierarchical Telegram bot flows, submenus, URL links, drafts, and publish directly to live bots.
         </p>
       </div>
 
-      {saveStatus && (
-        <div
-          className={`p-3.5 rounded-lg text-sm border ${
-            saveStatus.type === "success"
-              ? "bg-[var(--greenbg)] border-[var(--green)] text-[var(--green)]"
-              : "bg-[var(--redbg)] border-[var(--red)] text-[var(--red)]"
+      {/* Editor Mode Selector */}
+      <div className="flex flex-wrap gap-2 border-b border-[var(--border)] pb-3">
+        <button
+          type="button"
+          onClick={() => setEditorMode("visual")}
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+            editorMode === "visual"
+              ? "bg-sky-600 text-white shadow-sm"
+              : "bg-[var(--card)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]"
           }`}
         >
-          {saveStatus.text}
-        </div>
-      )}
+          🎨 Visual Flow Canvas V2 (Drag & Drop, Branches, Input)
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditorMode("flow")}
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+            editorMode === "flow"
+              ? "bg-blue-600 text-white shadow-sm"
+              : "bg-[var(--card)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]"
+          }`}
+        >
+          ⚡ Tree / List Flow Editor (V1)
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditorMode("legacy")}
+          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+            editorMode === "legacy"
+              ? "bg-blue-600 text-white shadow-sm"
+              : "bg-[var(--card)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]"
+          }`}
+        >
+          📋 Classic Flat Buttons (Legacy)
+        </button>
+      </div>
 
-      {/* Two-Column Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {editorMode === "visual" ? (
+        <FlowBuilderV2 bots={bots} initialBotId={initialBotId} />
+      ) : editorMode === "flow" ? (
+        <BotdeskFlowEditor bots={bots} initialBotId={initialBotId} />
+      ) : (
+        <>
+          {saveStatus && (
+            <div
+              className={`p-3.5 rounded-lg text-sm border ${
+                saveStatus.type === "success"
+                  ? "bg-[var(--greenbg)] border-[var(--green)] text-[var(--green)]"
+                  : "bg-[var(--redbg)] border-[var(--red)] text-[var(--red)]"
+              }`}
+            >
+              {saveStatus.text}
+            </div>
+          )}
+
+          {/* Two-Column Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Configured Buttons */}
         <div className="lg:col-span-7 botdesk-card">
           <div className="card-header">
@@ -729,6 +809,8 @@ export function BotdeskMenuPage({
             </form>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );

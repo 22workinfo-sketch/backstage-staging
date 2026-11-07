@@ -277,7 +277,9 @@ describe("Bot Menu Builder & Dynamic Keyboard Integration (Real PostgreSQL)", ()
       phoneNumber: "+15551234567",
     });
     expect(validContact.success).toBe(true);
-    expect(validContact.user.telegramPhNo).toBe("+15551234567");
+    if (validContact.success) {
+      expect(validContact.user.telegramPhNo).toBe("+15551234567");
+    }
 
     // 2. Foreign contact attempt (ownership mismatch)
     const foreignContact = await handleTelegramContact({

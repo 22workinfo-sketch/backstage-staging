@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getAdminSession } from "@/lib/auth";
 import { getBotWithConfig, getBotUsers, getBotButtons } from "@/lib/bot-service";
+import { hasBotAccess, canUserViewPhoneNumbers } from "@/lib/permissions";
 import { BotdeskLayout } from "@/components/BotdeskLayout";
 import { BotEditor } from "@/components/BotEditor";
 import { MenuBuilder } from "@/components/MenuBuilder";
@@ -18,14 +19,31 @@ export default async function BotDetailPage({ params }: BotPageProps) {
     redirect("/login");
   }
 
+  if (session.mustChangePassword) {
+    redirect("/login?changePassword=true");
+  }
+
   const { id } = params;
+
+  // Strict bot access authorization check
+  const allowed = await hasBotAccess(session, id);
+  if (!allowed) {
+    redirect("/dashboard");
+  }
+
   const bot = await getBotWithConfig(id);
   if (!bot) {
     notFound();
   }
 
   // Fetch bot users strictly isolated to this botId
-  const users = await getBotUsers(id);
+  const rawUsers = await getBotUsers(id);
+  const allowPhone = await canUserViewPhoneNumbers(session, id);
+
+  const users = rawUsers.map((u) => ({
+    ...u,
+    telegramPhNo: allowPhone ? u.telegramPhNo : u.telegramPhNo ? "[REDACTED]" : null,
+  }));
 
   // Fetch bot reply keyboard buttons
   const buttons = await getBotButtons(id);
@@ -73,8 +91,17 @@ export default async function BotDetailPage({ params }: BotPageProps) {
                 </span>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-slate-400 font-mono">
-                <span>Bot ID: {bot.id}</span>
-                <span>Token Env Key: {bot.tokenEnvVar}</span>
+                <span>BackStage Bot ID: {bot.id}</span>
+                {bot.telegramBotId != null && (
+                  <span>Telegram Bot ID: {bot.telegramBotId.toString()}</span>
+                )}
+                <span>
+                  Token:{" "}
+                  {bot.encryptedToken
+                    ? `••••${bot.tokenLast4 || ""}`
+                    : `ENV: ${bot.tokenEnvVar}`}
+                </span>
+                <span>Connection: {bot.connectionStatus || (bot.isActive ? "STANDBY" : "DISCONNECTED")}</span>
                 <span>Registered: {new Date(bot.createdAt).toLocaleDateString()}</span>
               </div>
             </div>

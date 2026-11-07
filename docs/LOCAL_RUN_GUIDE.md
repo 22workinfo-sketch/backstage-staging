@@ -90,6 +90,21 @@ The console will display:
 
 ---
 
+### Terminal 3: Scheduler Background Worker (Scheduled Channel Posts)
+
+In a third PowerShell window:
+```powershell
+npm.cmd run scheduler
+```
+The console will display:
+```text
+[Scheduler Worker] Initializing worker "worker-..." (Poll interval: 5000ms)...
+[Scheduler Worker] Monitoring PostgreSQL for due scheduled posts...
+```
+*(The scheduler worker polls PostgreSQL for due posts, reclaims expired leases after crashes, atomically claims jobs with lease locks, and dispatches broadcasts to Telegram channels at the chosen instant).*
+
+---
+
 ## 6. Using the Botdesk Navigation & Menu Builder in Backstage
 
 The admin web panel follows the clean **Botdesk** design system with a dedicated sidebar:
@@ -98,7 +113,7 @@ The admin web panel follows the clean **Botdesk** design system with a dedicated
 - **▦ Bot menu** (`/menu`): Dedicated Bot Menu Builder with side-by-side Telegram preview simulator, button reordering, enable/disable toggles, and auto-delete settings.
 - **📢 Channels** (`/channels`): Dedicated Channel Manager to configure channels/groups, private or public invite links, required vs. optional gating, and voluntary Telegram membership verification.
 - **✉ Channel posts** (`/posts`): Prepare, preview, draft, and publish announcements and media to Telegram channels with inline buttons and safe concurrency guards.
-- **♙ Staff & access** (`/staff`): Transparent overview of administrator access, role permissions (Owner, Admin, Staff), and local security architecture.
+- **♙ Users & access** (`/staff`): Transparent overview of administrator access, role permissions (Owner, Admin, Staff), and local security architecture.
 - **≡ Activity** (`/activity`): Real-time audit log timeline loading configuration changes and menu updates directly from PostgreSQL.
 - **⚙ Workspace** (`/workspace`): System health, long polling runner status, database connection, and production roadmap.
 
@@ -211,10 +226,27 @@ To post to a channel, the bot must be an **Administrator** with the **"Post Mess
    - Upon confirmed Telegram delivery, the post updates to `PUBLISHED` with the Telegram `message_id` recorded.
 3. **Honest Delivery Statuses**:
    - `DRAFT`: Saved locally in PostgreSQL.
-   - `SENDING`: Currently dispatching via Telegram Bot API (locked against concurrent attempts).
+   - `SCHEDULED`: Queued in PostgreSQL for future broadcast at the specified date, time, and timezone.
+   - `SENDING`: Currently claimed by the scheduler worker or publishing in-flight (protected with atomic leases against concurrent attempts).
    - `PUBLISHED`: Verified delivered by Telegram Bot API with message ID.
-   - `FAILED`: Definitive Telegram API error (e.g. missing post permission). Error reason is displayed.
+   - `PARTIAL`: Album delivered successfully, but follow-up inline buttons failed (provides a dedicated "Retry Buttons" action without re-sending the album).
+   - `FAILED`: Definitive Telegram API error (e.g. missing administrator permission). Error reason is displayed.
    - `UNKNOWN`: Network timeout occurred while awaiting Telegram confirmation. **The system NEVER auto-retries an UNKNOWN post** to avoid accidental duplicate broadcasts. Inspect your channel manually.
+
+### Step D: Scheduling Posts for Future Broadcast
+1. In the composer, toggle **Publishing Timing** from `⚡ Send Now` to `🕒 Schedule Post`.
+2. Enter the target **Scheduled Date** (must be future date).
+3. Enter the target **Scheduled Time** (24-hour format).
+4. Select your **Timezone (IANA)**:
+   - Includes priority Southeast Asia timezones (`Asia/Bangkok`, `Asia/Yangon`, `Asia/Singapore`) and standard global zones (`UTC`, `America/New_York`, etc.).
+5. Check the live **Schedule Summary** box showing the destination bot, channel, local broadcast time, and worker dispatch notes.
+6. Click **🕒 Schedule Post** and confirm the dialog.
+7. The post appears in the **Post History & Drafts** table with a purple `🕒 SCHEDULED` badge and formatted broadcast time.
+8. **Managing Scheduled Posts**:
+   - **Reschedule**: Click **Reschedule** to load the post back into the composer, edit its text or attachments, and pick a new time.
+   - **Cancel Schedule**: Click **Cancel** to immediately remove the schedule and revert the post back to `DRAFT` status without deleting it.
+   - **Publish Now**: Click **Publish Now** to immediately dispatch a scheduled post to the channel before its scheduled time.
+   - **Filter Tabs**: Use the `Scheduled`, `Drafts`, and `Published` tabs above the table to quickly organize posts.
 
 ---
 

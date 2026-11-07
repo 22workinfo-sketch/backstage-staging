@@ -1,4 +1,12 @@
 import { prisma } from "./prisma";
+import {
+  encryptBotToken,
+  decryptBotToken,
+  maskBotToken,
+  redactTokens,
+  verifyTelegramToken,
+  validateTelegramTokenFormat,
+} from "./token-encryption";
 
 export interface TelegramProfileInput {
   botId: string;
@@ -208,6 +216,456 @@ export async function getAllBots() {
 }
 
 /**
+ * Safely resolves a bot's Telegram Bot token for runtime usage:
+ * 1. Checks if bot has an encrypted token stored in DB, decrypts it using AES-256-GCM.
+ * 2. Fallbacks to process.env[tokenEnvVar] for backwards-compatible single-bot setups.
+ * Returns null if token is not found or is a placeholder.
+ */
+export function resolveBotToken(bot: {
+  tokenEnvVar?: string;
+  encryptedToken?: string | null;
+}): string | null {
+  if (bot.encryptedToken) {
+    try {
+      const decrypted = decryptBotToken(bot.encryptedToken);
+      if (decrypted && decrypted.trim().length > 0) {
+        return decrypted.trim();
+      }
+    } catch (err) {
+      console.error(
+        "[Token Decryption Error] Failed to decrypt token for bot:",
+        err instanceof Error ? err.message : err
+      );
+      return null;
+    }
+  }
+
+  const envKey = bot.tokenEnvVar || "TELEGRAM_BOT_TOKEN";
+  const envVal = process.env[envKey];
+  if (
+    envVal &&
+    envVal.trim().length > 0 &&
+    !envVal.includes("placeholder") &&
+    !envVal.includes("your_test_bot_token")
+  ) {
+    return envVal.trim();
+  }
+
+  return null;
+}
+
+export interface SafeBotRecord {
+  id: string;
+  name: string;
+  username: string;
+  telegramBotId: string | null;
+  tokenEnvVar: string;
+  hasStoredToken: boolean;
+  tokenLast4: string | null;
+  description: string | null;
+  isActive: boolean;
+  connectionStatus: string;
+  lastError: string | null;
+  lastCheckedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  config?: {
+    welcomeMessage: string;
+  } | null;
+  _count?: {
+    users: number;
+  };
+}
+
+export function formatSafeBot(bot: any): SafeBotRecord {
+  return {
+    id: bot.id,
+    name: bot.name,
+    username: bot.username,
+    telegramBotId: bot.telegramBotId != null ? bot.telegramBotId.toString() : null,
+    tokenEnvVar: bot.tokenEnvVar,
+    hasStoredToken: Boolean(bot.encryptedToken),
+    tokenLast4: bot.tokenLast4 || (bot.encryptedToken ? "••••" : null),
+    description: bot.description ?? null,
+    isActive: Boolean(bot.isActive),
+    connectionStatus: bot.connectionStatus || (bot.isActive ? "STANDBY" : "DISCONNECTED"),
+    lastError: bot.lastError ?? null,
+    lastCheckedAt: bot.lastCheckedAt ? new Date(bot.lastCheckedAt).toISOString() : null,
+    createdAt: new Date(bot.createdAt).toISOString(),
+    updatedAt: new Date(bot.updatedAt).toISOString(),
+    config: bot.config
+      ? {
+          welcomeMessage: bot.config.welcomeMessage,
+        }
+      : null,
+    _count: bot._count ? { users: bot._count.users || 0 } : undefined,
+  };
+}
+
+export interface CreateBotInput {
+  name: string;
+  token: string;
+  description?: string;
+  adminUserId?: string;
+}
+
+/**
+ * Creates and registers a new Telegram bot with verified credentials and encrypted storage.
+ */
+export async function createBot(
+  input: CreateBotInput,
+  options?: { customFetch?: typeof fetch }
+) {
+  const trimmedName = (input.name || "").trim();
+  if (!trimmedName) {
+    throw new Error("Bot name is required.");
+  }
+  if (trimmedName.length > 64) {
+    throw new Error("Bot name cannot exceed 64 characters.");
+  }
+
+  const trimmedToken = (input.token || "").trim();
+  const formatCheck = validateTelegramTokenFormat(trimmedToken);
+  if (!formatCheck.isValid) {
+    throw new Error(formatCheck.error);
+  }
+
+  // 1. Verify token with Telegram getMe API
+  const verifyRes = await verifyTelegramToken(trimmedToken, {
+    customFetch: options?.customFetch,
+  });
+
+  if (!verifyRes.ok || !verifyRes.botId || !verifyRes.username) {
+    throw new Error(
+      verifyRes.error ||
+        "Could not verify token with Telegram. Please check the token."
+    );
+  }
+
+  const telegramBotIdBigInt = BigInt(verifyRes.botId);
+
+  // 2. Prevent duplicate bot registration
+  const existingWithId = await prisma.bot.findUnique({
+    where: { telegramBotId: telegramBotIdBigInt },
+  });
+
+  if (existingWithId) {
+    throw new Error(
+      `Duplicate registration: A bot with Telegram ID ${verifyRes.botId} (@${verifyRes.username}) is already registered as "${existingWithId.name}".`
+    );
+  }
+
+  // 3. Encrypt the token using AES-256-GCM
+  const encryptedToken = encryptBotToken(trimmedToken);
+  const tokenLast4 = maskBotToken(trimmedToken);
+
+  // 4. Create bot, default config, default buttons and audit log
+  const newBot = await prisma.bot.create({
+    data: {
+      name: trimmedName,
+      username: verifyRes.username,
+      telegramBotId: telegramBotIdBigInt,
+      encryptedToken,
+      tokenLast4,
+      description: input.description?.trim() || null,
+      isActive: true,
+      connectionStatus: "CONNECTED",
+      lastCheckedAt: new Date(),
+    },
+  });
+
+  // Default Welcome Message
+  await prisma.botConfig.create({
+    data: {
+      botId: newBot.id,
+      welcomeMessage:
+        `Hello! Welcome to ${newBot.name} (@${newBot.username}).\n\n` +
+        `This bot is managed live via your BackStage panel.\n` +
+        `Tap a menu option below to get started!`,
+    },
+  });
+
+  // Default Reply Keyboard Buttons
+  await prisma.botButton.createMany({
+    data: [
+      {
+        botId: newBot.id,
+        label: "📱 Share Phone Number",
+        actionType: "REQUEST_CONTACT",
+        order: 0,
+        isEnabled: true,
+      },
+      {
+        botId: newBot.id,
+        label: "ℹ️ Help / Info",
+        actionType: "SEND_TEXT",
+        replyText:
+          `ℹ️ ${newBot.name} Help:\n\n` +
+          `• Send /start to reload your profile and see the welcome message.\n` +
+          `• Tap 'Share Phone Number' to store your contact number in PostgreSQL.\n` +
+          `• You can configure custom buttons and channels in BackStage!`,
+        order: 1,
+        isEnabled: true,
+      },
+    ],
+  });
+
+  // Audit log (token NEVER stored or logged!)
+  await prisma.auditLog.create({
+    data: {
+      botId: newBot.id,
+      adminUserId: input.adminUserId ?? null,
+      action: "CREATE_BOT",
+      details: {
+        botName: newBot.name,
+        username: newBot.username,
+        telegramBotId: verifyRes.botId,
+        tokenHint: tokenLast4,
+      },
+    },
+  });
+
+  const fullBot = await prisma.bot.findUnique({
+    where: { id: newBot.id },
+    include: {
+      config: true,
+      _count: { select: { users: true } },
+    },
+  });
+
+  return formatSafeBot(fullBot);
+}
+
+export interface UpdateBotInput {
+  name?: string;
+  description?: string;
+  isActive?: boolean;
+  token?: string;
+  adminUserId?: string;
+}
+
+/**
+ * Updates bot settings, active toggle, or token replacement.
+ */
+export async function updateBot(
+  botId: string,
+  input: UpdateBotInput,
+  options?: { customFetch?: typeof fetch }
+) {
+  const existing = await prisma.bot.findUnique({
+    where: { id: botId },
+  });
+
+  if (!existing) {
+    throw new Error(`Bot with ID ${botId} not found.`);
+  }
+
+  const dataToUpdate: any = {};
+  let auditAction = "UPDATE_BOT_SETTINGS";
+  const auditDetails: any = {};
+
+  if (input.name !== undefined) {
+    const trimmedName = input.name.trim();
+    if (!trimmedName) throw new Error("Bot name cannot be empty.");
+    if (trimmedName.length > 64) throw new Error("Bot name cannot exceed 64 characters.");
+    dataToUpdate.name = trimmedName;
+    auditDetails.name = trimmedName;
+  }
+
+  if (input.description !== undefined) {
+    dataToUpdate.description = input.description.trim() || null;
+    auditDetails.descriptionUpdated = true;
+  }
+
+  if (input.isActive !== undefined) {
+    dataToUpdate.isActive = Boolean(input.isActive);
+    if (!input.isActive) {
+      dataToUpdate.connectionStatus = "DISCONNECTED";
+    }
+    auditDetails.isActive = Boolean(input.isActive);
+  }
+
+  // Handle Token Replacement
+  if (input.token !== undefined && input.token.trim().length > 0) {
+    const trimmedToken = input.token.trim();
+    const formatCheck = validateTelegramTokenFormat(trimmedToken);
+    if (!formatCheck.isValid) {
+      throw new Error(formatCheck.error);
+    }
+
+    const verifyRes = await verifyTelegramToken(trimmedToken, {
+      customFetch: options?.customFetch,
+    });
+
+    if (!verifyRes.ok || !verifyRes.botId || !verifyRes.username) {
+      throw new Error(
+        verifyRes.error ||
+          "Could not verify replacement token with Telegram."
+      );
+    }
+
+    const newTelegramBotId = BigInt(verifyRes.botId);
+
+    // If bot already has a telegramBotId, ensure it's replacing for the same bot or not conflicting
+    if (existing.telegramBotId && existing.telegramBotId !== newTelegramBotId) {
+      throw new Error(
+        `Token replacement mismatch: Token belongs to @${verifyRes.username} (ID: ${verifyRes.botId}), but this record is configured for ID ${existing.telegramBotId.toString()}. You cannot replace a bot's token with a completely different Telegram bot's token.`
+      );
+    }
+
+    // Check duplicate if existing didn't have telegramBotId
+    if (!existing.telegramBotId) {
+      const conflict = await prisma.bot.findUnique({
+        where: { telegramBotId: newTelegramBotId },
+      });
+      if (conflict && conflict.id !== botId) {
+        throw new Error(
+          `Conflict: Telegram bot ID ${verifyRes.botId} is already registered as "${conflict.name}".`
+        );
+      }
+    }
+
+    dataToUpdate.telegramBotId = newTelegramBotId;
+    dataToUpdate.username = verifyRes.username;
+    dataToUpdate.encryptedToken = encryptBotToken(trimmedToken);
+    dataToUpdate.tokenLast4 = maskBotToken(trimmedToken);
+    dataToUpdate.connectionStatus = "CONNECTED";
+    dataToUpdate.lastError = null;
+    dataToUpdate.lastCheckedAt = new Date();
+
+    auditAction = "REPLACE_BOT_TOKEN";
+    auditDetails.tokenHint = dataToUpdate.tokenLast4;
+    auditDetails.verifiedUsername = verifyRes.username;
+  }
+
+  const updated = await prisma.bot.update({
+    where: { id: botId },
+    data: dataToUpdate,
+    include: {
+      config: true,
+      _count: { select: { users: true } },
+    },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      botId,
+      adminUserId: input.adminUserId ?? null,
+      action: auditAction,
+      details: auditDetails,
+    },
+  });
+
+  return formatSafeBot(updated);
+}
+
+/**
+ * Tests connection to Telegram for a specific bot.
+ */
+export async function testBotConnection(
+  botId: string,
+  options?: { customFetch?: typeof fetch }
+) {
+  const bot = await prisma.bot.findUnique({
+    where: { id: botId },
+  });
+
+  if (!bot) {
+    throw new Error(`Bot with ID ${botId} not found.`);
+  }
+
+  const token = resolveBotToken(bot);
+  if (!token) {
+    const updated = await prisma.bot.update({
+      where: { id: botId },
+      data: {
+        connectionStatus: "STANDBY",
+        lastError: "Token is not configured or in standby mode.",
+        lastCheckedAt: new Date(),
+      },
+      include: {
+        config: true,
+        _count: { select: { users: true } },
+      },
+    });
+    return {
+      ok: false,
+      status: "STANDBY",
+      error: "No active token configured. Please supply a valid BotFather token.",
+      bot: formatSafeBot(updated),
+    };
+  }
+
+  const result = await verifyTelegramToken(token, {
+    customFetch: options?.customFetch,
+  });
+
+  const status = result.ok ? "CONNECTED" : "ERROR";
+  const updated = await prisma.bot.update({
+    where: { id: botId },
+    data: {
+      connectionStatus: status,
+      lastError: result.error ?? null,
+      lastCheckedAt: new Date(),
+    },
+    include: {
+      config: true,
+      _count: { select: { users: true } },
+    },
+  });
+
+  return {
+    ok: result.ok,
+    status,
+    error: result.error,
+    botInfo: result.ok
+      ? {
+          id: result.botId!,
+          username: result.username!,
+          name: result.firstName!,
+        }
+      : undefined,
+    bot: formatSafeBot(updated),
+  };
+}
+
+/**
+ * Deletes a bot and cascades all associated resources.
+ */
+export async function deleteBot(botId: string, adminUserId?: string) {
+  const bot = await prisma.bot.findUnique({
+    where: { id: botId },
+  });
+
+  if (!bot) {
+    throw new Error(`Bot with ID ${botId} not found.`);
+  }
+
+  const totalBots = await prisma.bot.count();
+  if (totalBots <= 1) {
+    throw new Error("Cannot delete the last remaining bot in the system.");
+  }
+
+  await prisma.bot.delete({
+    where: { id: botId },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      adminUserId: adminUserId ?? null,
+      action: "DELETE_BOT",
+      details: {
+        botId,
+        botName: bot.name,
+        username: bot.username,
+      },
+    },
+  });
+
+  return { success: true };
+}
+
+/**
  * Retrieves users strictly isolated by botId.
  * No data leakage between different bots.
  */
@@ -245,6 +703,50 @@ export async function updateBotWelcomeMessage(input: UpdateWelcomeMessageInput) 
       welcomeMessage: trimmedMessage,
     },
   });
+
+  // Synchronize welcome greeting ONLY with any active draft flow.
+  // Published flows MUST remain immutable until explicitly published by an administrator.
+  try {
+    const draftFlows = await prisma.botFlow.findMany({
+      where: {
+        botId: input.botId,
+        status: "DRAFT",
+      },
+    });
+
+    for (const flow of draftFlows) {
+      const struct = flow.structure as any;
+      if (!struct) continue;
+      let changed = false;
+
+      // Flow V1 Structure: rootMenu.promptText
+      if (struct.rootMenu && typeof struct.rootMenu === "object") {
+        struct.rootMenu.promptText = trimmedMessage;
+        changed = true;
+      }
+
+      // Flow V2 Graph: start / root node
+      if (Array.isArray(struct.nodes)) {
+        for (const n of struct.nodes) {
+          if (n.type === "start" || n.data?.isStart || n.id === "start-node") {
+            if (n.data) {
+              n.data.content = trimmedMessage;
+              changed = true;
+            }
+          }
+        }
+      }
+
+      if (changed) {
+        await prisma.botFlow.update({
+          where: { id: flow.id },
+          data: { structure: struct },
+        });
+      }
+    }
+  } catch (syncErr) {
+    console.warn("[updateBotWelcomeMessage] Error syncing flow greeting:", syncErr);
+  }
 
   // Create audit log record
   await prisma.auditLog.create({
@@ -396,30 +898,37 @@ export async function saveBotButtons(
           : 30;
 
       if (b.id) {
-        const updated = await client.botButton.upsert({
-          where: { id: b.id },
-          update: {
-            label: trimmedLabel,
-            actionType: b.actionType,
-            replyText: trimmedReply,
-            autoDeleteReply,
-            deleteAfterSeconds,
-            isEnabled: b.isEnabled ?? true,
-            order: index,
-          },
-          create: {
-            id: b.id,
-            botId,
-            label: trimmedLabel,
-            actionType: b.actionType,
-            replyText: trimmedReply,
-            autoDeleteReply,
-            deleteAfterSeconds,
-            isEnabled: b.isEnabled ?? true,
-            order: index,
-          },
-        });
-        results.push(updated);
+        // Use update instead of upsert to avoid Prisma's internal interactive transaction
+        try {
+          const updated = await client.botButton.update({
+            where: { id: b.id },
+            data: {
+              label: trimmedLabel,
+              actionType: b.actionType,
+              replyText: trimmedReply,
+              autoDeleteReply,
+              deleteAfterSeconds,
+              isEnabled: b.isEnabled ?? true,
+              order: index,
+            },
+          });
+          results.push(updated);
+        } catch {
+          const created = await client.botButton.create({
+            data: {
+              id: b.id,
+              botId,
+              label: trimmedLabel,
+              actionType: b.actionType,
+              replyText: trimmedReply,
+              autoDeleteReply,
+              deleteAfterSeconds,
+              isEnabled: b.isEnabled ?? true,
+              order: index,
+            },
+          });
+          results.push(created);
+        }
       } else {
         const created = await client.botButton.create({
           data: {

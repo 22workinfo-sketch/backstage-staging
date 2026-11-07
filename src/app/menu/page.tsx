@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/auth";
 import { getAllBots, getBotButtons } from "@/lib/bot-service";
+import { getUserAssignedBotIds } from "@/lib/permissions";
 import { BotdeskLayout } from "@/components/BotdeskLayout";
 import { BotdeskMenuPage, BotOption } from "@/components/BotdeskMenuPage";
 import { BotButtonDTO } from "@/components/MenuBuilder";
@@ -11,7 +12,14 @@ export default async function MenuPage() {
     redirect("/login");
   }
 
-  const rawBots = await getAllBots();
+  if (session.mustChangePassword) {
+    redirect("/login?changePassword=true");
+  }
+
+  const assignedIds = await getUserAssignedBotIds(session);
+  const allBots = await getAllBots();
+  const rawBots = allBots.filter((b) => assignedIds.includes(b.id));
+
   if (rawBots.length === 0) {
     redirect("/dashboard");
   }

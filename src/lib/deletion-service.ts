@@ -51,6 +51,29 @@ export async function processDueDeletions(options: ProcessDeletionsOptions) {
   const now = new Date();
   const batchSize = options.maxBatchSize ?? 25;
 
+  // 0. Recover stalled PROCESSING jobs (abandoned due to crash or container sleep > 5 min)
+  const staleThreshold = new Date(Date.now() - 5 * 60 * 1000);
+  try {
+    await prisma.scheduledDeletion.updateMany({
+      where: {
+        ...(options.botId ? { botId: options.botId } : {}),
+        status: "PROCESSING",
+        updatedAt: { lte: staleThreshold },
+      },
+      data: {
+        status: "PENDING",
+        retryCount: { increment: 1 },
+        lastError: "Reclaimed after stalled processing lease expired",
+        updatedAt: now,
+      },
+    });
+  } catch (recoverErr) {
+    console.error(
+      "[Deletion Recovery Error] Failed to recover stalled jobs:",
+      recoverErr instanceof Error ? recoverErr.message : recoverErr
+    );
+  }
+
   // 1. Atomically claim due jobs: transition from PENDING to PROCESSING
   const dueJobs = await prisma.scheduledDeletion.findMany({
     where: {

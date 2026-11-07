@@ -8,6 +8,10 @@ export default async function WorkspacePage() {
     redirect("/login");
   }
 
+  if (session.mustChangePassword) {
+    redirect("/login?changePassword=true");
+  }
+
   return (
     <BotdeskLayout
       userEmail={session.email}

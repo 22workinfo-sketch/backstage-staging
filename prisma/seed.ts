@@ -18,6 +18,20 @@ async function main() {
   const adminPassword =
     process.env.ADMIN_DEFAULT_PASSWORD || "change_me_local_password_123";
 
+  // Production safety check: Never seed default credentials in production
+  if (process.env.NODE_ENV === "production") {
+    if (
+      !process.env.ADMIN_DEFAULT_EMAIL ||
+      !process.env.ADMIN_DEFAULT_PASSWORD ||
+      adminPassword.includes("change_me")
+    ) {
+      console.error(
+        "[Seed Error] Refusing to seed default test admin in production without explicit, secure credentials."
+      );
+      process.exit(1);
+    }
+  }
+
   // 1. Seed Default Admin User
   const salt = await bcrypt.genSalt(12);
   const passwordHash = await bcrypt.hash(adminPassword, salt);
@@ -39,18 +53,28 @@ async function main() {
   console.log(`[Seed] Admin user verified: ${admin.email} (Role: ${admin.role})`);
 
   // 2. Seed Default Bot
+  const rawToken = process.env.TELEGRAM_BOT_TOKEN || "";
+  const tokenBotIdMatch = rawToken.match(/^(\d{8,12}):/);
+  const defaultTelegramBotId = tokenBotIdMatch ? BigInt(tokenBotIdMatch[1]) : null;
+  const tokenLast4 = rawToken.length >= 4 ? rawToken.slice(-4) : null;
+
   const bot = await prisma.bot.upsert({
     where: { id: defaultBotId },
     create: {
       id: defaultBotId,
       name: defaultBotName,
       username: defaultBotUsername,
+      telegramBotId: defaultTelegramBotId,
       tokenEnvVar: "TELEGRAM_BOT_TOKEN",
+      tokenLast4,
+      connectionStatus: "STANDBY",
       isActive: true,
     },
     update: {
       name: defaultBotName,
       username: defaultBotUsername,
+      telegramBotId: defaultTelegramBotId ?? undefined,
+      tokenLast4: tokenLast4 ?? undefined,
       isActive: true,
     },
   });

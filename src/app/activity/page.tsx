@@ -1,7 +1,15 @@
 import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getUserAssignedBotIds } from "@/lib/permissions";
 import { BotdeskLayout } from "@/components/BotdeskLayout";
+import { getChannelActivityEvents } from "@/lib/activity-service";
+import {
+  ChannelActivityPage,
+  BotOption,
+  ChannelOption,
+  AuditLogItem,
+} from "@/components/ChannelActivityPage";
 
 export default async function ActivityPage() {
   const session = await getAdminSession();
@@ -9,8 +17,57 @@ export default async function ActivityPage() {
     redirect("/login");
   }
 
-  // Fetch real audit logs from PostgreSQL
-  const logs = await prisma.auditLog.findMany({
+  if (session.mustChangePassword) {
+    redirect("/login?changePassword=true");
+  }
+
+  const assignedIds = await getUserAssignedBotIds(session);
+  const isSuper = session.role === "SUPER_ADMIN";
+
+  // 1. Fetch bots assigned to this user
+  const botsData = await prisma.bot.findMany({
+    where: { id: { in: assignedIds }, isActive: true },
+    select: { id: true, name: true, username: true },
+    orderBy: { name: "asc" },
+  });
+
+  const bots: BotOption[] = botsData.map((b) => ({
+    id: b.id,
+    name: b.name,
+    username: b.username,
+  }));
+
+  // 2. Fetch channels associated with assigned bots
+  const channelsData = await prisma.botChannel.findMany({
+    where: { botId: { in: assignedIds }, isEnabled: true },
+    select: { id: true, botId: true, name: true, telegramChatId: true },
+    orderBy: { name: "asc" },
+  });
+
+  const channels: ChannelOption[] = channelsData.map((ch) => ({
+    id: ch.id,
+    botId: ch.botId,
+    name: ch.name,
+    telegramChatId: ch.telegramChatId,
+  }));
+
+  // 3. Initial Channel Activity Events
+  const activityData = await getChannelActivityEvents({
+    botIds: assignedIds,
+    page: 1,
+    limit: 20,
+  });
+
+  // 4. Fetch administrative audit logs for secondary tab
+  const rawAuditLogs = await prisma.auditLog.findMany({
+    where: isSuper
+      ? undefined
+      : {
+          OR: [
+            { botId: { in: assignedIds } },
+            { adminUserId: session.id },
+          ],
+        },
     take: 50,
     orderBy: { createdAt: "desc" },
     include: {
@@ -19,90 +76,32 @@ export default async function ActivityPage() {
     },
   });
 
+  const auditLogs: AuditLogItem[] = rawAuditLogs.map((log) => ({
+    id: log.id,
+    action: log.action,
+    botName: log.bot?.name || null,
+    botUsername: log.bot?.username || null,
+    adminEmail: log.adminUser?.email || null,
+    createdAt: log.createdAt.toISOString(),
+    details: log.details,
+  }));
+
   return (
     <BotdeskLayout
       userEmail={session.email}
       role={session.role}
       activeNav="activity"
-      breadcrumb="Activity"
+      breadcrumb="Channel Activity"
     >
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)]">
-            Activity
-          </h1>
-          <p className="text-sm text-[var(--muted)] mt-1">
-            Real timeline of bot configuration events, menu updates, and administrative changes.
-          </p>
-        </div>
-
-        <div className="botdesk-card">
-          <div className="card-header">
-            <div>
-              <h2 className="text-base font-bold text-[var(--text)]">
-                Audit Log Timeline
-              </h2>
-              <p className="text-xs text-[var(--muted)]">
-                Recorded automatically with timestamp, bot ID, and admin identity
-              </p>
-            </div>
-            <span className="botdesk-badge blue font-mono text-xs">
-              {logs.length} events
-            </span>
-          </div>
-
-          <div className="card-body">
-            {logs.length === 0 ? (
-              <div className="py-12 text-center text-xs text-[var(--muted)]">
-                No activity logged yet. Saving welcome messages or editing menu buttons will create audit entries here.
-              </div>
-            ) : (
-              <div className="divide-y divide-[var(--border)]">
-                {logs.map((entry) => {
-                  const botName = entry.bot?.name || "General System";
-                  const handle = entry.bot?.username ? `@${entry.bot.username}` : "";
-                  const admin = entry.adminUser?.email || "Local Admin";
-
-                  let detailSummary = "";
-                  if (entry.details && typeof entry.details === "object") {
-                    const d = entry.details as any;
-                    if (d.updated) detailSummary = `Welcome text updated to: "${d.updated}"`;
-                    else if (d.buttonCount !== undefined) detailSummary = `Updated menu (${d.buttonCount} buttons: ${d.labels?.join(", ") || ""})`;
-                  }
-
-                  return (
-                    <div key={entry.id} className="py-3.5 space-y-1">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
-                        <div className="flex items-center gap-2">
-                          <strong className="text-[var(--text)] font-semibold">
-                            {botName} {handle && `(${handle})`}
-                          </strong>
-                          <span className="botdesk-badge blue text-[11px] font-mono">
-                            {entry.action}
-                          </span>
-                        </div>
-                        <time className="text-[var(--muted)] font-mono text-[11px]">
-                          {new Date(entry.createdAt).toLocaleString()}
-                        </time>
-                      </div>
-
-                      {detailSummary && (
-                        <p className="text-xs text-[var(--muted)] line-clamp-2">
-                          {detailSummary}
-                        </p>
-                      )}
-
-                      <div className="text-[11px] text-[var(--muted)]">
-                        Triggered by: <span className="text-[var(--text)]">{admin}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <ChannelActivityPage
+        bots={bots}
+        channels={channels}
+        initialEvents={activityData.events}
+        initialTotal={activityData.total}
+        initialTotalPages={activityData.totalPages}
+        auditLogs={auditLogs}
+        userRole={session.role}
+      />
     </BotdeskLayout>
   );
 }

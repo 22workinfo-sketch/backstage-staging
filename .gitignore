@@ -41,3 +41,10 @@ coverage/
 
 # Local uploaded media (non-public development storage)
 uploads/
+
+# TypeScript build info cache
+*.tsbuildinfo
+
+# Temporary local testing & scratch scripts
+scratch/
+

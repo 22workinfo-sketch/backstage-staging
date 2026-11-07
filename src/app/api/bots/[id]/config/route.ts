@@ -1,18 +1,37 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSession } from "@/lib/auth";
+import { canUserMutate } from "@/lib/permissions";
 import { updateBotWelcomeMessage } from "@/lib/bot-service";
+import { verifyRequestOrigin } from "@/lib/rate-limit";
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } | Promise<{ id: string }> }
 ) {
   try {
+    const originCheck = verifyRequestOrigin(req);
+    if (!originCheck.isValid) {
+      return NextResponse.json(
+        { error: originCheck.error || "Forbidden" },
+        { status: 403 }
+      );
+    }
+
     const session = await getAdminSession(req);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await Promise.resolve(params);
+
+    const allowed = await canUserMutate(session, id);
+    if (!allowed) {
+      return NextResponse.json(
+        { error: "Forbidden: Insufficient privileges to configure this bot." },
+        { status: 403 }
+      );
+    }
+
     const body = await req.json();
     const { welcomeMessage } = body;
 
