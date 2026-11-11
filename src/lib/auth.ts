@@ -7,7 +7,11 @@ import { prisma } from "./prisma";
 export const COOKIE_NAME = "backstage_session";
 
 export function getJwtSecret(): Uint8Array {
-  const secret = process.env.ADMIN_SESSION_SECRET;
+  const secret =
+    process.env.ADMIN_SESSION_SECRET ||
+    process.env.AUTH_SECRET ||
+    process.env.JWT_SECRET ||
+    process.env.SESSION_SECRET;
   if (process.env.NODE_ENV === "production") {
     if (
       !secret ||
@@ -16,7 +20,7 @@ export function getJwtSecret(): Uint8Array {
       secret.includes("change-me")
     ) {
       throw new Error(
-        "CRITICAL SECURITY CONFIGURATION ERROR: In production, ADMIN_SESSION_SECRET must be set to a high-entropy secret at least 32 characters long."
+        "CRITICAL SECURITY CONFIGURATION ERROR: In production, ADMIN_SESSION_SECRET (or AUTH_SECRET/JWT_SECRET/SESSION_SECRET) must be set to a high-entropy secret at least 32 characters long."
       );
     }
     return new TextEncoder().encode(secret);

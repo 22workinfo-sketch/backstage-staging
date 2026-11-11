@@ -143,19 +143,10 @@ try {
     Write-Host " Automated Staging Database Verification" -ForegroundColor Cyan
     Write-Host "------------------------------------------------------------------" -ForegroundColor Cyan
 
-    & node -e "
-    const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
-    async function verify() {
-        const tables = await prisma.`$queryRaw`SELECT count(*)::int as count FROM information_schema.tables WHERE table_schema = 'public' AND table_name != '_prisma_migrations'`;
-        const adminCount = await prisma.adminUser.count();
-        const botsCount = await prisma.bot.count();
-        console.log('✓ Public application tables created:', tables[0].count);
-        console.log('✓ Active Super-Admin accounts:', adminCount);
-        console.log('✓ Bot records in database:', botsCount);
+    & npx.cmd tsx scripts/verify-staging-db.ts
+    if ($LASTEXITCODE -ne 0) {
+        throw "Verification query failed with exit code $LASTEXITCODE."
     }
-    verify().catch(e => console.error('Verification query failed:', e.message)).finally(() => prisma.`$disconnect`());
-    "
 
     Write-Host ""
     Write-Host "==================================================================" -ForegroundColor Green
