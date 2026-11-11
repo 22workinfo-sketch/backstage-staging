@@ -1,5 +1,3 @@
-import { RetryChunkLoadPlugin } from "webpack-retry-chunk-load-plugin";
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -15,20 +13,6 @@ const nextConfig = {
         "*.ngrok.io",
       ],
     },
-  },
-  webpack: (config, { isServer }) => {
-    // Retry loading chunks on client side when dev tunnels or network drops occur
-    if (!isServer) {
-      config.plugins.push(
-        new RetryChunkLoadPlugin({
-          maxRetries: 3,
-          retryDelay: 1000,
-          cacheBust: "function() { return Date.now(); }",
-          lastResortScript: "window.location.reload();",
-        })
-      );
-    }
-    return config;
   },
   // Ensure headers for static chunks
   async headers() {

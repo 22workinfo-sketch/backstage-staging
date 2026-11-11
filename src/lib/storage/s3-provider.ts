@@ -22,11 +22,14 @@ export class S3StorageProvider implements StorageProvider {
   private readonly s3Client: S3Client;
 
   constructor(options?: Partial<S3ProviderOptions>) {
-    this.bucket = options?.bucket || process.env.S3_BUCKET_NAME || "";
+    this.bucket =
+      options?.bucket ||
+      process.env.S3_BUCKET_NAME ||
+      (process.env.STORAGE_PROVIDER === "neon" ? "backstage-media" : "");
 
     if (!this.bucket) {
       throw new Error(
-        "Storage Configuration Error: S3_BUCKET_NAME must be specified when using S3/R2 storage provider."
+        "Storage Configuration Error: S3_BUCKET_NAME must be specified when using S3/R2/Neon storage provider."
       );
     }
 
@@ -35,15 +38,27 @@ export class S3StorageProvider implements StorageProvider {
       return;
     }
 
-    const endpoint = options?.endpoint || process.env.S3_ENDPOINT;
-    const region = options?.region || process.env.S3_REGION || "auto";
-    const accessKeyId = options?.accessKeyId || process.env.S3_ACCESS_KEY_ID;
+    const endpoint =
+      options?.endpoint ||
+      process.env.S3_ENDPOINT ||
+      process.env.AWS_ENDPOINT_URL_S3;
+    const region =
+      options?.region ||
+      process.env.S3_REGION ||
+      process.env.AWS_REGION ||
+      "auto";
+    const accessKeyId =
+      options?.accessKeyId ||
+      process.env.S3_ACCESS_KEY_ID ||
+      process.env.AWS_ACCESS_KEY_ID;
     const secretAccessKey =
-      options?.secretAccessKey || process.env.S3_SECRET_ACCESS_KEY;
+      options?.secretAccessKey ||
+      process.env.S3_SECRET_ACCESS_KEY ||
+      process.env.AWS_SECRET_ACCESS_KEY;
 
     if (!accessKeyId || !secretAccessKey) {
       throw new Error(
-        "Storage Configuration Error: S3_ACCESS_KEY_ID and S3_SECRET_ACCESS_KEY must be configured for S3/R2 storage provider."
+        "Storage Configuration Error: Storage credentials (S3_ACCESS_KEY_ID / AWS_ACCESS_KEY_ID) must be configured."
       );
     }
 

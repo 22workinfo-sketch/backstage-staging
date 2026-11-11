@@ -24,7 +24,7 @@ export function getStorageProvider(): StorageProvider {
   }
 
   const configured = (process.env.STORAGE_PROVIDER || "local").toLowerCase().trim();
-  if (configured === "s3" || configured === "r2") {
+  if (configured === "s3" || configured === "r2" || configured === "neon") {
     defaultProvider = new S3StorageProvider();
   } else {
     defaultProvider = new LocalStorageProvider();

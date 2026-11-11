@@ -48,3 +48,5 @@ uploads/
 # Temporary local testing & scratch scripts
 scratch/
 
+.neon
+.env.neon_tmp
