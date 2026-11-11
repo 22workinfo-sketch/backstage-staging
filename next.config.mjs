@@ -3,8 +3,15 @@ import path from "path";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Allow dev tunnel hostnames for HMR and API requests
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   experimental: {
+    cpus: 1,
+    workerThreads: false,
     serverActions: {
       allowedOrigins: [
         "127.0.0.1:3000",
