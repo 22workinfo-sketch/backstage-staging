@@ -573,7 +573,7 @@ export function BotdeskPostsPage({
       const uploadedList: AlbumItemDTO[] = (data.items || []).map(
         (it: any, idx: number) => ({
           mediaType: it.mediaType as "IMAGE" | "VIDEO",
-          filePath: it.filePath || it.filename,
+          filePath: it.filename || it.filePath,
           originalName: it.originalName,
           mimeType: it.mimeType,
           sizeBytes: it.sizeBytes,

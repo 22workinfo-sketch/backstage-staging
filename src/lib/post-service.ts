@@ -103,21 +103,91 @@ export async function resolveMediaInputFile(
   mediaKeyOrPath: string,
   originalName?: string | null
 ): Promise<InputFile> {
+  const cleanKey = mediaKeyOrPath
+    .replace(/^\/?api\/media\/posts\//, "")
+    .replace(/^\/?uploads\/posts\//, "");
+
   const storage = getStorageProvider();
   if (path.isAbsolute(mediaKeyOrPath) && fs.existsSync(mediaKeyOrPath)) {
     return new InputFile(mediaKeyOrPath, originalName || undefined);
   }
+  if (path.isAbsolute(cleanKey) && fs.existsSync(cleanKey)) {
+    return new InputFile(cleanKey, originalName || undefined);
+  }
 
   const localPath = storage.getLocalFilePath
-    ? storage.getLocalFilePath(mediaKeyOrPath)
-    : path.join(UPLOADS_POSTS_DIR, mediaKeyOrPath);
+    ? storage.getLocalFilePath(cleanKey)
+    : path.join(UPLOADS_POSTS_DIR, cleanKey);
 
   if (localPath && fs.existsSync(localPath)) {
     return new InputFile(localPath, originalName || undefined);
   }
 
-  const { data } = await storage.getObject(mediaKeyOrPath);
+  const { data } = await storage.getObject(cleanKey);
   return new InputFile(data, originalName || undefined);
+}
+
+/**
+ * Verifies whether a media file exists in the active storage provider (local disk or S3/R2)
+ * or has been reliably recorded in the database.
+ */
+export async function verifyMediaExists(mediaKeyOrPath: string): Promise<boolean> {
+  if (!mediaKeyOrPath || typeof mediaKeyOrPath !== "string") {
+    return false;
+  }
+
+  const cleanKey = mediaKeyOrPath
+    .replace(/^\/?api\/media\/posts\//, "")
+    .replace(/^\/?uploads\/posts\//, "");
+
+  // 1. Direct absolute path check
+  if (path.isAbsolute(mediaKeyOrPath) && fs.existsSync(mediaKeyOrPath)) {
+    return true;
+  }
+  if (path.isAbsolute(cleanKey) && fs.existsSync(cleanKey)) {
+    return true;
+  }
+
+  // 2. Storage Provider abstraction (works for S3, R2, Neon Object Storage, Local)
+  try {
+    const storage = getStorageProvider();
+    const existsInStorage = await storage.exists(cleanKey);
+    if (existsInStorage) {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+
+  // 3. Local uploads directory check
+  try {
+    const localPath = path.join(UPLOADS_POSTS_DIR, cleanKey);
+    if (fs.existsSync(localPath)) {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+
+  // 4. StoredMedia table in database (durable record created on upload)
+  try {
+    const stored = await prisma.storedMedia.findFirst({
+      where: {
+        OR: [
+          { storageKey: cleanKey },
+          { storageKey: mediaKeyOrPath },
+        ],
+      },
+      select: { id: true },
+    });
+    if (stored) {
+      return true;
+    }
+  } catch {
+    // ignore
+  }
+
+  return false;
 }
 
 /**
@@ -191,18 +261,25 @@ export function validateAlbumItems(
       );
     }
 
-    const fullPath = path.isAbsolute(item.filePath)
-      ? item.filePath
-      : path.join(UPLOADS_POSTS_DIR, item.filePath);
+    const cleanKey = item.filePath
+      .replace(/^\/?api\/media\/posts\//, "")
+      .replace(/^\/?uploads\/posts\//, "");
 
-    if (!fs.existsSync(fullPath)) {
-      throw new Error(`Album item #${i + 1} file not found on local storage: ${item.filePath}`);
+    const storage = getStorageProvider();
+    if (storage.name === "local") {
+      const fullPath = path.isAbsolute(cleanKey)
+        ? cleanKey
+        : path.join(UPLOADS_POSTS_DIR, cleanKey);
+
+      if (!fs.existsSync(fullPath)) {
+        throw new Error(`Album item #${i + 1} file not found on local storage: ${item.filePath}`);
+      }
     }
 
     validated.push({
       id: item.id,
       mediaType: item.mediaType,
-      filePath: item.filePath,
+      filePath: cleanKey,
       originalName: item.originalName || null,
       mimeType: item.mimeType || null,
       sizeBytes: item.sizeBytes || null,
@@ -704,28 +781,39 @@ export async function createDraftPost(
   let validatedAlbumItems: AlbumItemInput[] = [];
   if (input.postType === "ALBUM") {
     validatedAlbumItems = validateAlbumItems(input.albumItems);
+    for (let i = 0; i < validatedAlbumItems.length; i++) {
+      const item = validatedAlbumItems[i];
+      const exists = await verifyMediaExists(item.filePath);
+      if (!exists) {
+        throw new Error(`Album item #${i + 1} file not found in storage: ${item.filePath}`);
+      }
+    }
   } else if (input.postType === "IMAGE" || input.postType === "VIDEO") {
     if (!input.mediaPath) {
       const typeLabel = input.postType === "IMAGE" ? "Image" : "Video";
       throw new Error(`${typeLabel} post requires an uploaded media file.`);
     }
-    const fullPath = path.isAbsolute(input.mediaPath)
-      ? input.mediaPath
-      : path.join(UPLOADS_POSTS_DIR, input.mediaPath);
 
-    if (!fs.existsSync(fullPath)) {
+    const exists = await verifyMediaExists(input.mediaPath);
+    if (!exists) {
       throw new Error("Uploaded media file was not found on local storage.");
     }
   }
 
   // 4. Save draft in PostgreSQL
+  const cleanMediaPath = input.mediaPath
+    ? input.mediaPath
+        .replace(/^\/?api\/media\/posts\//, "")
+        .replace(/^\/?uploads\/posts\//, "")
+    : null;
+
   const post = await prisma.channelPost.create({
     data: {
       botId: input.botId,
       channelId: input.channelId,
       postType: input.postType,
       content: validatedContent,
-      mediaPath: input.postType === "ALBUM" ? null : input.mediaPath || null,
+      mediaPath: input.postType === "ALBUM" ? null : cleanMediaPath,
       mediaOriginalName:
         input.postType === "ALBUM" ? null : input.mediaOriginalName || null,
       mediaMimeType:
@@ -832,19 +920,43 @@ export async function updateDraftPost(
 
   let validatedAlbumItems: AlbumItemInput[] = [];
   if (input.postType === "ALBUM") {
-    validatedAlbumItems = validateAlbumItems(input.albumItems);
+    if (input.albumItems) {
+      validatedAlbumItems = validateAlbumItems(input.albumItems);
+      for (let i = 0; i < validatedAlbumItems.length; i++) {
+        const item = validatedAlbumItems[i];
+        const exists = await verifyMediaExists(item.filePath);
+        if (!exists) {
+          throw new Error(`Album item #${i + 1} file not found in storage: ${item.filePath}`);
+        }
+      }
+    }
   } else if (input.postType === "IMAGE" || input.postType === "VIDEO") {
     const mediaPath = input.mediaPath || existing.mediaPath;
     if (!mediaPath) {
       const typeLabel = input.postType === "IMAGE" ? "Image" : "Video";
       throw new Error(`${typeLabel} post requires an uploaded media file.`);
     }
+    if (input.mediaPath) {
+      const exists = await verifyMediaExists(input.mediaPath);
+      if (!exists) {
+        throw new Error("Uploaded media file was not found on local storage.");
+      }
+    }
   }
 
   // Update album items if postType is ALBUM
-  if (input.postType === "ALBUM") {
+  if (input.postType === "ALBUM" && input.albumItems) {
     await prisma.postAlbumItem.deleteMany({ where: { postId: input.id } });
   }
+
+  const cleanUpdateMediaPath =
+    input.mediaPath !== undefined
+      ? input.mediaPath
+        ? input.mediaPath
+            .replace(/^\/?api\/media\/posts\//, "")
+            .replace(/^\/?uploads\/posts\//, "")
+        : null
+      : existing.mediaPath;
 
   const updated = await prisma.channelPost.update({
     where: { id: input.id },
@@ -855,9 +967,7 @@ export async function updateDraftPost(
       mediaPath:
         input.postType === "ALBUM"
           ? null
-          : input.mediaPath !== undefined
-          ? input.mediaPath
-          : existing.mediaPath,
+          : cleanUpdateMediaPath,
       mediaOriginalName:
         input.postType === "ALBUM"
           ? null
