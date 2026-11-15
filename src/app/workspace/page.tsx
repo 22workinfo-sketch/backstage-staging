@@ -34,7 +34,7 @@ export default async function WorkspacePage() {
             <h2 className="text-base font-bold text-[var(--text)]">
               Environment & Infrastructure Status
             </h2>
-            <span className="botdesk-badge enabled">Local MVP Operational</span>
+            <span className="botdesk-badge enabled">Operational</span>
           </div>
 
           <div className="card-body divide-y divide-[var(--border)] text-sm">

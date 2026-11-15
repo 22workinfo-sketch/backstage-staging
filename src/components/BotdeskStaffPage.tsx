@@ -312,7 +312,7 @@ export function BotdeskStaffPage({
                 </thead>
                 <tbody className="divide-y divide-[var(--border)]">
                   {staffList.map((member) => (
-                    <tr key={member.id} className="hover:bg-[var(--surface)] transition">
+                    <tr key={member.id} className="table-row-hover hover:bg-[var(--surface)]">
                       <td className="py-3 px-3 font-semibold text-[var(--text)]">
                         {member.email}
                         {member.id === sessionUser.id && (
@@ -413,7 +413,7 @@ export function BotdeskStaffPage({
       {/* Add Staff Account Modal */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
+          <div className="modal-pop w-full max-w-lg rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <h3 className="text-base font-bold text-[var(--text)]">
                 Add New Staff Account
@@ -541,9 +541,19 @@ export function BotdeskStaffPage({
                 <button
                   type="submit"
                   disabled={addingSubmitting}
-                  className="botdesk-btn primary text-xs py-1.5 px-4 font-semibold"
+                  className="botdesk-btn primary text-xs py-1.5 px-4 font-semibold inline-flex items-center gap-1.5"
                 >
-                  {addingSubmitting ? "Creating..." : "Create Account"}
+                  {addingSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    "Create Account"
+                  )}
                 </button>
               </div>
             </form>
@@ -554,7 +564,7 @@ export function BotdeskStaffPage({
       {/* Edit Staff Account Modal */}
       {editingStaff && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
+          <div className="modal-pop w-full max-w-lg rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <div>
                 <h3 className="text-base font-bold text-[var(--text)]">
@@ -680,9 +690,19 @@ export function BotdeskStaffPage({
                 <button
                   type="submit"
                   disabled={editSubmitting}
-                  className="botdesk-btn primary text-xs py-1.5 px-4 font-semibold"
+                  className="botdesk-btn primary text-xs py-1.5 px-4 font-semibold inline-flex items-center gap-1.5"
                 >
-                  {editSubmitting ? "Saving..." : "Save Changes"}
+                  {editSubmitting ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    "Save Changes"
+                  )}
                 </button>
               </div>
             </form>

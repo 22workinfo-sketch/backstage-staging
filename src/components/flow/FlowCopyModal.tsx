@@ -110,17 +110,17 @@ export function FlowCopyModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-xl max-h-[620px] flex flex-col shadow-2xl overflow-hidden text-slate-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+      <div className="bg-[#0f1420] border border-slate-800 rounded-2xl w-full max-w-xl max-h-[620px] flex flex-col shadow-2xl overflow-hidden text-slate-200">
         {/* Header */}
-        <div className="bg-slate-800/90 px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
+        <div className="bg-[#0d121c] px-5 py-3.5 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg">🔁</span>
-            <h3 className="font-semibold text-white text-sm">
+            <h3 className="font-bold text-white text-sm">
               Copy Flow Between Bots
             </h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded">
+          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 cursor-pointer">
             ✕
           </button>
         </div>
@@ -129,10 +129,10 @@ export function FlowCopyModal({
         <div className="flex-1 p-5 overflow-y-auto space-y-4">
           {status && (
             <div
-              className={`p-3 rounded-lg text-xs border ${
+              className={`p-3 rounded-xl text-xs border ${
                 status.type === "success"
-                  ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300"
-                  : "bg-rose-950/40 border-rose-500/40 text-rose-300"
+                  ? "bg-emerald-950/60 border-emerald-500/40 text-emerald-300"
+                  : "bg-rose-950/60 border-rose-500/40 text-rose-300"
               }`}
             >
               {status.text}
@@ -146,13 +146,13 @@ export function FlowCopyModal({
           ) : (
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
                   Destination Bot *
                 </label>
                 <select
                   value={targetBotId}
                   onChange={(e) => setTargetBotId(e.target.value)}
-                  className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8]"
                 >
                   {targetCandidates.map((b) => (
                     <option key={b.id} value={b.id}>
@@ -167,8 +167,8 @@ export function FlowCopyModal({
                   Inspecting flow and analyzing dependencies...
                 </p>
               ) : preview ? (
-                <div className="space-y-3 bg-slate-800/40 p-4 rounded-xl border border-white/10 text-xs">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                <div className="space-y-3 bg-[#0d121c] p-4 rounded-xl border border-slate-800 text-xs">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                     <span className="text-slate-400">Total Nodes:</span>
                     <span className="font-bold text-white">{preview.nodeCount}</span>
                   </div>
@@ -182,17 +182,17 @@ export function FlowCopyModal({
                       {preview.channelConditions.map((cond) => (
                         <div
                           key={cond.nodeId}
-                          className="bg-black/30 p-2.5 rounded-lg border border-white/5 space-y-1.5"
+                          className="bg-[#131926] p-2.5 rounded-xl border border-slate-800 space-y-1.5"
                         >
                           <div className="flex items-center justify-between">
                             <span className="font-medium text-slate-200">
                               Node: {cond.nodeTitle}
                             </span>
                             <span
-                              className={`text-[10px] px-2 py-0.5 rounded-full ${
+                              className={`text-[10px] px-2 py-0.5 rounded-full border ${
                                 cond.availableInTarget
-                                  ? "bg-emerald-500/20 text-emerald-300"
-                                  : "bg-amber-500/20 text-amber-300"
+                                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                                  : "bg-amber-500/20 text-amber-300 border-amber-500/30"
                               }`}
                             >
                               {cond.availableInTarget ? "Matched" : "Action Required"}
@@ -214,7 +214,7 @@ export function FlowCopyModal({
                                   [cond.channelId]: e.target.value,
                                 })
                               }
-                              className="w-full bg-slate-900 border border-white/10 rounded px-2 py-1 text-xs text-white"
+                              className="w-full bg-[#0d121c] border border-slate-800 rounded-lg px-2 py-1 text-xs text-white"
                             >
                               <option value="">-- Keep Unmapped --</option>
                               {destChannels.map((c) => (
@@ -231,7 +231,7 @@ export function FlowCopyModal({
 
                   {/* Warnings */}
                   {preview.warnings.length > 0 && (
-                    <div className="bg-amber-950/30 border border-amber-500/20 p-2.5 rounded-lg space-y-1 text-amber-300 text-[11px]">
+                    <div className="bg-amber-950/40 border border-amber-500/30 p-2.5 rounded-xl space-y-1 text-amber-300 text-[11px]">
                       <span className="font-bold">⚠️ Pre-flight Notes:</span>
                       <ul className="list-disc pl-4 space-y-0.5">
                         {preview.warnings.map((w, idx) => (
@@ -241,7 +241,7 @@ export function FlowCopyModal({
                     </div>
                   )}
 
-                  <div className="bg-sky-950/30 border border-sky-500/20 p-2.5 rounded-lg text-[11px] text-sky-300">
+                  <div className="bg-sky-950/40 border border-sky-500/25 p-2.5 rounded-xl text-[11px] text-sky-300">
                     ℹ️ The flow will be saved as a new <strong>Draft</strong> on the destination bot. It will <strong>never overwrite</strong> or immediately publish over the destination bot's active flow.
                   </div>
                 </div>
@@ -251,7 +251,7 @@ export function FlowCopyModal({
                 type="button"
                 disabled={copying || loadingPreview || !preview}
                 onClick={handleCopy}
-                className="w-full bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold text-xs py-2 rounded-lg transition-colors"
+                className="w-full bg-[#38bdf8] hover:bg-[#20b3f7] disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-xl transition-colors cursor-pointer"
               >
                 {copying ? "Copying Flow to Draft..." : "Copy to Destination Draft"}
               </button>

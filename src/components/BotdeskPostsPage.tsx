@@ -1419,53 +1419,55 @@ export function BotdeskPostsPage({
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <span className="botdesk-badge blue text-[10px] tracking-wider uppercase mb-1 inline-block">
-          Channel Publishing
-        </span>
-        <h1 className="text-xl font-bold text-[var(--text)]">
-          Channel Posts & Broadcast
-        </h1>
-        <p className="text-xs text-[var(--muted)] mt-1">
-          Prepare, preview, draft, and publish posts to Telegram channels managed by your bots.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-sky-500/10 text-[#38bdf8] border border-sky-500/25 mb-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> Channel Publishing & Broadcast
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            Channel Posts & Broadcast
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Prepare, preview, schedule, and broadcast rich announcements to Telegram channels.
+          </p>
+        </div>
       </div>
 
       {/* Target Selector & Bot Permission Bar */}
-      <div className="p-4 rounded-xl border border-[var(--border)] bg-[var(--panel)] shadow-sm space-y-3">
+      <div className="p-5 sm:p-6 rounded-2xl border border-slate-800/80 bg-[#0f1420] shadow-xl space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
-              Select Publishing Bot
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <span>🤖 Publishing Bot</span>
             </label>
             <select
               value={selectedBotId}
               onChange={(e) => setSelectedBotId(e.target.value)}
-              className="botdesk-select text-xs w-full"
+              className="text-xs min-h-[42px] w-full py-2 px-3.5 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition cursor-pointer"
             >
               {bots.map((b) => (
-                <option key={b.id} value={b.id}>
+                <option key={b.id} value={b.id} className="bg-[#0f1420] text-white">
                   {b.name} (@{b.username})
                 </option>
               ))}
             </select>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
-              Select Target Channel
+          <div className="space-y-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <span>📢 Target Channel</span>
             </label>
             <select
               value={selectedChannelId}
               onChange={(e) => setSelectedChannelId(e.target.value)}
-              className="botdesk-select text-xs w-full"
+              className="text-xs min-h-[42px] w-full py-2 px-3.5 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition cursor-pointer disabled:opacity-50"
               disabled={channels.length === 0}
             >
               {channels.length === 0 ? (
-                <option value="">No channels configured for this bot</option>
+                <option value="" className="bg-[#0f1420] text-white">No channels configured for this bot</option>
               ) : (
                 channels.map((c) => (
-                  <option key={c.id} value={c.id}>
+                  <option key={c.id} value={c.id} className="bg-[#0f1420] text-white">
                     {c.name} ({c.telegramChatId})
                   </option>
                 ))
@@ -1475,42 +1477,52 @@ export function BotdeskPostsPage({
         </div>
 
         {/* Known Connection / Permission State */}
-        <div className="flex items-center justify-between flex-wrap gap-2 pt-2 border-t border-[var(--border)] text-xs">
-          <div className="flex items-center gap-2">
-            <span className="text-[var(--muted)]">Bot Channel Permission:</span>
+        <div className="p-3.5 rounded-xl bg-[#0b0f19] border border-slate-800/80 flex items-center justify-between flex-wrap gap-2 text-xs">
+          <div className="flex items-center gap-2.5">
+            <span className="text-slate-400 font-medium">Channel Permission:</span>
             {checkingPermission ? (
-              <span className="botdesk-badge text-[11px] paused">
-                Verifying Telegram API...
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-sky-500/10 text-sky-400 border border-sky-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" /> Verifying Telegram API...
               </span>
             ) : permissionCheck ? (
               <span
-                className={`botdesk-badge text-[11px] ${
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                   permissionCheck.status === "CAN_POST"
-                    ? "enabled"
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                     : permissionCheck.status === "CANNOT_POST"
-                    ? "paused"
+                    ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
                     : permissionCheck.status === "NOT_ADMIN"
-                    ? "red"
-                    : "paused"
+                    ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                    : "bg-slate-800/60 text-slate-300 border-slate-700"
                 }`}
               >
-                {permissionCheck.status === "CAN_POST"
-                  ? "✓ Can Post Messages"
-                  : permissionCheck.status === "CANNOT_POST"
-                  ? "⚠️ Missing Post Permission"
-                  : permissionCheck.status === "NOT_ADMIN"
-                  ? "✕ Not Channel Admin"
-                  : "? Permission Unknown"}
+                {permissionCheck.status === "CAN_POST" ? (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> Can Post Messages
+                  </>
+                ) : permissionCheck.status === "CANNOT_POST" ? (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Missing Post Permission
+                  </>
+                ) : permissionCheck.status === "NOT_ADMIN" ? (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400" /> Not Channel Admin
+                  </>
+                ) : (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400" /> Permission Unknown
+                  </>
+                )}
               </span>
             ) : (
-              <span className="botdesk-badge text-[11px] paused">
-                Select a channel
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-800/60 text-slate-400 border border-slate-700/80">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500" /> Select a channel
               </span>
             )}
           </div>
 
           {permissionCheck && (
-            <span className="text-[11px] text-[var(--muted)] italic">
+            <span className="text-[11px] text-slate-400 italic">
               {permissionCheck.message}
             </span>
           )}
@@ -1520,15 +1532,25 @@ export function BotdeskPostsPage({
       {/* Status Banner */}
       {statusMessage && (
         <div
-          className={`p-3 rounded-lg text-xs border ${
+          className={`p-4 rounded-xl text-xs border flex items-center justify-between gap-3 shadow-md ${
             statusMessage.type === "success"
-              ? "bg-[var(--greenbg)] border-[var(--green)] text-[var(--green)]"
+              ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-200"
               : statusMessage.type === "warning"
-              ? "bg-[var(--surface)] border-[var(--accent)] text-[var(--accent)]"
-              : "bg-[var(--redbg)] border-[var(--red)] text-[var(--red)]"
+              ? "bg-amber-950/40 border-amber-800/60 text-amber-200"
+              : "bg-rose-950/40 border-rose-800/60 text-rose-200"
           }`}
         >
-          {statusMessage.text}
+          <div className="flex items-center gap-2">
+            <span>{statusMessage.type === "success" ? "✅" : statusMessage.type === "warning" ? "⚠️" : "✕"}</span>
+            <span className="font-medium">{statusMessage.text}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusMessage(null)}
+            className="text-xs opacity-70 hover:opacity-100 p-1 cursor-pointer transition"
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -1536,18 +1558,21 @@ export function BotdeskPostsPage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Compose Area */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--panel)] shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+          <div className="p-5 sm:p-6 rounded-2xl border border-slate-800/80 bg-[#0f1420] shadow-xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
               <div>
-                <h2 className="text-sm font-bold text-[var(--text)]">
-                  {editingPostId ? "Edit Post Draft" : "Compose Channel Post"}
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>✍️</span>
+                  <span>{editingPostId ? "Edit Post Draft" : "Compose Channel Post"}</span>
                 </h2>
-                <p className="text-[11px] text-[var(--muted)]">
+                <p className="text-[11px] text-slate-400 mt-0.5">
                   {postType === "TEXT"
                     ? "Compose text message with optional inline buttons"
                     : postType === "IMAGE"
                     ? "Upload one photo with caption and optional inline buttons"
-                    : "Upload one video with caption, delivery options, and optional inline buttons"}
+                    : postType === "VIDEO"
+                    ? "Upload one video with caption, delivery options, and optional inline buttons"
+                    : "Upload multi-item photo and video album (2–10 slides)"}
                 </p>
               </div>
 
@@ -1555,26 +1580,34 @@ export function BotdeskPostsPage({
                 <button
                   type="button"
                   onClick={handleResetComposer}
-                  className="botdesk-btn text-xs py-1 px-2.5"
+                  className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 transition cursor-pointer font-medium"
                 >
                   ＋ New Post
                 </button>
               )}
             </div>
 
-            {/* Post Type Selector */}
+            {/* Post Type Selector (Segmented Pill) */}
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
-                Post Type
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                  Post Type
+                </label>
+                <span className="text-[11px] text-slate-400">
+                  {postType === "TEXT" && "Simple text broadcast"}
+                  {postType === "IMAGE" && "Single photo + caption"}
+                  {postType === "VIDEO" && "Single video + caption"}
+                  {postType === "ALBUM" && "Multi-media album (2–10)"}
+                </span>
+              </div>
+              <div className="flex p-1 bg-[#090d16] border border-slate-800 rounded-xl gap-1 overflow-x-auto">
                 <button
                   type="button"
                   onClick={() => setPostType("TEXT")}
-                  className={`botdesk-btn text-xs py-2 ${
+                  className={`flex-1 min-w-[95px] text-center py-2 px-3 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                     postType === "TEXT"
-                      ? "bg-[var(--bluebg)] border-[var(--accent)] text-[var(--accent)] font-semibold"
-                      : ""
+                      ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
                   }`}
                 >
                   📝 Text-Only
@@ -1582,10 +1615,10 @@ export function BotdeskPostsPage({
                 <button
                   type="button"
                   onClick={() => setPostType("IMAGE")}
-                  className={`botdesk-btn text-xs py-2 ${
+                  className={`flex-1 min-w-[95px] text-center py-2 px-3 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                     postType === "IMAGE"
-                      ? "bg-[var(--bluebg)] border-[var(--accent)] text-[var(--accent)] font-semibold"
-                      : ""
+                      ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
                   }`}
                 >
                   🖼️ Photo
@@ -1593,10 +1626,10 @@ export function BotdeskPostsPage({
                 <button
                   type="button"
                   onClick={() => setPostType("VIDEO")}
-                  className={`botdesk-btn text-xs py-2 ${
+                  className={`flex-1 min-w-[95px] text-center py-2 px-3 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                     postType === "VIDEO"
-                      ? "bg-[var(--bluebg)] border-[var(--accent)] text-[var(--accent)] font-semibold"
-                      : ""
+                      ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
                   }`}
                 >
                   🎥 Video
@@ -1604,10 +1637,10 @@ export function BotdeskPostsPage({
                 <button
                   type="button"
                   onClick={() => setPostType("ALBUM")}
-                  className={`botdesk-btn text-xs py-2 ${
+                  className={`flex-1 min-w-[110px] text-center py-2 px-3 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
                     postType === "ALBUM"
-                      ? "bg-[var(--bluebg)] border-[var(--accent)] text-[var(--accent)] font-semibold"
-                      : ""
+                      ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
                   }`}
                 >
                   📸 Album (2–10)
@@ -1617,12 +1650,12 @@ export function BotdeskPostsPage({
 
             {/* Image Upload Area (If postType === IMAGE) */}
             {postType === "IMAGE" && (
-              <div className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--bg)] space-y-2.5">
+              <div className="p-4 sm:p-5 rounded-xl border border-slate-800/80 bg-[#0b0f19] space-y-3.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[var(--text)]">
-                    Upload or Paste Photo
+                  <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <span>🖼️ Upload or Paste Photo</span>
                   </label>
-                  <span className="text-[11px] text-[var(--muted)]">
+                  <span className="text-[11px] text-slate-400">
                     JPEG, PNG, WebP (Max 10 MB)
                   </span>
                 </div>
@@ -1641,36 +1674,36 @@ export function BotdeskPostsPage({
                       const files = Array.from(e.dataTransfer.files || []);
                       if (files.length > 0) handlePastedMediaFiles(files);
                     }}
-                    className={`p-4 rounded-lg border-2 border-dashed transition-all text-center space-y-2.5 ${
+                    className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
                       isDragOver
-                        ? "border-[var(--accent)] bg-[var(--bluebg)]"
-                        : "border-[var(--border)] hover:border-[var(--accent)]/50 bg-[var(--surface)]"
+                        ? "border-[#38bdf8] bg-sky-500/10 shadow-lg shadow-sky-500/10 scale-[1.01]"
+                        : "border-slate-800 bg-[#0d121c] hover:border-slate-700"
                     }`}
                   >
                     <div className="flex flex-col items-center justify-center gap-1">
-                      <span className="text-2xl">📋</span>
-                      <p className="text-xs font-semibold text-[var(--text)]">
+                      <span className="text-3xl mb-1">📋</span>
+                      <p className="text-xs font-semibold text-white">
                         Paste screenshot (Ctrl+V) or drag & drop photo here
                       </p>
-                      <p className="text-[11px] text-[var(--muted)]">
+                      <p className="text-[11px] text-slate-400">
                         Supports clipboard screenshots (Win+Shift+S) & files
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
+                    <div className="flex items-center justify-center gap-2 pt-3 flex-wrap">
                       {canUseClipboardRead && (
                         <button
                           type="button"
                           disabled={pastingMedia || uploadingImage}
                           onClick={handleClipboardButtonClick}
-                          className="botdesk-btn text-xs py-1.5 px-3 flex items-center gap-1.5 font-medium"
+                          className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 flex items-center gap-1.5 font-medium transition cursor-pointer"
                           title="Read image from system clipboard"
                         >
                           <span>📋 Paste from Clipboard</span>
                         </button>
                       )}
 
-                      <label className="botdesk-btn text-xs py-1.5 px-3 cursor-pointer flex items-center gap-1.5 font-medium">
+                      <label className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-slate-200 border border-slate-700/80 cursor-pointer flex items-center gap-1.5 font-medium transition">
                         <span>📁 Choose File</span>
                         <input
                           type="file"
@@ -1683,22 +1716,25 @@ export function BotdeskPostsPage({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between text-[11px] text-[var(--muted)] bg-[var(--surface)] p-2.5 rounded-lg border border-[var(--border)] gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 truncate min-w-0">
-                      <div className="w-8 h-8 rounded bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                  <div className="flex items-center justify-between text-xs text-slate-300 bg-[#0d121c] p-3 rounded-xl border border-slate-800 gap-3 flex-wrap shadow-sm">
+                    <div className="flex items-center gap-3 truncate min-w-0">
+                      <div className="w-12 h-12 rounded-lg bg-[#090d16] border border-slate-800 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-inner">
                         <img
                           src={`/api/media/posts/${mediaPath}`}
                           alt="Preview"
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <span className="truncate font-medium text-[var(--text)]">
-                        📷 {mediaOriginalName || mediaPath} (
-                        {mediaSizeBytes
-                          ? `${(mediaSizeBytes / 1024).toFixed(1)} KB`
-                          : "Uploaded"}
-                        )
-                      </span>
+                      <div className="min-w-0 truncate">
+                        <p className="truncate font-semibold text-white">
+                          {mediaOriginalName || mediaPath}
+                        </p>
+                        <span className="text-[11px] text-slate-400">
+                          {mediaSizeBytes
+                            ? `${(mediaSizeBytes / 1024).toFixed(1)} KB`
+                            : "Uploaded"}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -1707,13 +1743,13 @@ export function BotdeskPostsPage({
                           type="button"
                           disabled={pastingMedia || uploadingImage}
                           onClick={handleClipboardButtonClick}
-                          className="botdesk-btn text-[11px] py-1 px-2"
+                          className="text-[11px] py-1 px-2.5 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 cursor-pointer transition"
                           title="Paste new image from clipboard to replace"
                         >
                           📋 Paste New
                         </button>
                       )}
-                      <label className="botdesk-btn text-[11px] py-1 px-2 cursor-pointer">
+                      <label className="text-[11px] py-1 px-2.5 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-slate-200 border border-slate-700/80 cursor-pointer transition">
                         <span>📁 Replace</span>
                         <input
                           type="file"
@@ -1731,7 +1767,7 @@ export function BotdeskPostsPage({
                           setMediaMimeType(null);
                           setMediaSizeBytes(null);
                         }}
-                        className="text-[var(--red)] hover:underline text-xs"
+                        className="text-rose-400 hover:text-rose-300 hover:underline text-xs font-medium ml-1 cursor-pointer transition"
                       >
                         Remove
                       </button>
@@ -1740,25 +1776,25 @@ export function BotdeskPostsPage({
                 )}
 
                 {(uploadingImage || pastingMedia) && (
-                  <p className="text-[11px] text-[var(--accent)] italic">
-                    Processing and uploading image to local storage...
+                  <p className="text-[11px] text-[#38bdf8] italic flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> Processing and uploading image to local storage...
                   </p>
                 )}
 
                 {uploadError && (
-                  <p className="text-[11px] text-[var(--red)]">{uploadError}</p>
+                  <p className="text-[11px] text-rose-400">{uploadError}</p>
                 )}
               </div>
             )}
 
             {/* Video Upload Area (If postType === VIDEO) */}
             {postType === "VIDEO" && (
-              <div className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--bg)] space-y-3">
+              <div className="p-4 sm:p-5 rounded-xl border border-slate-800/80 bg-[#0b0f19] space-y-3.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[var(--text)]">
-                    Upload or Paste Video
+                  <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <span>🎥 Upload or Paste Video</span>
                   </label>
-                  <span className="text-[11px] text-[var(--muted)]">
+                  <span className="text-[11px] text-slate-400">
                     MP4, WebM, QuickTime MOV (Max 25 MB)
                   </span>
                 </div>
@@ -1777,36 +1813,36 @@ export function BotdeskPostsPage({
                       const files = Array.from(e.dataTransfer.files || []);
                       if (files.length > 0) handlePastedMediaFiles(files);
                     }}
-                    className={`p-4 rounded-lg border-2 border-dashed transition-all text-center space-y-2.5 ${
+                    className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
                       isDragOver
-                        ? "border-[var(--accent)] bg-[var(--bluebg)]"
-                        : "border-[var(--border)] hover:border-[var(--accent)]/50 bg-[var(--surface)]"
+                        ? "border-[#38bdf8] bg-sky-500/10 shadow-lg shadow-sky-500/10 scale-[1.01]"
+                        : "border-slate-800 bg-[#0d121c] hover:border-slate-700"
                     }`}
                   >
                     <div className="flex flex-col items-center justify-center gap-1">
-                      <span className="text-2xl">🎥</span>
-                      <p className="text-xs font-semibold text-[var(--text)]">
+                      <span className="text-3xl mb-1">🎥</span>
+                      <p className="text-xs font-semibold text-white">
                         Paste video (Ctrl+V) or drag & drop video file here
                       </p>
-                      <p className="text-[11px] text-[var(--muted)]">
+                      <p className="text-[11px] text-slate-400">
                         MP4, WebM, MOV up to 25 MB
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
+                    <div className="flex items-center justify-center gap-2 pt-3 flex-wrap">
                       {canUseClipboardRead && (
                         <button
                           type="button"
                           disabled={pastingMedia || uploadingImage}
                           onClick={handleClipboardButtonClick}
-                          className="botdesk-btn text-xs py-1.5 px-3 flex items-center gap-1.5 font-medium"
+                          className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 flex items-center gap-1.5 font-medium transition cursor-pointer"
                           title="Read video from clipboard if available"
                         >
                           <span>📋 Paste from Clipboard</span>
                         </button>
                       )}
 
-                      <label className="botdesk-btn text-xs py-1.5 px-3 cursor-pointer flex items-center gap-1.5 font-medium">
+                      <label className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-slate-200 border border-slate-700/80 cursor-pointer flex items-center gap-1.5 font-medium transition">
                         <span>📁 Choose Video File</span>
                         <input
                           type="file"
@@ -1819,16 +1855,21 @@ export function BotdeskPostsPage({
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center justify-between text-[11px] text-[var(--muted)] bg-[var(--surface)] p-2.5 rounded-lg border border-[var(--border)] gap-2 flex-wrap">
-                    <div className="flex items-center gap-2 truncate min-w-0">
-                      <span className="text-xl">🎥</span>
-                      <span className="truncate font-medium text-[var(--text)]">
-                        {mediaOriginalName || mediaPath} (
-                        {mediaSizeBytes
-                          ? `${(mediaSizeBytes / (1024 * 1024)).toFixed(2)} MB`
-                          : "Uploaded"}
-                        )
-                      </span>
+                  <div className="flex items-center justify-between text-xs text-slate-300 bg-[#0d121c] p-3 rounded-xl border border-slate-800 gap-3 flex-wrap shadow-sm">
+                    <div className="flex items-center gap-3 truncate min-w-0">
+                      <div className="w-12 h-12 rounded-lg bg-[#0c2538] border border-sky-500/40 text-sky-400 flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
+                        🎥
+                      </div>
+                      <div className="min-w-0 truncate">
+                        <p className="truncate font-semibold text-white">
+                          {mediaOriginalName || mediaPath}
+                        </p>
+                        <span className="text-[11px] text-slate-400">
+                          {mediaSizeBytes
+                            ? `${(mediaSizeBytes / (1024 * 1024)).toFixed(2)} MB`
+                            : "Uploaded"}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -1837,13 +1878,13 @@ export function BotdeskPostsPage({
                           type="button"
                           disabled={pastingMedia || uploadingImage}
                           onClick={handleClipboardButtonClick}
-                          className="botdesk-btn text-[11px] py-1 px-2"
+                          className="text-[11px] py-1 px-2.5 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 cursor-pointer transition"
                           title="Paste new video from clipboard to replace"
                         >
                           📋 Paste New
                         </button>
                       )}
-                      <label className="botdesk-btn text-[11px] py-1 px-2 cursor-pointer">
+                      <label className="text-[11px] py-1 px-2.5 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-slate-200 border border-slate-700/80 cursor-pointer transition">
                         <span>📁 Replace</span>
                         <input
                           type="file"
@@ -1861,7 +1902,7 @@ export function BotdeskPostsPage({
                           setMediaMimeType(null);
                           setMediaSizeBytes(null);
                         }}
-                        className="text-[var(--red)] hover:underline text-xs"
+                        className="text-rose-400 hover:text-rose-300 hover:underline text-xs font-medium ml-1 cursor-pointer transition"
                       >
                         Remove
                       </button>
@@ -1870,28 +1911,28 @@ export function BotdeskPostsPage({
                 )}
 
                 {(uploadingImage || pastingMedia) && (
-                  <p className="text-[11px] text-[var(--accent)] italic">
-                    Processing and uploading video to local storage...
+                  <p className="text-[11px] text-[#38bdf8] italic flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> Processing and uploading video to local storage...
                   </p>
                 )}
 
                 {uploadError && (
-                  <p className="text-[11px] text-[var(--red)]">{uploadError}</p>
+                  <p className="text-[11px] text-rose-400">{uploadError}</p>
                 )}
 
-                {/* Send as Document / Normal Video Toggle */}
-                <div className="pt-2 border-t border-[var(--border)] space-y-1.5">
-                  <label className="block text-[11px] font-semibold text-[var(--text)]">
+                {/* Send as Document / Normal Video Toggle (Segmented Pill) */}
+                <div className="pt-3 border-t border-slate-800 space-y-2">
+                  <label className="block text-xs font-semibold text-white">
                     Telegram Video Dispatch Method
                   </label>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex p-1 bg-[#090d16] border border-slate-800 rounded-xl gap-1">
                     <button
                       type="button"
                       onClick={() => handleToggleSendAsDocument(false)}
-                      className={`botdesk-btn py-1.5 px-2 text-[11px] ${
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
                         !sendAsDocument
-                          ? "bg-[var(--bluebg)] border-[var(--accent)] text-[var(--accent)] font-semibold"
-                          : ""
+                          ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
+                          : "text-slate-400 hover:text-white"
                       }`}
                     >
                       🎬 Regular Video (sendVideo)
@@ -1899,21 +1940,21 @@ export function BotdeskPostsPage({
                     <button
                       type="button"
                       onClick={() => handleToggleSendAsDocument(true)}
-                      className={`botdesk-btn py-1.5 px-2 text-[11px] ${
+                      className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
                         sendAsDocument
-                          ? "bg-[var(--bluebg)] border-[var(--accent)] text-[var(--accent)] font-semibold"
-                          : ""
+                          ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
+                          : "text-slate-400 hover:text-white"
                       }`}
                     >
-                      📄 Send as File / Document (sendDocument)
+                      📄 Document File (sendDocument)
                     </button>
                   </div>
-                  <p className="text-[10px] text-[var(--muted)]">
+                  <p className="text-[11px] text-slate-400">
                     {sendAsDocument
                       ? "Preserves original uncompressed file. Note: Telegram does not support spoiler blur when sending files as documents."
                       : "Sends as playable video with streaming and optional spoiler blur."}
                   </p>
-                  <p className="text-[10px] text-[var(--accent)] italic">
+                  <p className="text-[10px] text-[#38bdf8] italic">
                     ✓ Preference remembered locally in your browser for future video drafts.
                   </p>
                 </div>
@@ -1922,12 +1963,12 @@ export function BotdeskPostsPage({
 
             {/* Album Upload & Management Area (If postType === ALBUM) */}
             {postType === "ALBUM" && (
-              <div className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--bg)] space-y-3">
+              <div className="p-4 sm:p-5 rounded-xl border border-slate-800/80 bg-[#0b0f19] space-y-3.5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-[var(--text)]">
-                    Upload or Paste Album Media (2–10 Photos & Videos)
+                  <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <span>📸 Upload or Paste Album Media (2–10 Photos & Videos)</span>
                   </label>
-                  <span className="text-[11px] text-[var(--muted)]">
+                  <span className="text-[11px] text-slate-400">
                     Photos (Max 10 MB) • Videos (Max 25 MB)
                   </span>
                 </div>
@@ -1945,36 +1986,36 @@ export function BotdeskPostsPage({
                     const files = Array.from(e.dataTransfer.files || []);
                     if (files.length > 0) handlePastedMediaFiles(files);
                   }}
-                  className={`p-4 rounded-lg border-2 border-dashed transition-all text-center space-y-2.5 ${
+                  className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
                     isDragOver
-                      ? "border-[var(--accent)] bg-[var(--bluebg)]"
-                      : "border-[var(--border)] hover:border-[var(--accent)]/50 bg-[var(--surface)]"
+                      ? "border-[#38bdf8] bg-sky-500/10 shadow-lg shadow-sky-500/10 scale-[1.01]"
+                      : "border-slate-800 bg-[#0d121c] hover:border-slate-700"
                   }`}
                 >
                   <div className="flex flex-col items-center justify-center gap-1">
-                    <span className="text-2xl">📸</span>
-                    <p className="text-xs font-semibold text-[var(--text)]">
+                    <span className="text-3xl mb-1">📸</span>
+                    <p className="text-xs font-semibold text-white">
                       Paste screenshots or media (Ctrl+V) to append to album
                     </p>
-                    <p className="text-[11px] text-[var(--muted)]">
+                    <p className="text-[11px] text-slate-400">
                       Paste photos one-by-one or in batches • Current slides: {albumItems.length} / 10
                     </p>
                   </div>
 
-                  <div className="flex items-center justify-center gap-2 pt-1 flex-wrap">
+                  <div className="flex items-center justify-center gap-2 pt-3 flex-wrap">
                     {canUseClipboardRead && (
                       <button
                         type="button"
                         disabled={uploadingAlbum || pastingMedia || albumItems.length >= 10}
                         onClick={handleClipboardButtonClick}
-                        className="botdesk-btn text-xs py-1.5 px-3 flex items-center gap-1.5 font-medium disabled:opacity-50"
+                        className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 flex items-center gap-1.5 font-medium disabled:opacity-50 transition cursor-pointer"
                         title="Read image from clipboard and append to album"
                       >
                         <span>📋 Paste from Clipboard</span>
                       </button>
                     )}
 
-                    <label className="botdesk-btn text-xs py-1.5 px-3 cursor-pointer flex items-center gap-1.5 font-medium">
+                    <label className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-slate-200 border border-slate-700/80 cursor-pointer flex items-center gap-1.5 font-medium transition">
                       <span>📁 Browse Files (Multi-select)</span>
                       <input
                         type="file"
@@ -1989,33 +2030,33 @@ export function BotdeskPostsPage({
                 </div>
 
                 {(uploadingAlbum || pastingMedia) && (
-                  <p className="text-[11px] text-[var(--accent)] italic">
-                    Uploading media items to local non-public storage...
+                  <p className="text-[11px] text-[#38bdf8] italic flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> Uploading media items to local non-public storage...
                   </p>
                 )}
 
                 {albumUploadError && (
-                  <p className="text-[11px] text-[var(--red)]">{albumUploadError}</p>
+                  <p className="text-[11px] text-rose-400">{albumUploadError}</p>
                 )}
 
                 {/* Album Items List with Reordering & Per-Slide Spoiler */}
                 <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between text-[11px] text-[var(--muted)]">
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
                     <span>
-                      Current Slides: {albumItems.length} / 10
+                      Current Slides: <strong className="text-white">{albumItems.length} / 10</strong>
                       {albumItems.length < 2 && (
-                        <span className="text-[var(--red)] font-semibold ml-1">
+                        <span className="text-rose-400 font-semibold ml-1">
                           (Need at least 2)
                         </span>
                       )}
                     </span>
-                    <span className="text-[var(--accent)] italic">
+                    <span className="text-[#38bdf8] italic">
                       #1 Slide carries the caption in Telegram
                     </span>
                   </div>
 
                   {albumItems.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-[var(--muted)] border border-dashed border-[var(--border)] rounded-lg">
+                    <div className="p-4 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl bg-[#090d16]/40">
                       No files selected yet. Choose 2–10 photos and videos above.
                     </div>
                   ) : (
@@ -2023,26 +2064,26 @@ export function BotdeskPostsPage({
                       {albumItems.map((item, idx) => (
                         <div
                           key={item.filePath || idx}
-                          className={`flex items-center justify-between p-2.5 rounded-lg border text-xs gap-3 ${
+                          className={`flex items-center justify-between p-3 rounded-xl border text-xs gap-3 transition-all ${
                             idx === 0
-                              ? "bg-[var(--surface)] border-[var(--accent)]"
-                              : "bg-[var(--panel)] border-[var(--border)]"
+                              ? "bg-[#0e1726] border-sky-500/50 shadow-md ring-1 ring-sky-500/30"
+                              : "bg-[#0d121c] border-slate-800"
                           }`}
                         >
                           {/* Slide thumbnail / badge & name */}
-                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
                             <span
-                              className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                                 idx === 0
-                                  ? "bg-[var(--bluebg)] text-[var(--accent)] border border-[var(--accent)]"
-                                  : "bg-[var(--bg)] text-[var(--muted)] border border-[var(--border)]"
+                                  ? "bg-[#0c2538] text-[#38bdf8] border border-sky-500/40"
+                                  : "bg-[#090d16] text-slate-400 border border-slate-800"
                               }`}
                             >
                               #{idx + 1}
                               {idx === 0 ? " (Caption)" : ""}
                             </span>
 
-                            <div className="w-8 h-8 rounded bg-[var(--bg)] border border-[var(--border)] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            <div className="w-11 h-11 rounded-lg bg-[#090d16] border border-slate-800 flex items-center justify-center flex-shrink-0 overflow-hidden shadow-inner">
                               {item.mediaType === "IMAGE" ? (
                                 <img
                                   src={`/api/media/posts/${item.filePath}`}
@@ -2050,16 +2091,16 @@ export function BotdeskPostsPage({
                                   className="w-full h-full object-cover"
                                 />
                               ) : (
-                                <span className="text-xs">🎥</span>
+                                <span className="text-base">🎥</span>
                               )}
                             </div>
 
                             <div className="min-w-0 flex-1">
-                              <p className="font-medium text-[var(--text)] truncate text-xs">
+                              <p className="font-semibold text-white truncate text-xs">
                                 {item.originalName || item.filePath}
                               </p>
-                              <div className="flex items-center gap-2 text-[10px] text-[var(--muted)]">
-                                <span className="uppercase">{item.mediaType}</span>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                                <span className="uppercase font-medium">{item.mediaType}</span>
                                 <span>•</span>
                                 <span>
                                   {item.sizeBytes
@@ -2071,23 +2112,23 @@ export function BotdeskPostsPage({
                           </div>
 
                           {/* Per-slide spoiler checkbox */}
-                          <label className="flex items-center gap-1.5 cursor-pointer text-[11px] text-[var(--text)] flex-shrink-0">
+                          <label className="flex items-center gap-1.5 cursor-pointer text-xs text-slate-300 flex-shrink-0 bg-[#090d16] px-2.5 py-1.5 rounded-lg border border-slate-800 hover:border-slate-700 transition">
                             <input
                               type="checkbox"
                               checked={Boolean(item.hasSpoiler)}
                               onChange={() => handleToggleAlbumItemSpoiler(idx)}
-                              className="rounded border-[var(--border)] text-[var(--accent)]"
+                              className="rounded border-slate-700 text-[#38bdf8] focus:ring-0"
                             />
                             <span>🙈 Spoiler</span>
                           </label>
 
                           {/* Order buttons and remove */}
-                          <div className="flex items-center gap-1 flex-shrink-0">
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
                             <button
                               type="button"
                               disabled={idx === 0}
                               onClick={() => handleMoveAlbumItem(idx, "up")}
-                              className="botdesk-btn text-xs py-1 px-2 disabled:opacity-30"
+                              className="text-xs py-1 px-2.5 disabled:opacity-30 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-slate-200 border border-slate-700/80 transition cursor-pointer"
                               title="Move slide up"
                             >
                               ↑
@@ -2096,7 +2137,7 @@ export function BotdeskPostsPage({
                               type="button"
                               disabled={idx === albumItems.length - 1}
                               onClick={() => handleMoveAlbumItem(idx, "down")}
-                              className="botdesk-btn text-xs py-1 px-2 disabled:opacity-30"
+                              className="text-xs py-1 px-2.5 disabled:opacity-30 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-slate-200 border border-slate-700/80 transition cursor-pointer"
                               title="Move slide down"
                             >
                               ↓
@@ -2104,7 +2145,7 @@ export function BotdeskPostsPage({
                             <button
                               type="button"
                               onClick={() => handleRemoveAlbumItem(idx)}
-                              className="botdesk-btn danger text-xs py-1 px-2"
+                              className="text-xs py-1 px-2.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/60 transition cursor-pointer"
                               title="Remove this item"
                             >
                               ✕
@@ -2119,23 +2160,24 @@ export function BotdeskPostsPage({
             )}
 
             {/* Content / Caption Input */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-                  {postType === "TEXT" ? "Message Text" : "Caption (Optional)"}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                  <span>💬</span>
+                  <span>{postType === "TEXT" ? "Message Text" : "Caption (Optional)"}</span>
                 </label>
                 <span
-                  className={`text-[11px] ${
+                  className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border ${
                     currentChars > maxChars
-                      ? "text-[var(--red)] font-semibold"
-                      : "text-[var(--muted)]"
+                      ? "bg-rose-500/10 border-rose-500/30 text-rose-400 font-bold"
+                      : "bg-[#090d16] border-slate-800 text-slate-400"
                   }`}
                 >
                   {currentChars} / {maxChars}
                 </span>
               </div>
               {currentChars > maxChars && (
-                <div className="mb-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
                   <span>⚠️</span>
                   <span>
                     Telegram limits media captions to {maxChars} characters. Current: {currentChars}. Please shorten caption to save or publish.
@@ -2152,35 +2194,36 @@ export function BotdeskPostsPage({
                     ? "Write your channel announcement or news..."
                     : "Add an optional caption for this media..."
                 }
-                className="botdesk-textarea text-xs"
+                className="w-full text-xs rounded-xl p-3.5 bg-[#0b0f19] border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition resize-y"
               />
               {postType === "TEXT" && (
-                <p className="text-[11px] text-[var(--muted)] italic mt-1.5 flex items-center gap-1.5">
-                  <span>💡 Tip:</span>
+                <p className="text-[11px] text-slate-400 italic mt-1.5 flex items-center gap-1.5">
+                  <span className="text-[#38bdf8]">💡 Tip:</span>
                   <span>You can paste a screenshot or photo directly (Ctrl+V) to automatically attach it and switch to Photo mode.</span>
                 </p>
               )}
             </div>
 
             {/* Telegram Delivery Options */}
-            <div className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--bg)] space-y-2.5">
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+            <div className="p-4 sm:p-5 rounded-xl border border-slate-800/80 bg-[#0b0f19] space-y-3">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400">
                 Telegram Delivery Options
               </label>
               <div className="space-y-2">
                 {/* Silent notification */}
-                <label className="flex items-start gap-2.5 cursor-pointer text-xs">
+                <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-[#0d121c] cursor-pointer hover:border-slate-700 hover:bg-[#0f1522] transition">
                   <input
                     type="checkbox"
                     checked={disableNotification}
                     onChange={(e) => setDisableNotification(e.target.checked)}
-                    className="mt-0.5 rounded border-[var(--border)] text-[var(--accent)]"
+                    className="mt-0.5 rounded border-slate-700 text-[#38bdf8] focus:ring-0"
                   />
                   <div>
-                    <span className="font-semibold text-[var(--text)]">
-                      🔕 Send Silently (disable_notification)
+                    <span className="font-semibold text-xs text-white flex items-center gap-1.5">
+                      <span>🔕</span>
+                      <span>Send Silently (disable_notification)</span>
                     </span>
-                    <p className="text-[11px] text-[var(--muted)]">
+                    <p className="text-[11px] text-slate-400 mt-0.5">
                       Subscribers receive the post without notification sound or vibration.
                     </p>
                   </div>
@@ -2188,10 +2231,10 @@ export function BotdeskPostsPage({
 
                 {/* Media spoiler */}
                 <label
-                  className={`flex items-start gap-2.5 text-xs ${
+                  className={`flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-[#0d121c] transition ${
                     postType === "TEXT" || postType === "ALBUM" || sendAsDocument
                       ? "opacity-50 cursor-not-allowed"
-                      : "cursor-pointer"
+                      : "cursor-pointer hover:border-slate-700 hover:bg-[#0f1522]"
                   }`}
                 >
                   <input
@@ -2199,13 +2242,14 @@ export function BotdeskPostsPage({
                     checked={hasSpoiler}
                     disabled={postType === "TEXT" || postType === "ALBUM" || sendAsDocument}
                     onChange={(e) => setHasSpoiler(e.target.checked)}
-                    className="mt-0.5 rounded border-[var(--border)] text-[var(--accent)]"
+                    className="mt-0.5 rounded border-slate-700 text-[#38bdf8] focus:ring-0"
                   />
                   <div>
-                    <span className="font-semibold text-[var(--text)]">
-                      🙈 Hide Media with Spoiler (has_spoiler)
+                    <span className="font-semibold text-xs text-white flex items-center gap-1.5">
+                      <span>🙈</span>
+                      <span>Hide Media with Spoiler (has_spoiler)</span>
                     </span>
-                    <p className="text-[11px] text-[var(--muted)]">
+                    <p className="text-[11px] text-slate-400 mt-0.5">
                       {postType === "TEXT"
                         ? "Telegram does not support spoiler animation on text-only messages."
                         : postType === "ALBUM"
@@ -2220,13 +2264,14 @@ export function BotdeskPostsPage({
             </div>
 
             {/* Inline URL Buttons Builder */}
-            <div className="space-y-2 pt-2 border-t border-[var(--border)]">
+            <div className="p-4 sm:p-5 rounded-xl border border-slate-800/80 bg-[#0b0f19] space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-xs font-semibold text-[var(--text)]">
-                    Inline URL Buttons ({buttons.length} / 10)
+                  <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <span>🔗</span>
+                    <span>Inline URL Buttons ({buttons.length} / 10)</span>
                   </h3>
-                  <p className="text-[11px] text-[var(--muted)]">
+                  <p className="text-[11px] text-slate-400 mt-0.5">
                     {postType === "ALBUM"
                       ? "Delivered as an anchored follow-up reply message (Telegram restriction)"
                       : "Buttons appear directly under the message in Telegram"}
@@ -2241,46 +2286,46 @@ export function BotdeskPostsPage({
                     setBtnError(null);
                     setShowButtonModal(true);
                   }}
-                  className="botdesk-btn text-xs py-1 px-2.5"
+                  className="text-xs py-1.5 px-3.5 rounded-xl bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 transition cursor-pointer font-semibold disabled:opacity-50"
                 >
                   ＋ Add Button
                 </button>
               </div>
 
               {postType === "ALBUM" && buttons.length > 0 && (
-                <div className="p-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs space-y-1">
-                  <div className="flex items-center gap-1.5 font-semibold text-[var(--accent)] text-[11px]">
+                <div className="p-3 rounded-xl border border-sky-500/30 bg-[#0c2538]/40 text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-semibold text-[#38bdf8] text-[11px]">
                     <span>ℹ️ Telegram Album Protocol Note</span>
                   </div>
-                  <p className="text-[11px] text-[var(--muted)] leading-relaxed">
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
                     Telegram does not allow inline buttons attached directly to media albums. BackStage will automatically publish these buttons in an anchored reply message immediately after the album.
                   </p>
                 </div>
               )}
 
               {buttons.length === 0 ? (
-                <div className="py-4 text-center text-[11px] text-[var(--muted)] border border-dashed border-[var(--border)] rounded-lg">
+                <div className="py-4 text-center text-[11px] text-slate-500 border border-dashed border-slate-800 rounded-xl bg-[#090d16]/40">
                   No inline buttons added. (Optional)
                 </div>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {buttons.map((btn, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-2 rounded bg-[var(--bg)] border border-[var(--border)] text-xs"
+                      className="flex items-center justify-between p-3 rounded-xl bg-[#0d121c] border border-slate-800 text-xs shadow-sm"
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <span className="font-semibold text-[var(--text)]">
+                        <span className="font-semibold text-white">
                           {btn.label}
                         </span>
-                        <span className="text-[11px] text-[var(--muted)] truncate">
+                        <span className="text-[11px] text-slate-400 truncate font-mono">
                           ({btn.url})
                         </span>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleRemoveButton(idx)}
-                        className="text-[var(--red)] hover:underline ml-2 text-xs flex-shrink-0"
+                        className="text-rose-400 hover:text-rose-300 hover:underline ml-2 text-xs font-medium flex-shrink-0 cursor-pointer transition"
                       >
                         Remove
                       </button>
@@ -2291,24 +2336,24 @@ export function BotdeskPostsPage({
             </div>
 
             {/* Publishing Timing / Schedule Choice */}
-            <div className="p-3.5 rounded-lg border border-[var(--border)] bg-[var(--bg)] space-y-3">
+            <div className="p-4 sm:p-5 rounded-xl border border-slate-800/80 bg-[#0b0f19] space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                     Publishing Timing
                   </h3>
-                  <p className="text-[11px] text-[var(--muted)]">
+                  <p className="text-[11px] text-slate-400">
                     Choose whether to dispatch this post immediately or schedule for a future date & time.
                   </p>
                 </div>
-                <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-lg border border-[var(--border)] self-start sm:self-auto">
+                <div className="flex p-1 bg-[#090d16] border border-slate-800 rounded-xl gap-1 self-start sm:self-auto">
                   <button
                     type="button"
                     onClick={() => setPublishMode("NOW")}
-                    className={`text-xs py-1 px-3 rounded-md font-medium transition ${
+                    className={`py-1.5 px-3.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                       publishMode === "NOW"
-                        ? "bg-[var(--accent)] text-white shadow-sm font-semibold"
-                        : "text-[var(--muted)] hover:text-[var(--text)]"
+                        ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
+                        : "text-slate-400 hover:text-white"
                     }`}
                   >
                     ⚡ Send Now
@@ -2324,10 +2369,10 @@ export function BotdeskPostsPage({
                         setScheduledTime(parts.time);
                       }
                     }}
-                    className={`text-xs py-1 px-3 rounded-md font-medium transition ${
+                    className={`py-1.5 px-3.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                       publishMode === "SCHEDULE"
-                        ? "bg-purple-600 text-white shadow-sm font-semibold"
-                        : "text-[var(--muted)] hover:text-[var(--text)]"
+                        ? "bg-purple-600 text-white shadow-md shadow-purple-600/25 border border-purple-400/40"
+                        : "text-slate-400 hover:text-white"
                     }`}
                   >
                     🕒 Schedule Post
@@ -2336,11 +2381,11 @@ export function BotdeskPostsPage({
               </div>
 
               {publishMode === "SCHEDULE" && (
-                <div className="space-y-3 pt-2 border-t border-[var(--border)]">
+                <div className="space-y-3 pt-3 border-t border-slate-800">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Date Picker */}
                     <div>
-                      <label className="block text-[11px] font-semibold text-[var(--muted)] uppercase mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">
                         Scheduled Date
                       </label>
                       <input
@@ -2349,13 +2394,13 @@ export function BotdeskPostsPage({
                         min={new Date().toISOString().split("T")[0]}
                         value={scheduledDate}
                         onChange={(e) => setScheduledDate(e.target.value)}
-                        className="botdesk-input text-xs w-full"
+                        className="text-xs min-h-[40px] w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition cursor-pointer"
                       />
                     </div>
 
                     {/* Time Picker */}
                     <div>
-                      <label className="block text-[11px] font-semibold text-[var(--muted)] uppercase mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">
                         Scheduled Time (24h)
                       </label>
                       <input
@@ -2363,7 +2408,7 @@ export function BotdeskPostsPage({
                         required
                         value={scheduledTime}
                         onChange={(e) => setScheduledTime(e.target.value)}
-                        className="botdesk-input text-xs w-full"
+                        className="text-xs min-h-[40px] w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition cursor-pointer"
                       />
                     </div>
                   </div>
@@ -2371,7 +2416,7 @@ export function BotdeskPostsPage({
                   {/* Timezone Selector */}
                   <div>
                     <div className="flex items-center justify-between mb-1">
-                      <label className="block text-[11px] font-semibold text-[var(--muted)] uppercase">
+                      <label className="block text-[11px] font-semibold text-slate-400 uppercase">
                         Timezone (IANA)
                       </label>
                       <span className="text-[10px] text-purple-400 font-medium">
@@ -2381,10 +2426,10 @@ export function BotdeskPostsPage({
                     <select
                       value={scheduledTimezone}
                       onChange={(e) => setScheduledTimezone(e.target.value)}
-                      className="botdesk-input text-xs w-full"
+                      className="text-xs min-h-[40px] w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition cursor-pointer"
                     >
                       {COMMON_TIMEZONES.map((tz) => (
-                        <option key={tz.value} value={tz.value}>
+                        <option key={tz.value} value={tz.value} className="bg-[#0f1420] text-white">
                           {tz.label}
                         </option>
                       ))}
@@ -2392,31 +2437,32 @@ export function BotdeskPostsPage({
                   </div>
 
                   {/* Schedule Summary Box */}
-                  <div className="p-3 rounded-lg border border-purple-500/30 bg-purple-950/20 text-xs space-y-1.5">
+                  <div className="p-4 rounded-xl border border-purple-500/30 bg-purple-950/20 text-xs space-y-2">
                     <div className="flex items-center justify-between text-purple-300 font-semibold text-[11px]">
                       <span className="flex items-center gap-1.5">
-                        <span>🕒 Schedule Summary</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                        <span>Schedule Summary</span>
                       </span>
-                      <span className="botdesk-badge text-[9px] blue border-purple-500/40 text-purple-300">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wider bg-purple-950/40 text-purple-300 border border-purple-500/40">
                         Auto Dispatched by Worker
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-[11px] pt-1">
                       <div>
-                        <span className="text-[var(--muted)]">Bot: </span>
-                        <span className="font-medium text-[var(--text)]">
+                        <span className="text-slate-400">Bot: </span>
+                        <span className="font-medium text-white">
                           {activeBot.name} (@{activeBot.username})
                         </span>
                       </div>
                       <div>
-                        <span className="text-[var(--muted)]">Target Channel: </span>
-                        <span className="font-medium text-[var(--text)]">
+                        <span className="text-slate-400">Target Channel: </span>
+                        <span className="font-medium text-white">
                           {activeChannel?.name || "Selected Channel"}
                         </span>
                       </div>
                       <div className="col-span-1 sm:col-span-2">
-                        <span className="text-[var(--muted)]">Broadcast Time: </span>
+                        <span className="text-slate-400">Broadcast Time: </span>
                         <span className="font-bold text-purple-300">
                           {scheduledDate && scheduledTime
                             ? `${scheduledDate} ${scheduledTime} (${scheduledTimezone})`
@@ -2426,7 +2472,7 @@ export function BotdeskPostsPage({
                     </div>
 
                     {scheduledDate && scheduledTime && (
-                      <p className="text-[10px] text-[var(--muted)] pt-1 border-t border-purple-500/20 italic">
+                      <p className="text-[10px] text-slate-400 pt-2 border-t border-purple-500/20 italic">
                         The BackStage background scheduler worker will claim and send this post at the exact scheduled instant without manual intervention.
                       </p>
                     )}
@@ -2436,23 +2482,33 @@ export function BotdeskPostsPage({
             </div>
 
             {/* Action Buttons: Save Draft & Publish */}
-            <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]">
+            <div className="flex items-center justify-between pt-4 border-t border-slate-800">
               <button
                 type="button"
                 onClick={handleResetComposer}
-                className="botdesk-btn text-xs py-2 px-3"
+                className="text-xs py-2.5 px-4 rounded-xl bg-[#162032] hover:bg-[#1e2c44] text-slate-300 border border-slate-700/80 transition cursor-pointer font-medium"
               >
                 Clear
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <button
                   type="button"
                   disabled={savingDraft || publishing}
                   onClick={handleSaveDraft}
-                  className="botdesk-btn text-xs py-2 px-4"
+                  className="text-xs py-2.5 px-4 rounded-xl bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 hover:border-sky-500/60 transition shadow-sm cursor-pointer inline-flex items-center gap-1.5 font-semibold"
                 >
-                  {savingDraft ? "Saving..." : "💾 Save Draft"}
+                  {savingDraft ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5 text-[#38bdf8]" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Saving Draft...</span>
+                    </>
+                  ) : (
+                    "💾 Save Draft"
+                  )}
                 </button>
 
                 {publishMode === "SCHEDULE" ? (
@@ -2469,9 +2525,19 @@ export function BotdeskPostsPage({
                       (postType === "ALBUM" && (albumItems.length < 2 || albumItems.length > 10))
                     }
                     onClick={() => handleOpenPublish()}
-                    className="botdesk-btn text-xs py-2 px-4 font-semibold bg-purple-600 hover:bg-purple-700 text-white border-transparent shadow-sm"
+                    className="text-xs py-2.5 px-5 rounded-xl font-bold bg-purple-600 hover:bg-purple-500 active:scale-[0.98] text-white transition shadow-md shadow-purple-600/20 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                   >
-                    {publishing ? "Scheduling..." : "🕒 Schedule Post"}
+                    {publishing ? (
+                      <>
+                        <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Scheduling...</span>
+                      </>
+                    ) : (
+                      "🕒 Schedule Post"
+                    )}
                   </button>
                 ) : (
                   <button
@@ -2485,9 +2551,19 @@ export function BotdeskPostsPage({
                       (postType === "ALBUM" && (albumItems.length < 2 || albumItems.length > 10))
                     }
                     onClick={() => handleOpenPublish()}
-                    className="botdesk-btn primary text-xs py-2 px-4 font-semibold"
+                    className="text-xs py-2.5 px-5 rounded-xl font-bold bg-[#38bdf8] hover:bg-[#20b3f7] active:scale-[0.98] text-slate-950 transition shadow-md shadow-sky-500/25 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
                   >
-                    🚀 Publish Now
+                    {publishing ? (
+                      <>
+                        <svg className="animate-spin h-3.5 w-3.5 text-slate-950" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>Publishing...</span>
+                      </>
+                    ) : (
+                      "🚀 Publish Now"
+                    )}
                   </button>
                 )}
               </div>
@@ -2497,42 +2573,51 @@ export function BotdeskPostsPage({
 
         {/* Right Column: Telegram Live Preview Simulator */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--panel)] shadow-sm space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">
-                Telegram Post Preview
+          <div className="p-5 sm:p-6 rounded-2xl border border-slate-800/80 bg-[#0f1420] shadow-xl space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2 pb-1 border-b border-slate-800/60">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#38bdf8] flex items-center gap-1.5">
+                <span>📱 Telegram Live Preview</span>
               </span>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {disableNotification && (
-                  <span className="botdesk-badge text-[9px] paused">🔕 Silent</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                    🔕 Silent
+                  </span>
                 )}
                 {postType === "ALBUM" && (
-                  <span className="botdesk-badge text-[9px] blue">
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-[#0c2538] text-[#38bdf8] border border-sky-500/30">
                     📸 Album ({albumItems.length})
                   </span>
                 )}
                 {hasSpoiler && !sendAsDocument && postType !== "TEXT" && postType !== "ALBUM" && (
-                  <span className="botdesk-badge text-[9px] red">🙈 Spoiler</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-rose-950/40 text-rose-300 border border-rose-800/50">
+                    🙈 Spoiler
+                  </span>
                 )}
                 {postType === "VIDEO" && sendAsDocument && (
-                  <span className="botdesk-badge text-[9px] blue">📄 Document</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-[#0c2538] text-[#38bdf8] border border-sky-500/30">
+                    📄 Document
+                  </span>
                 )}
-                <span className="botdesk-badge blue text-[10px]">Simulation</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-sky-500/10 text-[#38bdf8] border border-sky-500/25">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> SIMULATED
+                </span>
               </div>
             </div>
 
             {/* Telegram Channel Message Bubble Simulation */}
-            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3.5 space-y-3 shadow-inner">
+            <div className="bg-[#17212b] border border-[#232e3c] rounded-2xl p-4 shadow-xl text-slate-100 space-y-3">
               {/* Channel Header */}
-              <div className="flex items-center gap-2 border-b border-[var(--border)] pb-2">
-                <div className="w-7 h-7 rounded-full bg-[var(--bluebg)] border border-[var(--accent)] flex items-center justify-center text-xs font-bold text-[var(--accent)]">
+              <div className="flex items-center gap-2.5 border-b border-white/10 pb-2.5">
+                <div className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#0284c7] to-[#38bdf8] text-slate-950 font-bold flex items-center justify-center text-sm shadow-md flex-shrink-0">
                   📢
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-[var(--text)] leading-tight">
-                    {activeChannel?.name || "Official Channel"}
+                  <h4 className="text-xs font-bold text-white leading-tight flex items-center gap-1">
+                    <span>{activeChannel?.name || "Official Channel"}</span>
+                    <span className="text-[#38bdf8] text-[11px]" title="Verified Channel">✓</span>
                   </h4>
-                  <span className="text-[10px] text-[var(--muted)]">
+                  <span className="text-[10px] text-slate-400 font-mono">
                     {activeChannel?.telegramChatId || "@channel"}
                   </span>
                 </div>
@@ -2540,7 +2625,7 @@ export function BotdeskPostsPage({
 
               {/* Uploaded Image Preview in Bubble */}
               {postType === "IMAGE" && (
-                <div className="relative rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--bg)] flex items-center justify-center min-h-[140px] max-h-[260px]">
+                <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/40 flex items-center justify-center min-h-[140px] max-h-[260px]">
                   {mediaPath ? (
                     <img
                       src={`/api/media/posts/${mediaPath}`}
@@ -2552,13 +2637,13 @@ export function BotdeskPostsPage({
                       }`}
                     />
                   ) : (
-                    <div className="p-6 text-center text-xs text-[var(--muted)] italic">
+                    <div className="p-6 text-center text-xs text-slate-400 italic">
                       [Photo Placeholder] Upload an image above to preview
                     </div>
                   )}
                   {hasSpoiler && mediaPath && (
                     <div className="absolute top-2 right-2 pointer-events-none">
-                      <span className="botdesk-badge red text-[10px] font-semibold">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-950/80 text-rose-300 border border-rose-700/60 shadow-md">
                         🙈 Spoiler Blur (Hover to Peek)
                       </span>
                     </div>
@@ -2571,27 +2656,27 @@ export function BotdeskPostsPage({
                 <>
                   {sendAsDocument ? (
                     /* Video sent as Document Card */
-                    <div className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-3 flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-[var(--bluebg)] border border-[var(--accent)] flex items-center justify-center text-xl flex-shrink-0">
+                    <div className="rounded-xl border border-white/10 bg-black/30 p-3 flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-xl flex-shrink-0">
                         📄
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-[var(--text)] truncate">
+                        <p className="text-xs font-semibold text-white truncate">
                           {mediaOriginalName || mediaPath || "sample_video.mp4"}
                         </p>
-                        <div className="flex items-center gap-2 text-[10px] text-[var(--muted)]">
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400">
                           <span>
                             {mediaSizeBytes
                               ? `${(mediaSizeBytes / (1024 * 1024)).toFixed(2)} MB`
                               : "Video Document"}
                           </span>
-                          <span className="botdesk-badge text-[9px] blue">Raw Attachment</span>
+                          <span className="px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-400 text-[9px]">Raw Attachment</span>
                         </div>
                       </div>
                     </div>
                   ) : (
                     /* Regular Video Player */
-                    <div className="relative rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--bg)] flex items-center justify-center min-h-[140px] max-h-[260px]">
+                    <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/40 flex items-center justify-center min-h-[140px] max-h-[260px]">
                       {mediaPath ? (
                         <video
                           controls
@@ -2603,13 +2688,13 @@ export function BotdeskPostsPage({
                           }`}
                         />
                       ) : (
-                        <div className="p-6 text-center text-xs text-[var(--muted)] italic">
+                        <div className="p-6 text-center text-xs text-slate-400 italic">
                           [Video Placeholder] Upload a video above to preview
                         </div>
                       )}
                       {hasSpoiler && mediaPath && (
                         <div className="absolute top-2 right-2 pointer-events-none">
-                          <span className="botdesk-badge red text-[10px] font-semibold">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-950/80 text-rose-300 border border-rose-700/60 shadow-md">
                             🙈 Spoiler Blur (Hover/Tap to Peek)
                           </span>
                         </div>
@@ -2622,22 +2707,22 @@ export function BotdeskPostsPage({
               {/* Uploaded Media Album Preview in Bubble */}
               {postType === "ALBUM" && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[11px] text-[var(--muted)]">
-                    <span className="font-semibold text-[var(--text)]">
+                  <div className="flex items-center justify-between text-[11px] text-slate-300">
+                    <span className="font-semibold text-white">
                       📸 Media Album ({albumItems.length} items)
                     </span>
-                    <span className="text-[10px] text-[var(--accent)] italic">
+                    <span className="text-[10px] text-[#38bdf8] italic">
                       #1 Slide holds caption
                     </span>
                   </div>
 
                   {albumItems.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-[var(--muted)] italic border border-[var(--border)] rounded-lg bg-[var(--bg)]">
+                    <div className="p-6 text-center text-xs text-slate-400 italic border border-white/10 rounded-xl bg-black/30">
                       [Album Placeholder] Add 2–10 photos and videos above to preview layout
                     </div>
                   ) : (
                     <div
-                      className={`grid gap-1.5 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--bg)] p-1 ${
+                      className={`grid gap-1.5 rounded-xl overflow-hidden border border-white/10 bg-black/40 p-1 ${
                         albumItems.length === 2
                           ? "grid-cols-2"
                           : albumItems.length === 3
@@ -2648,7 +2733,7 @@ export function BotdeskPostsPage({
                       {albumItems.map((item, idx) => (
                         <div
                           key={item.filePath || idx}
-                          className="relative aspect-square rounded overflow-hidden bg-black/40 flex items-center justify-center group"
+                          className="relative aspect-square rounded-lg overflow-hidden bg-black/50 flex items-center justify-center group"
                         >
                           {item.mediaType === "IMAGE" ? (
                             <img
@@ -2671,14 +2756,14 @@ export function BotdeskPostsPage({
                           )}
 
                           {/* Index badge */}
-                          <div className="absolute top-1 left-1 bg-black/70 text-white text-[9px] font-bold px-1 py-0.5 rounded pointer-events-none">
+                          <div className="absolute top-1 left-1 bg-black/75 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md pointer-events-none">
                             #{idx + 1}
                             {idx === 0 ? " (Caption)" : ""}
                           </div>
 
                           {/* Spoiler indicator badge */}
                           {item.hasSpoiler && (
-                            <div className="absolute bottom-1 right-1 bg-black/80 text-[var(--red)] text-[9px] font-bold px-1 py-0.5 rounded pointer-events-none">
+                            <div className="absolute bottom-1 right-1 bg-black/85 text-rose-300 text-[9px] font-bold px-1.5 py-0.5 rounded-md pointer-events-none">
                               🙈 Spoiler
                             </div>
                           )}
@@ -2690,11 +2775,11 @@ export function BotdeskPostsPage({
               )}
 
               {/* Message Content or Caption */}
-              <div className="text-xs text-[var(--text)] whitespace-pre-wrap leading-relaxed">
+              <div className="text-xs text-slate-100 whitespace-pre-wrap leading-relaxed select-text">
                 {content.trim() ? (
                   content
                 ) : (
-                  <span className="text-[var(--muted)] italic">
+                  <span className="text-slate-400 italic">
                     {postType === "TEXT"
                       ? "Message text will appear here..."
                       : "Optional caption will appear here..."}
@@ -2711,7 +2796,7 @@ export function BotdeskPostsPage({
                       href={btn.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block w-full text-center py-1.5 px-3 rounded-lg bg-[var(--panel)] border border-[var(--border)] text-xs font-medium text-[var(--accent)] hover:bg-[var(--bluebg)] transition truncate"
+                      className="bg-[#2b527a]/40 hover:bg-[#2b527a]/70 border border-[#4883ba]/40 text-[#64b5f6] font-medium py-2.5 px-4 rounded-xl text-xs text-center transition block shadow-sm"
                     >
                       {btn.label} ↗
                     </a>
@@ -2719,75 +2804,84 @@ export function BotdeskPostsPage({
                 </div>
               )}
 
-              <div className="text-right text-[10px] text-[var(--muted)] pt-1">
-                {new Date().toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+              <div className="text-right text-[10px] text-slate-400 pt-1 flex items-center justify-end gap-1 font-mono">
+                <span>
+                  {new Date().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+                <span className="text-[#38bdf8] text-[11px] font-sans font-bold">✓✓</span>
               </div>
             </div>
 
             {/* If ALBUM and buttons exist: show follow-up reply bubble simulation */}
             {postType === "ALBUM" && buttons.length > 0 && (
-              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 space-y-2 shadow-inner">
-                <div className="flex items-center justify-between text-[10px] text-[var(--accent)] font-semibold border-b border-[var(--border)] pb-1.5">
+              <div className="bg-[#17212b] border border-[#232e3c] rounded-2xl p-4 shadow-xl text-slate-100 space-y-2.5">
+                <div className="flex items-center justify-between text-[10px] text-[#38bdf8] font-semibold border-b border-white/10 pb-1.5">
                   <span className="flex items-center gap-1.5">
                     <span>↩️ Anchored Reply (Buttons Follow-up)</span>
                   </span>
-                  <span className="botdesk-badge text-[9px] blue">Auto Reply to Album</span>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-[#0c2538] text-[#38bdf8] border border-sky-500/30">
+                    Auto Reply to Album
+                  </span>
                 </div>
-                <div className="text-[10px] text-[var(--muted)] border-l-2 border-[var(--accent)] pl-2 italic">
+                <div className="text-[10px] text-slate-400 border-l-2 border-[#38bdf8] pl-2 italic">
                   Replying to Album #{albumItems.length > 0 ? "1" : "..."}
                 </div>
-                <div className="space-y-1 pt-1">
+                <div className="space-y-1.5 pt-1">
                   {buttons.map((btn, idx) => (
                     <a
                       key={idx}
                       href={btn.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block w-full text-center py-1.5 px-3 rounded-lg bg-[var(--panel)] border border-[var(--border)] text-xs font-medium text-[var(--accent)] hover:bg-[var(--bluebg)] transition truncate"
+                      className="bg-[#2b527a]/40 hover:bg-[#2b527a]/70 border border-[#4883ba]/40 text-[#64b5f6] font-medium py-2.5 px-4 rounded-xl text-xs text-center transition block shadow-sm"
                     >
                       {btn.label} ↗
                     </a>
                   ))}
                 </div>
-                <div className="text-right text-[10px] text-[var(--muted)]">
-                  {new Date().toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                <div className="text-right text-[10px] text-slate-400 flex items-center justify-end gap-1 font-mono">
+                  <span>
+                    {new Date().toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                  <span className="text-[#38bdf8] text-[11px] font-sans font-bold">✓✓</span>
                 </div>
               </div>
             )}
 
-            <p className="text-[11px] text-[var(--muted)] italic border-t border-[var(--border)] pt-2 leading-relaxed">
-              ℹ️ Preview note: This is a browser approximation. Clicking "Publish Now" requires confirmation and dispatches the post to your real Telegram channel via Bot API.
+            <p className="text-[11px] text-slate-400 italic border-t border-slate-800/80 pt-3 leading-relaxed">
+              ℹ️ Simulated Preview: Browser approximation of channel view. Clicking &quot;Publish Now&quot; dispatches this post to your live Telegram channel via Bot API.
             </p>
           </div>
         </div>
       </div>
 
       {/* History & Drafts Section */}
-      <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--panel)] shadow-sm space-y-4">
+      <div className="p-5 sm:p-6 rounded-2xl border border-slate-800/80 bg-[#0f1420] shadow-xl space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-sm font-bold text-[var(--text)]">
-              Post History & Drafts ({posts.length})
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <span>📋</span>
+              <span>Post History & Drafts ({posts.length})</span>
             </h3>
-            <p className="text-xs text-[var(--muted)]">
+            <p className="text-xs text-slate-400 mt-0.5">
               Drafts, scheduled broadcasts, published posts, and delivery attempts
             </p>
           </div>
 
-          <div className="flex items-center gap-1 bg-[var(--surface)] p-1 rounded-lg border border-[var(--border)] overflow-x-auto">
+          <div className="flex p-1 bg-[#090d16] border border-slate-800 rounded-xl gap-1 overflow-x-auto self-start sm:self-auto max-w-full">
             <button
               type="button"
               onClick={() => setPostFilter("ALL")}
-              className={`text-xs py-1 px-2.5 rounded font-medium transition whitespace-nowrap ${
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
                 postFilter === "ALL"
-                  ? "bg-[var(--accent)] text-white shadow-sm"
-                  : "text-[var(--muted)] hover:text-[var(--text)]"
+                  ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               All ({posts.length})
@@ -2795,10 +2889,10 @@ export function BotdeskPostsPage({
             <button
               type="button"
               onClick={() => setPostFilter("SCHEDULED")}
-              className={`text-xs py-1 px-2.5 rounded font-medium transition whitespace-nowrap ${
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
                 postFilter === "SCHEDULED"
-                  ? "bg-purple-600 text-white shadow-sm"
-                  : "text-[var(--muted)] hover:text-[var(--text)]"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/25 border border-purple-400/40"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               🕒 Scheduled ({posts.filter((p) => p.status === "SCHEDULED").length})
@@ -2806,10 +2900,10 @@ export function BotdeskPostsPage({
             <button
               type="button"
               onClick={() => setPostFilter("DRAFT")}
-              className={`text-xs py-1 px-2.5 rounded font-medium transition whitespace-nowrap ${
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
                 postFilter === "DRAFT"
-                  ? "bg-[var(--panel)] text-[var(--text)] font-semibold border border-[var(--border)]"
-                  : "text-[var(--muted)] hover:text-[var(--text)]"
+                  ? "bg-[#0c2538] text-[#38bdf8] border border-sky-500/40 shadow-sm"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               Drafts ({posts.filter((p) => p.status === "DRAFT").length})
@@ -2817,10 +2911,10 @@ export function BotdeskPostsPage({
             <button
               type="button"
               onClick={() => setPostFilter("PUBLISHED")}
-              className={`text-xs py-1 px-2.5 rounded font-medium transition whitespace-nowrap ${
+              className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
                 postFilter === "PUBLISHED"
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "text-[var(--muted)] hover:text-[var(--text)]"
+                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/25 border border-emerald-400/40"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               Published ({posts.filter((p) => p.status === "PUBLISHED").length})
@@ -2829,26 +2923,28 @@ export function BotdeskPostsPage({
         </div>
 
         {posts.length === 0 ? (
-          <div className="py-8 text-center text-xs text-[var(--muted)] border border-dashed border-[var(--border)] rounded-lg">
-            No posts recorded yet. Compose a message and click "Save Draft" or "Schedule Post" to begin.
+          <div className="py-12 text-center text-xs text-slate-400 border border-dashed border-slate-800 rounded-2xl bg-[#0b0f19]/40 space-y-2">
+            <div className="text-2xl">📋</div>
+            <p>No posts recorded yet.</p>
+            <p className="text-[11px] text-slate-500">Compose a message above and click &quot;Save Draft&quot; or &quot;Schedule Post&quot; to begin.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded-xl border border-slate-800/80 bg-[#0b0f19]">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[var(--border)] text-[var(--muted)] font-semibold uppercase tracking-wider text-[10px]">
-                  <th className="py-2.5 px-3">Status</th>
-                  <th className="py-2.5 px-3">Type</th>
-                  <th className="py-2.5 px-3">Options</th>
-                  <th className="py-2.5 px-3">Target Channel</th>
-                  <th className="py-2.5 px-3">Content Snippet</th>
-                  <th className="py-2.5 px-3">Buttons</th>
-                  <th className="py-2.5 px-3">Msg ID</th>
-                  <th className="py-2.5 px-3">Broadcast / Date</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
+                <tr className="border-b border-slate-800 bg-[#090d16] text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                  <th className="py-3.5 px-3.5">Status</th>
+                  <th className="py-3.5 px-3.5">Type</th>
+                  <th className="py-3.5 px-3.5">Options</th>
+                  <th className="py-3.5 px-3.5">Target Channel</th>
+                  <th className="py-3.5 px-3.5">Content Snippet</th>
+                  <th className="py-3.5 px-3.5">Buttons</th>
+                  <th className="py-3.5 px-3.5">Msg ID</th>
+                  <th className="py-3.5 px-3.5">Broadcast / Date</th>
+                  <th className="py-3.5 px-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--border)]">
+              <tbody className="divide-y divide-slate-800/60">
                 {posts
                   .filter((post) => {
                     if (postFilter === "SCHEDULED") return post.status === "SCHEDULED";
@@ -2859,42 +2955,64 @@ export function BotdeskPostsPage({
                   .map((post) => (
                     <tr
                       key={post.id}
-                      className="hover:bg-[var(--surface)] transition"
+                      className="hover:bg-[#131926] transition"
                     >
-                      <td className="py-3 px-3 whitespace-nowrap">
+                      <td className="py-3 px-3.5 whitespace-nowrap">
                         <span
-                          className={`botdesk-badge text-[10px] ${
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold border ${
                             post.status === "PUBLISHED"
-                              ? "enabled"
+                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                               : post.status === "SCHEDULED"
-                              ? "blue border-purple-500/50 text-purple-300 bg-purple-950/30 font-semibold"
+                              ? "bg-purple-500/10 text-purple-300 border-purple-500/30"
                               : post.status === "SENDING"
-                              ? "paused"
+                              ? "bg-sky-500/10 text-sky-400 border-sky-500/30"
                               : post.status === "PARTIAL"
-                              ? "paused text-amber-400 border-amber-500/40"
+                              ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
                               : post.status === "FAILED"
-                              ? "red"
-                              : post.status === "UNKNOWN"
-                              ? "paused"
-                              : "blue"
+                              ? "bg-rose-500/10 text-rose-400 border-rose-500/30"
+                              : "bg-sky-500/10 text-[#38bdf8] border-sky-500/30"
                           }`}
                         >
-                          {post.status === "SCHEDULED" ? "🕒 SCHEDULED" : post.status}
+                          {post.status === "PUBLISHED" ? (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> PUBLISHED
+                            </>
+                          ) : post.status === "SCHEDULED" ? (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-purple-400" /> SCHEDULED
+                            </>
+                          ) : post.status === "SENDING" ? (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" /> SENDING
+                            </>
+                          ) : post.status === "PARTIAL" ? (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> PARTIAL
+                            </>
+                          ) : post.status === "FAILED" ? (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" /> FAILED
+                            </>
+                          ) : (
+                            <>
+                              <span className="w-1.5 h-1.5 rounded-full bg-sky-400" /> {post.status}
+                            </>
+                          )}
                         </span>
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap font-medium text-[var(--text)]">
+                      <td className="py-3 px-3.5 whitespace-nowrap font-medium text-white">
                         {post.postType === "ALBUM" ? (
-                          <span className="flex items-center gap-1">
-                            📸 Album
-                            <span className="botdesk-badge text-[9px] blue">
+                          <span className="flex items-center gap-1.5">
+                            <span>📸 Album</span>
+                            <span className="px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-400 text-[9px] border border-sky-500/20 font-mono">
                               {post.albumItems?.length || (post.albumMessageIds ? post.albumMessageIds.length : 0)} items
                             </span>
                           </span>
                         ) : post.postType === "VIDEO" ? (
-                          <span className="flex items-center gap-1">
-                            🎥 Video
+                          <span className="flex items-center gap-1.5">
+                            <span>🎥 Video</span>
                             {post.sendAsDocument && (
-                              <span className="botdesk-badge text-[9px] blue">Doc</span>
+                              <span className="px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-400 text-[9px] border border-sky-500/20 font-mono">Doc</span>
                             )}
                           </span>
                         ) : post.postType === "IMAGE" ? (
@@ -2903,40 +3021,40 @@ export function BotdeskPostsPage({
                           "📝 Text"
                         )}
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap text-[11px] text-[var(--muted)]">
+                      <td className="py-3 px-3.5 whitespace-nowrap text-[11px] text-slate-400">
                         <div className="flex items-center gap-1.5">
                           {post.disableNotification && (
-                            <span title="Silent notification (no sound)" className="botdesk-badge text-[9px] paused">
+                            <span title="Silent notification (no sound)" className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px]">
                               🔕
                             </span>
                           )}
                           {post.hasSpoiler && (
-                            <span title="Media spoiler enabled" className="botdesk-badge text-[9px] red">
+                            <span title="Media spoiler enabled" className="px-1.5 py-0.5 rounded bg-rose-950/40 text-rose-300 border border-rose-800/40 text-[10px]">
                               🙈
                             </span>
                           )}
                           {!post.disableNotification && !post.hasSpoiler && (
-                            <span>Standard</span>
+                            <span className="text-slate-500">Standard</span>
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap text-[var(--muted)]">
+                      <td className="py-3 px-3.5 whitespace-nowrap text-slate-400">
                         {post.channelName || post.channelChatId || post.channelId}
                       </td>
-                      <td className="py-3 px-3 max-w-xs truncate text-[var(--text)]">
+                      <td className="py-3 px-3.5 max-w-xs truncate text-slate-200">
                         {post.content || "(No caption/text)"}
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap text-[var(--muted)]">
+                      <td className="py-3 px-3.5 whitespace-nowrap text-slate-400 font-mono text-[11px]">
                         {post.buttonsConfig && Array.isArray(post.buttonsConfig)
                           ? `${post.buttonsConfig.length} btn`
                           : "None"}
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap font-mono text-[var(--muted)]">
+                      <td className="py-3 px-3.5 whitespace-nowrap font-mono text-slate-400 text-[11px]">
                         {post.albumMessageIds && post.albumMessageIds.length > 0 ? (
                           <span title={`Album Message IDs: #${post.albumMessageIds.join(", #")}`}>
                             #{post.albumMessageIds[0]}..+{post.albumMessageIds.length - 1}
                             {post.buttonMessageId && (
-                              <span className="text-[var(--accent)] font-semibold ml-1">
+                              <span className="text-[#38bdf8] font-semibold ml-1">
                                 (+Btn #{post.buttonMessageId})
                               </span>
                             )}
@@ -2947,30 +3065,30 @@ export function BotdeskPostsPage({
                           "-"
                         )}
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap text-[var(--muted)]">
+                      <td className="py-3 px-3.5 whitespace-nowrap text-slate-400">
                         {post.status === "SCHEDULED" ? (
                           <div className="space-y-0.5">
                             <span
-                              className="text-purple-300 font-semibold block"
+                              className="text-purple-300 font-semibold block text-[11px]"
                               title={post.scheduledAt || ""}
                             >
                               🕒 {formatScheduledDisplay(post.scheduledAt, post.scheduledTimezone)}
                             </span>
-                            <span className="text-[10px] text-[var(--muted)] block">
+                            <span className="text-[10px] text-slate-500 block font-mono">
                               Created: {new Date(post.createdAt).toLocaleDateString()}
                             </span>
                           </div>
                         ) : post.status === "PUBLISHED" ? (
                           <div className="space-y-0.5">
-                            <span className="text-emerald-400 font-medium block">
+                            <span className="text-emerald-400 font-medium block text-[11px]">
                               ✅ {post.sentAt ? new Date(post.sentAt).toLocaleString([], { dateStyle: "short", timeStyle: "short" }) : "Sent"}
                             </span>
-                            <span className="text-[10px] text-[var(--muted)] block">
+                            <span className="text-[10px] text-slate-500 block font-mono">
                               Created: {new Date(post.createdAt).toLocaleDateString()}
                             </span>
                           </div>
                         ) : (
-                          <div>
+                          <div className="text-[11px]">
                             {new Date(post.createdAt).toLocaleDateString()}{" "}
                             {new Date(post.createdAt).toLocaleTimeString([], {
                               hour: "2-digit",
@@ -2979,13 +3097,13 @@ export function BotdeskPostsPage({
                           </div>
                         )}
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap text-right space-x-1.5">
+                      <td className="py-3 px-3.5 whitespace-nowrap text-right space-x-1.5">
                         {post.status === "PARTIAL" && (
                           <button
                             type="button"
                             disabled={retryingButtonsPostId === post.id}
                             onClick={() => handleRetryButtons(post.id)}
-                            className="botdesk-btn text-[11px] py-1 px-2 border-amber-500 text-amber-400 hover:bg-amber-500/10"
+                            className="text-[11px] py-1 px-2.5 rounded-lg bg-amber-950/30 hover:bg-amber-900/40 text-amber-300 border border-amber-500/40 transition cursor-pointer font-medium"
                             title="Deliver follow-up inline buttons without re-sending the album"
                           >
                             {retryingButtonsPostId === post.id ? "Retrying..." : "Retry Buttons"}
@@ -2996,7 +3114,7 @@ export function BotdeskPostsPage({
                             <button
                               type="button"
                               onClick={() => handleEditDraft(post)}
-                              className="botdesk-btn text-[11px] py-1 px-2"
+                              className="text-[11px] py-1 px-2.5 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-purple-300 border border-purple-500/30 transition cursor-pointer font-medium"
                               title="Edit draft content or reschedule broadcast timing"
                             >
                               Reschedule
@@ -3005,7 +3123,7 @@ export function BotdeskPostsPage({
                               type="button"
                               disabled={cancellingPostId === post.id}
                               onClick={() => handleCancelSchedule(post.id)}
-                              className="botdesk-btn text-[11px] py-1 px-2 text-amber-400 border-amber-500/40 hover:bg-amber-500/10"
+                              className="text-[11px] py-1 px-2.5 rounded-lg bg-amber-950/30 hover:bg-amber-900/40 text-amber-300 border border-amber-500/40 transition cursor-pointer font-medium"
                               title="Cancel schedule and return to Draft status"
                             >
                               {cancellingPostId === post.id ? "Cancelling..." : "Cancel"}
@@ -3013,7 +3131,7 @@ export function BotdeskPostsPage({
                             <button
                               type="button"
                               onClick={() => handleOpenPublish(post)}
-                              className="botdesk-btn primary text-[11px] py-1 px-2"
+                              className="text-[11px] py-1 px-2.5 rounded-lg font-bold bg-[#38bdf8] hover:bg-[#20b3f7] active:scale-[0.98] text-slate-950 transition shadow-sm cursor-pointer"
                               title="Publish immediately to Telegram channel now"
                             >
                               Publish Now
@@ -3024,14 +3142,14 @@ export function BotdeskPostsPage({
                             <button
                               type="button"
                               onClick={() => handleEditDraft(post)}
-                              className="botdesk-btn text-[11px] py-1 px-2"
+                              className="text-[11px] py-1 px-2.5 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 transition cursor-pointer font-medium"
                             >
                               Edit
                             </button>
                             <button
                               type="button"
                               onClick={() => handleOpenPublish(post)}
-                              className="botdesk-btn primary text-[11px] py-1 px-2"
+                              className="text-[11px] py-1 px-2.5 rounded-lg font-bold bg-[#38bdf8] hover:bg-[#20b3f7] active:scale-[0.98] text-slate-950 transition shadow-sm cursor-pointer"
                             >
                               Publish
                             </button>
@@ -3041,7 +3159,7 @@ export function BotdeskPostsPage({
                           <button
                             type="button"
                             onClick={() => handleDeletePost(post.id)}
-                            className="botdesk-btn danger text-[11px] py-1 px-2"
+                            className="text-[11px] py-1 px-2.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/60 transition cursor-pointer font-medium"
                           >
                             Delete
                           </button>
@@ -3057,21 +3175,22 @@ export function BotdeskPostsPage({
 
       {/* Add Inline Button Modal */}
       {showButtonModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-[var(--text)]">
-              Add Inline URL Button
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#0f1420] border border-slate-800 p-6 shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <span>🔗</span>
+              <span>Add Inline URL Button</span>
             </h3>
 
             {btnError && (
-              <div className="p-2 rounded bg-[var(--redbg)] border border-[var(--red)] text-xs text-[var(--red)]">
+              <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800/60 text-xs text-rose-300">
                 {btnError}
               </div>
             )}
 
-            <form onSubmit={handleAddButton} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-semibold uppercase text-[var(--muted)] mb-1">
+            <form onSubmit={handleAddButton} className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="block font-semibold uppercase tracking-wider text-slate-400">
                   Button Label (Max 64 chars)
                 </label>
                 <input
@@ -3081,12 +3200,12 @@ export function BotdeskPostsPage({
                   value={btnLabel}
                   onChange={(e) => setBtnLabel(e.target.value)}
                   placeholder="e.g. 🌐 Read Full Article"
-                  className="botdesk-input text-xs"
+                  className="text-xs min-h-[40px] w-full py-2 px-3.5 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition"
                 />
               </div>
 
-              <div>
-                <label className="block font-semibold uppercase text-[var(--muted)] mb-1">
+              <div className="space-y-1.5">
+                <label className="block font-semibold uppercase tracking-wider text-slate-400">
                   Destination URL (HTTPS or tg://)
                 </label>
                 <input
@@ -3095,21 +3214,21 @@ export function BotdeskPostsPage({
                   value={btnUrl}
                   onChange={(e) => setBtnUrl(e.target.value)}
                   placeholder="https://example.com/announcement"
-                  className="botdesk-input text-xs"
+                  className="text-xs min-h-[40px] w-full py-2 px-3.5 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border)]">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowButtonModal(false)}
-                  className="botdesk-btn text-xs py-1.5 px-3"
+                  className="text-xs py-2 px-4 rounded-xl bg-[#162032] hover:bg-[#1e2c44] text-slate-300 border border-slate-700/80 transition cursor-pointer font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="botdesk-btn primary text-xs py-1.5 px-4 font-semibold"
+                  className="text-xs py-2 px-4 rounded-xl font-bold bg-[#38bdf8] hover:bg-[#20b3f7] active:scale-[0.98] text-slate-950 transition shadow-md shadow-sky-500/20 cursor-pointer"
                 >
                   Add Button
                 </button>
@@ -3121,40 +3240,40 @@ export function BotdeskPostsPage({
 
       {/* Publish or Schedule Confirmation Modal */}
       {showConfirmModal && postToPublish && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-2.5 text-[var(--accent)]">
-              <span className="text-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#0f1420] border border-slate-800 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-2.5 text-[#38bdf8]">
+              <span className="text-2xl">
                 {postToPublish.status === "SCHEDULED" && publishMode === "SCHEDULE" ? "🕒" : "⚠️"}
               </span>
-              <h3 className="text-base font-bold text-[var(--text)]">
+              <h3 className="text-base font-bold text-white">
                 {postToPublish.status === "SCHEDULED" && publishMode === "SCHEDULE"
                   ? "Confirm Post Schedule"
                   : "Confirm Channel Publish"}
               </h3>
             </div>
 
-            <p className="text-xs text-[var(--text)] leading-relaxed">
+            <p className="text-xs text-slate-300 leading-relaxed">
               {postToPublish.status === "SCHEDULED" && publishMode === "SCHEDULE"
                 ? "You are scheduling this post for automatic broadcast. At the specified time, the BackStage scheduler worker will claim and dispatch it to your channel via Telegram Bot API."
                 : "You are about to dispatch this post to your real Telegram channel. Once published, subscribers will see it immediately."}
             </p>
 
-            <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-xs space-y-1.5">
+            <div className="p-4 rounded-xl border border-slate-800 bg-[#0b0f19] text-xs space-y-2.5">
               <div className="flex justify-between">
-                <span className="text-[var(--muted)]">Publishing Bot:</span>
-                <span className="font-semibold text-[var(--text)]">
+                <span className="text-slate-400">Publishing Bot:</span>
+                <span className="font-semibold text-white">
                   {activeBot.name} (@{activeBot.username})
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--muted)]">Target Channel:</span>
-                <span className="font-semibold text-[var(--text)]">
+                <span className="text-slate-400">Target Channel:</span>
+                <span className="font-semibold text-white">
                   {activeChannel?.name || "Selected Channel"} ({activeChannel?.telegramChatId})
                 </span>
               </div>
               {postToPublish.status === "SCHEDULED" && postToPublish.scheduledAt && (
-                <div className="flex justify-between border-y border-purple-500/20 py-1 bg-purple-950/20 px-1 rounded">
+                <div className="flex justify-between border-y border-purple-500/20 py-1.5 bg-purple-950/20 px-2 rounded-lg">
                   <span className="text-purple-300 font-semibold">Scheduled Broadcast:</span>
                   <span className="font-bold text-purple-300">
                     {formatScheduledDisplay(
@@ -3165,8 +3284,8 @@ export function BotdeskPostsPage({
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-[var(--muted)]">Post Type:</span>
-                <span className="font-semibold text-[var(--text)]">
+                <span className="text-slate-400">Post Type:</span>
+                <span className="font-semibold text-white">
                   {postToPublish.postType === "ALBUM"
                     ? `Media Album (${postToPublish.albumItems?.length || 0} items: ${
                         postToPublish.albumItems?.filter((i) => i.mediaType === "IMAGE").length || 0
@@ -3183,14 +3302,14 @@ export function BotdeskPostsPage({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--muted)]">Silent Notification:</span>
-                <span className="font-semibold text-[var(--text)]">
+                <span className="text-slate-400">Silent Notification:</span>
+                <span className="font-semibold text-white">
                   {postToPublish.disableNotification ? "🔕 Yes (No Sound)" : "🔔 Normal (With Sound)"}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--muted)]">Media Spoiler Blur:</span>
-                <span className="font-semibold text-[var(--text)]">
+                <span className="text-slate-400">Media Spoiler Blur:</span>
+                <span className="font-semibold text-white">
                   {postToPublish.postType === "ALBUM"
                     ? `${
                         postToPublish.albumItems?.filter((i) => i.hasSpoiler).length || 0
@@ -3201,8 +3320,8 @@ export function BotdeskPostsPage({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--muted)]">Buttons:</span>
-                <span className="font-semibold text-[var(--text)]">
+                <span className="text-slate-400">Buttons:</span>
+                <span className="font-semibold text-white">
                   {postToPublish.buttonsConfig?.length || 0} inline button(s)
                   {postToPublish.postType === "ALBUM" && (postToPublish.buttonsConfig?.length || 0) > 0
                     ? " (Dispatched in follow-up reply)"
@@ -3211,12 +3330,12 @@ export function BotdeskPostsPage({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border)]">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
               <button
                 type="button"
                 disabled={publishing}
                 onClick={() => setShowConfirmModal(false)}
-                className="botdesk-btn text-xs py-2 px-3"
+                className="text-xs py-2 px-4 rounded-xl bg-[#162032] hover:bg-[#1e2c44] text-slate-300 border border-slate-700/80 transition cursor-pointer font-medium"
               >
                 Cancel
               </button>
@@ -3225,18 +3344,38 @@ export function BotdeskPostsPage({
                   type="button"
                   disabled={publishing}
                   onClick={handleConfirmPublish}
-                  className="botdesk-btn text-xs py-2 px-4 font-semibold bg-purple-600 hover:bg-purple-700 text-white border-transparent"
+                  className="text-xs py-2 px-4 rounded-xl font-bold bg-purple-600 hover:bg-purple-500 active:scale-[0.98] text-white transition shadow-md shadow-purple-600/20 inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  {publishing ? "Scheduling..." : "Yes, Schedule Post"}
+                  {publishing ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Scheduling...</span>
+                    </>
+                  ) : (
+                    "Yes, Schedule Post"
+                  )}
                 </button>
               ) : (
                 <button
                   type="button"
                   disabled={publishing}
                   onClick={handleConfirmPublish}
-                  className="botdesk-btn primary text-xs py-2 px-4 font-semibold"
+                  className="text-xs py-2 px-4 rounded-xl font-bold bg-[#38bdf8] hover:bg-[#20b3f7] active:scale-[0.98] text-slate-950 transition shadow-md shadow-sky-500/20 inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  {publishing ? "Publishing to Telegram..." : "Yes, Publish to Channel"}
+                  {publishing ? (
+                    <>
+                      <svg className="animate-spin h-3.5 w-3.5 text-slate-950" viewBox="0 0 24 24" fill="none">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Publishing to Telegram...</span>
+                    </>
+                  ) : (
+                    "Yes, Publish to Channel"
+                  )}
                 </button>
               )}
             </div>
@@ -3246,33 +3385,33 @@ export function BotdeskPostsPage({
 
       {/* Media Replacement Confirmation Modal */}
       {pendingReplace && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#0f1420] border border-slate-800 p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-2.5 text-amber-400">
-              <span className="text-xl">⚠️</span>
-              <h3 className="text-base font-bold text-[var(--text)]">
+              <span className="text-2xl">⚠️</span>
+              <h3 className="text-base font-bold text-white">
                 Replace Attached Media?
               </h3>
             </div>
 
-            <p className="text-xs text-[var(--text)] leading-relaxed">
+            <p className="text-xs text-slate-300 leading-relaxed">
               A {pendingReplace.mediaType === "IMAGE" ? "photo" : "video"} is already attached to this draft:
             </p>
 
-            <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)] text-xs space-y-1.5">
+            <div className="p-4 rounded-xl border border-slate-800 bg-[#0b0f19] text-xs space-y-2">
               <div className="flex justify-between">
-                <span className="text-[var(--muted)]">Current Media:</span>
+                <span className="text-slate-400">Current Media:</span>
                 <span
-                  className="font-semibold text-[var(--text)] truncate max-w-[200px]"
+                  className="font-semibold text-white truncate max-w-[200px]"
                   title={mediaOriginalName || mediaPath || ""}
                 >
                   {mediaOriginalName || mediaPath}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[var(--muted)]">New Pasted Media:</span>
+                <span className="text-slate-400">New Pasted Media:</span>
                 <span
-                  className="font-semibold text-[var(--accent)] truncate max-w-[200px]"
+                  className="font-semibold text-[#38bdf8] truncate max-w-[200px]"
                   title={pendingReplace.file.name}
                 >
                   {pendingReplace.file.name}
@@ -3280,18 +3419,18 @@ export function BotdeskPostsPage({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border)]">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setPendingReplace(null)}
-                className="botdesk-btn text-xs py-1.5 px-3"
+                className="text-xs py-2 px-4 rounded-xl bg-[#162032] hover:bg-[#1e2c44] text-slate-300 border border-slate-700/80 transition cursor-pointer font-medium"
               >
                 Keep Current Media
               </button>
               <button
                 type="button"
                 onClick={handleConfirmReplace}
-                className="botdesk-btn primary text-xs py-1.5 px-4 font-semibold"
+                className="text-xs py-2 px-4 rounded-xl font-bold bg-[#38bdf8] hover:bg-[#20b3f7] active:scale-[0.98] text-slate-950 transition shadow-md shadow-sky-500/20 cursor-pointer"
               >
                 Yes, Replace Media
               </button>

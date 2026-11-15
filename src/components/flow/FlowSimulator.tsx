@@ -309,26 +309,26 @@ export function FlowSimulator({ graph, botName, onClose }: FlowSimulatorProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-md h-[640px] flex flex-col shadow-2xl overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+      <div className="bg-[#0f1420] border border-slate-800 rounded-2xl w-full max-w-md h-[640px] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
-        <div className="bg-slate-800/90 px-4 py-3 border-b border-white/10 flex items-center justify-between">
+        <div className="bg-[#0d121c] px-4 py-3 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="font-semibold text-sm text-white">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] animate-pulse" />
+            <span className="font-bold text-sm text-white">
               Telegram Simulator (@{botName})
             </span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={restartSimulation}
-              className="text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 px-2 py-1 rounded transition-colors"
+              className="text-xs bg-[#131926] hover:bg-slate-800 text-slate-200 px-2.5 py-1 rounded-lg border border-slate-700/80 transition-colors cursor-pointer"
             >
               🔄 Restart
             </button>
             <button
               onClick={onClose}
-              className="text-slate-400 hover:text-white p-1 rounded"
+              className="text-slate-400 hover:text-white p-1 cursor-pointer"
             >
               ✕
             </button>
@@ -336,7 +336,7 @@ export function FlowSimulator({ graph, botName, onClose }: FlowSimulatorProps) {
         </div>
 
         {/* Message Thread */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+        <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#090d16]">
           {messages.map((m) => (
             <div
               key={m.id}
@@ -349,7 +349,7 @@ export function FlowSimulator({ graph, botName, onClose }: FlowSimulatorProps) {
               }`}
             >
               {m.sender === "system" ? (
-                <div className="bg-slate-800/80 border border-white/10 text-slate-300 text-[11px] px-3 py-1.5 rounded-lg max-w-[90%] text-center">
+                <div className="bg-[#131926] border border-slate-800 text-slate-400 text-[11px] px-3 py-1.5 rounded-xl max-w-[90%] text-center">
                   {m.text}
                   {m.buttons && (
                     <div className="mt-2 flex flex-wrap gap-1.5 justify-center">
@@ -357,7 +357,7 @@ export function FlowSimulator({ graph, botName, onClose }: FlowSimulatorProps) {
                         <button
                           key={b.id}
                           onClick={() => handleButtonClick(b)}
-                          className="bg-slate-700 hover:bg-slate-600 text-white text-[11px] font-medium px-2.5 py-1 rounded-md transition-colors"
+                          className="bg-[#0d121c] hover:bg-slate-800 text-slate-200 border border-slate-800 text-[11px] font-medium px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
                         >
                           {b.label}
                         </button>
@@ -369,28 +369,28 @@ export function FlowSimulator({ graph, botName, onClose }: FlowSimulatorProps) {
                 <div
                   className={`max-w-[85%] rounded-2xl p-3 text-xs shadow-md ${
                     m.sender === "user"
-                      ? "bg-sky-600 text-white rounded-br-sm"
-                      : "bg-slate-800 border border-white/10 text-slate-200 rounded-bl-sm"
+                      ? "bg-[#0c2538] border border-sky-500/30 text-white rounded-br-sm"
+                      : "bg-[#131926] border border-slate-800 text-slate-200 rounded-bl-sm"
                   }`}
                 >
                   {m.mediaUrl && (
-                    <div className="mb-2 rounded-lg overflow-hidden bg-black/40 border border-white/10 p-2 text-center text-slate-400">
+                    <div className="mb-2 rounded-xl overflow-hidden bg-black/40 border border-slate-800 p-2 text-center text-slate-400">
                       <span>{m.mediaType === "IMAGE" ? "🖼️ [Photo Preview]" : "🎥 [Video Preview]"}</span>
                       <p className="text-[10px] truncate">{m.mediaUrl}</p>
                     </div>
                   )}
 
-                  {m.text && <p className="whitespace-pre-wrap">{m.text}</p>}
-                  {m.caption && <p className="mt-1 text-slate-300 italic">{m.caption}</p>}
+                  {m.text && <p className="whitespace-pre-wrap leading-relaxed">{m.text}</p>}
+                  {m.caption && <p className="mt-1 text-slate-400 italic">{m.caption}</p>}
 
                   {/* Buttons inside bot message */}
                   {m.buttons && m.buttons.length > 0 && (
-                    <div className="mt-2.5 pt-2 border-t border-white/10 flex flex-wrap gap-1.5">
+                    <div className="mt-2.5 pt-2 border-t border-slate-800 flex flex-wrap gap-1.5">
                       {m.buttons.map((btn) => (
                         <button
                           key={btn.id}
                           onClick={() => handleButtonClick(btn)}
-                          className="bg-slate-700 hover:bg-sky-600 text-white text-xs px-3 py-1.5 rounded-lg border border-white/10 transition-colors"
+                          className="bg-[#0d121c] hover:bg-[#0c2538] text-slate-200 hover:text-[#38bdf8] text-xs px-3 py-1.5 rounded-lg border border-slate-800 hover:border-sky-500/30 transition-colors cursor-pointer"
                         >
                           {btn.label}
                         </button>
@@ -404,7 +404,7 @@ export function FlowSimulator({ graph, botName, onClose }: FlowSimulatorProps) {
         </div>
 
         {/* User Input Bar */}
-        <div className="p-3 bg-slate-800/90 border-t border-white/10">
+        <div className="p-3 bg-[#0d121c] border-t border-slate-800">
           {waitingForInput ? (
             <form onSubmit={handleSendUserInput} className="flex gap-2">
               <input
@@ -412,18 +412,18 @@ export function FlowSimulator({ graph, botName, onClose }: FlowSimulatorProps) {
                 value={userInputText}
                 onChange={(e) => setUserInputText(e.target.value)}
                 placeholder={`Type response for $${waitingForInput.variableName}...`}
-                className="flex-1 bg-slate-900 border border-sky-500 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none"
+                className="flex-1 bg-[#131926] border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8]"
                 autoFocus
               />
               <button
                 type="submit"
-                className="bg-sky-500 hover:bg-sky-400 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+                className="bg-[#38bdf8] hover:bg-[#20b3f7] text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
               >
                 Send
               </button>
             </form>
           ) : (
-            <div className="text-[11px] text-center text-slate-400 italic">
+            <div className="text-[11px] text-center text-slate-500 italic">
               Tap buttons above or restart to simulate navigation.
             </div>
           )}

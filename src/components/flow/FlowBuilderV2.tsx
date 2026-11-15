@@ -122,8 +122,8 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
         label: e.label || undefined,
         type: "smoothstep",
         animated: true,
-        markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
-        style: { stroke: "#64748b", strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: "#38bdf8" },
+        style: { stroke: "#38bdf8", strokeWidth: 2.2 },
       }));
 
       setNodes(rfNodes);
@@ -178,8 +178,8 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
             ...params,
             type: "smoothstep",
             animated: true,
-            markerEnd: { type: MarkerType.ArrowClosed, color: "#94a3b8" },
-            style: { stroke: "#64748b", strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: "#38bdf8" },
+            style: { stroke: "#38bdf8", strokeWidth: 2.2 },
           },
           eds
         )
@@ -442,9 +442,9 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] min-h-[600px] w-full bg-slate-950 rounded-2xl border border-white/10 overflow-hidden shadow-2xl relative">
+    <div className="flex flex-col h-[calc(100vh-140px)] min-h-[600px] w-full bg-[#0b0f19] rounded-2xl border border-slate-800/80 overflow-hidden shadow-2xl relative">
       {/* Top Main Toolbar */}
-      <div className="bg-slate-900 border-b border-white/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-20">
+      <div className="bg-[#0f1420] border-b border-slate-800/80 px-4 py-3 flex flex-wrap items-center justify-between gap-3 z-20">
         {/* Left: Bot Selector & Mode Toggle */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
@@ -452,7 +452,7 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
             <select
               value={selectedBotId}
               onChange={(e) => setSelectedBotId(e.target.value)}
-              className="bg-slate-800 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-sky-500 cursor-pointer"
+              className="bg-[#0d121c] border border-slate-800 rounded-xl px-2.5 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-[#38bdf8] cursor-pointer"
             >
               {bots.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -462,12 +462,12 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
             </select>
           </div>
 
-          <div className="flex bg-slate-800 p-0.5 rounded-lg border border-white/10 text-xs">
+          <div className="flex bg-[#0d121c] p-1 rounded-xl border border-slate-800 text-xs shadow-inner">
             <button
               onClick={() => setViewMode("canvas")}
-              className={`px-3 py-1 rounded-md font-medium transition-colors ${
+              className={`px-3.5 py-1 rounded-lg font-medium transition-all duration-150 cursor-pointer ${
                 viewMode === "canvas"
-                  ? "bg-sky-500 text-white shadow-sm"
+                  ? "bg-[#0c2538] text-[#38bdf8] border border-sky-500/40 shadow-xs font-semibold"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -475,9 +475,9 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
             </button>
             <button
               onClick={() => setViewMode("analytics")}
-              className={`px-3 py-1 rounded-md font-medium transition-colors ${
+              className={`px-3.5 py-1 rounded-lg font-medium transition-all duration-150 cursor-pointer ${
                 viewMode === "analytics"
-                  ? "bg-sky-500 text-white shadow-sm"
+                  ? "bg-[#0c2538] text-[#38bdf8] border border-sky-500/40 shadow-xs font-semibold"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -488,55 +488,55 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
 
         {/* Center: Quick Add Node Pill Buttons (only in canvas mode) */}
         {viewMode === "canvas" && (
-          <div className="hidden lg:flex items-center gap-1.5 bg-slate-800/80 px-2 py-1 rounded-xl border border-white/10 text-xs">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+          <div className="hidden lg:flex items-center gap-1.5 bg-[#0d121c] px-2.5 py-1 rounded-xl border border-slate-800 text-xs shadow-sm">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">
               Add:
             </span>
             <button
               onClick={() => handleAddNode("TEXT")}
-              className="bg-slate-700/80 hover:bg-slate-600 text-blue-300 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
+              className="bg-[#131926] hover:bg-slate-800/80 active:scale-95 text-sky-300 hover:text-white px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 border border-slate-800 hover:border-sky-500/40 shadow-2xs cursor-pointer"
             >
               💬 Text
             </button>
             <button
               onClick={() => handleAddNode("IMAGE")}
-              className="bg-slate-700/80 hover:bg-slate-600 text-purple-300 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
+              className="bg-[#131926] hover:bg-slate-800/80 active:scale-95 text-purple-300 hover:text-white px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 border border-slate-800 hover:border-purple-500/40 shadow-2xs cursor-pointer"
             >
               🖼️ Photo
             </button>
             <button
               onClick={() => handleAddNode("VIDEO")}
-              className="bg-slate-700/80 hover:bg-slate-600 text-indigo-300 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
+              className="bg-[#131926] hover:bg-slate-800/80 active:scale-95 text-indigo-300 hover:text-white px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 border border-slate-800 hover:border-indigo-500/40 shadow-2xs cursor-pointer"
             >
               🎥 Video
             </button>
             <button
               onClick={() => handleAddNode("BUTTON_MENU")}
-              className="bg-slate-700/80 hover:bg-slate-600 text-amber-300 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
+              className="bg-[#131926] hover:bg-slate-800/80 active:scale-95 text-amber-300 hover:text-white px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 border border-slate-800 hover:border-amber-500/40 shadow-2xs cursor-pointer"
             >
               📋 Menu
             </button>
             <button
               onClick={() => handleAddNode("CONDITION")}
-              className="bg-slate-700/80 hover:bg-slate-600 text-violet-300 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
+              className="bg-[#131926] hover:bg-slate-800/80 active:scale-95 text-violet-300 hover:text-white px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 border border-slate-800 hover:border-violet-500/40 shadow-2xs cursor-pointer"
             >
               🔀 Channel Check
             </button>
             <button
               onClick={() => handleAddNode("USER_INPUT")}
-              className="bg-slate-700/80 hover:bg-slate-600 text-teal-300 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
+              className="bg-[#131926] hover:bg-slate-800/80 active:scale-95 text-teal-300 hover:text-white px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 border border-slate-800 hover:border-teal-500/40 shadow-2xs cursor-pointer"
             >
               ⌨️ Input
             </button>
             <button
               onClick={() => handleAddNode("REQUEST_PHONE")}
-              className="bg-slate-700/80 hover:bg-slate-600 text-cyan-300 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
+              className="bg-[#131926] hover:bg-slate-800/80 active:scale-95 text-[#38bdf8] hover:text-white px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 border border-slate-800 hover:border-sky-500/40 shadow-2xs cursor-pointer"
             >
               📱 Phone
             </button>
             <button
               onClick={() => handleAddNode("END")}
-              className="bg-slate-700/80 hover:bg-slate-600 text-rose-300 px-2 py-1 rounded-lg transition-colors flex items-center gap-1"
+              className="bg-[#131926] hover:bg-slate-800/80 active:scale-95 text-rose-300 hover:text-white px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 border border-slate-800 hover:border-rose-500/40 shadow-2xs cursor-pointer"
             >
               🏁 End
             </button>
@@ -550,7 +550,7 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
               <button
                 type="button"
                 onClick={() => setShowSimulator(true)}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-white/10 transition-colors flex items-center gap-1"
+                className="bg-[#0d121c] hover:bg-slate-800/80 active:scale-95 text-slate-200 text-xs px-2.5 py-1.5 rounded-xl border border-slate-800 hover:border-slate-700 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
                 title="Preview and test flow in simulated Telegram chat"
               >
                 📱 Simulate
@@ -559,7 +559,7 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
               <button
                 type="button"
                 onClick={() => setShowTemplates(true)}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-white/10 transition-colors flex items-center gap-1"
+                className="bg-[#0d121c] hover:bg-slate-800/80 active:scale-95 text-slate-200 text-xs px-2.5 py-1.5 rounded-xl border border-slate-800 hover:border-slate-700 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
                 title="Templates library"
               >
                 📚 Templates
@@ -568,7 +568,7 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
               <button
                 type="button"
                 onClick={() => setShowCopy(true)}
-                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-white/10 transition-colors flex items-center gap-1"
+                className="bg-[#0d121c] hover:bg-slate-800/80 active:scale-95 text-slate-200 text-xs px-2.5 py-1.5 rounded-xl border border-slate-800 hover:border-slate-700 transition-all flex items-center gap-1 shadow-xs cursor-pointer"
                 title="Copy flow to another bot"
               >
                 🔁 Copy to Bot
@@ -578,7 +578,7 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
                 <button
                   type="button"
                   onClick={() => setShowRollback(true)}
-                  className="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-2 py-1.5 rounded-lg border border-white/10 transition-colors"
+                  className="bg-[#0d121c] hover:bg-slate-800/80 active:scale-95 text-slate-300 text-xs px-2.5 py-1.5 rounded-xl border border-slate-800 hover:border-slate-700 transition-all shadow-xs cursor-pointer"
                   title="Roll back to a previous version"
                 >
                   ⏪ Rollback
@@ -589,10 +589,10 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
                 type="button"
                 disabled={saving}
                 onClick={handleSaveDraft}
-                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                className={`text-xs px-3.5 py-1.5 rounded-xl border font-semibold transition-all active:scale-95 shadow-xs cursor-pointer ${
                   hasUnsavedChanges
-                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
-                    : "bg-slate-800 text-slate-300 border-white/10 hover:bg-slate-700"
+                    ? "bg-[#38bdf8] hover:bg-[#20b3f7] text-slate-950 border-[#38bdf8]"
+                    : "bg-[#0d121c] text-slate-400 border-slate-800 hover:bg-slate-800/60"
                 }`}
               >
                 {saving ? "Saving..." : hasUnsavedChanges ? "💾 Save Draft *" : "Saved"}
@@ -602,7 +602,7 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
                 type="button"
                 disabled={publishing}
                 onClick={handlePublish}
-                className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-xs px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-md"
+                className="bg-emerald-500 hover:bg-emerald-400 active:scale-95 disabled:opacity-50 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shadow-xs hover:shadow-md cursor-pointer"
               >
                 <span>🚀</span>
                 <span>{publishing ? "Publishing..." : "Publish Live"}</span>
@@ -635,7 +635,7 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
           </div>
           <button
             onClick={() => setStatusMsg(null)}
-            className="text-white/60 hover:text-white p-1 ml-4"
+            className="text-white/60 hover:text-white p-1 ml-4 cursor-pointer"
           >
             ✕
           </button>
@@ -674,54 +674,54 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
                 minZoom={0.2}
                 maxZoom={2}
                 proOptions={{ hideAttribution: true }}
-                className="bg-slate-950"
+                className="bg-[#090d16]"
               >
-                <Background color="#334155" gap={24} size={1.2} />
+                <Background color="#1e293b" gap={24} size={1.2} />
                 <Controls
-                  className="!bg-slate-900 !border-white/10 !rounded-xl !shadow-xl !fill-white"
+                  className="!bg-[#0f1420] !border-slate-800 !rounded-xl !shadow-2xl !fill-slate-300"
                   showInteractive={false}
                 />
                 <MiniMap
-                  className="!bg-slate-900 !border !border-white/10 !rounded-xl !shadow-xl"
+                  className="!bg-[#0f1420] !border !border-slate-800 !rounded-xl !shadow-2xl"
                   nodeColor={(node) => {
                     const t = (node.data as any)?.nodeType;
                     if (t === "START") return "#10b981";
-                    if (t === "TEXT") return "#3b82f6";
-                    if (t === "IMAGE") return "#a855f7";
-                    if (t === "VIDEO") return "#6366f1";
-                    if (t === "BUTTON_MENU") return "#f59e0b";
-                    if (t === "CONDITION") return "#8b5cf6";
-                    if (t === "USER_INPUT") return "#14b8a6";
-                    if (t === "REQUEST_PHONE") return "#06b6d4";
+                    if (t === "TEXT") return "#38bdf8";
+                    if (t === "IMAGE") return "#c084fc";
+                    if (t === "VIDEO") return "#818cf8";
+                    if (t === "BUTTON_MENU") return "#fbbf24";
+                    if (t === "CONDITION") return "#a78bfa";
+                    if (t === "USER_INPUT") return "#2dd4bf";
+                    if (t === "REQUEST_PHONE") return "#38bdf8";
                     return "#f43f5e";
                   }}
-                  maskColor="rgba(15, 23, 42, 0.7)"
+                  maskColor="rgba(11, 15, 25, 0.75)"
                 />
               </ReactFlow>
 
               {/* Mobile Quick Add Menu Overlay */}
-              <div className="lg:hidden absolute bottom-4 left-4 z-10 flex flex-wrap gap-1 bg-slate-900/90 p-1.5 rounded-xl border border-white/10">
+              <div className="lg:hidden absolute bottom-4 left-4 z-10 flex flex-wrap gap-1.5 bg-[#0f1420]/95 p-2 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-md">
                 <button
                   onClick={() => handleAddNode("TEXT")}
-                  className="bg-slate-800 text-blue-300 text-xs px-2 py-1 rounded"
+                  className="bg-[#131926] active:scale-95 text-sky-300 text-xs px-2.5 py-1 rounded-full border border-sky-500/20 font-medium cursor-pointer"
                 >
                   +Text
                 </button>
                 <button
                   onClick={() => handleAddNode("IMAGE")}
-                  className="bg-slate-800 text-purple-300 text-xs px-2 py-1 rounded"
+                  className="bg-[#131926] active:scale-95 text-purple-300 text-xs px-2.5 py-1 rounded-full border border-purple-500/20 font-medium cursor-pointer"
                 >
                   +Photo
                 </button>
                 <button
                   onClick={() => handleAddNode("BUTTON_MENU")}
-                  className="bg-slate-800 text-amber-300 text-xs px-2 py-1 rounded"
+                  className="bg-[#131926] active:scale-95 text-amber-300 text-xs px-2.5 py-1 rounded-full border border-amber-500/20 font-medium cursor-pointer"
                 >
                   +Menu
                 </button>
                 <button
                   onClick={() => handleAddNode("USER_INPUT")}
-                  className="bg-slate-800 text-teal-300 text-xs px-2 py-1 rounded"
+                  className="bg-[#131926] active:scale-95 text-teal-300 text-xs px-2.5 py-1 rounded-full border border-teal-500/20 font-medium cursor-pointer"
                 >
                   +Input
                 </button>
@@ -774,15 +774,15 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
 
       {/* Rollback Modal */}
       {showRollback && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg p-5 shadow-2xl text-slate-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="font-semibold text-white text-base">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in">
+          <div className="bg-[#0f1420] border border-slate-800 rounded-2xl w-full max-w-lg p-5 shadow-2xl text-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="font-bold text-white text-base">
                 Rollback Flow Version
               </h3>
               <button
                 onClick={() => setShowRollback(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-400 hover:text-white cursor-pointer"
               >
                 ✕
               </button>
@@ -800,8 +800,8 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
                     key={v.id}
                     className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${
                       selectedRollbackVer === v.version
-                        ? "bg-sky-950/40 border-sky-500 text-white"
-                        : "bg-slate-800/40 border-white/10 text-slate-300 hover:bg-slate-800"
+                        ? "bg-[#0c2538] border-sky-500/50 text-white"
+                        : "bg-[#0d121c] border-slate-800 text-slate-300 hover:bg-slate-800/50"
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -810,7 +810,7 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
                         name="rollbackVersion"
                         checked={selectedRollbackVer === v.version}
                         onChange={() => setSelectedRollbackVer(v.version)}
-                        className="text-sky-500 focus:ring-sky-500"
+                        className="accent-[#38bdf8] focus:ring-sky-500"
                       />
                       <div>
                         <span className="font-bold text-xs">Version v{v.version}</span>
@@ -821,7 +821,7 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
                       </div>
                     </div>
                     {v.status === "PUBLISHED" && (
-                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold border border-emerald-500/30">
                         CURRENT LIVE
                       </span>
                     )}
@@ -830,13 +830,13 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
             </div>
 
             {/* Preserve draft check */}
-            <div className="bg-slate-800/60 p-3 rounded-xl border border-white/10 space-y-1.5">
+            <div className="bg-[#0d121c] p-3 rounded-xl border border-slate-800 space-y-1.5">
               <label className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={preserveDraftOnRollback}
                   onChange={(e) => setPreserveDraftOnRollback(e.target.checked)}
-                  className="rounded border-slate-700 text-sky-500 focus:ring-sky-500"
+                  className="accent-[#38bdf8] rounded"
                 />
                 <span className="font-semibold">Preserve working draft</span>
               </label>
@@ -845,11 +845,11 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
               </p>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2">
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
               <button
                 type="button"
                 onClick={() => setShowRollback(false)}
-                className="px-3 py-1.5 text-xs text-slate-300 hover:text-white"
+                className="px-3 py-1.5 text-xs text-slate-400 hover:text-white cursor-pointer"
               >
                 Cancel
               </button>
@@ -857,7 +857,7 @@ export function FlowBuilderV2({ bots, initialBotId }: FlowBuilderV2Props) {
                 type="button"
                 disabled={rollingBack || !selectedRollbackVer}
                 onClick={handleRollback}
-                className="bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white font-semibold text-xs px-4 py-1.5 rounded-lg transition-colors"
+                className="bg-[#38bdf8] hover:bg-[#20b3f7] disabled:opacity-50 text-slate-950 font-bold text-xs px-4 py-1.5 rounded-xl transition-colors cursor-pointer"
               >
                 {rollingBack ? "Restoring..." : "Restore Version"}
               </button>

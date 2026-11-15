@@ -704,7 +704,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
           <button
             onClick={handlePublish}
             disabled={actionLoading || loading}
-            className="btn-primary text-xs px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium shadow-sm"
+            className="btn-primary text-xs px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold shadow-sm transition"
           >
             {actionLoading ? "Publishing..." : "🚀 Publish Flow"}
           </button>
@@ -734,7 +734,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
               ? "bg-emerald-950/40 border-emerald-800 text-emerald-200"
               : statusMsg.type === "error"
               ? "bg-red-950/40 border-red-800 text-red-200"
-              : "bg-blue-950/40 border-blue-800 text-blue-200"
+              : "bg-sky-950/40 border-sky-800 text-sky-200"
           }`}
         >
           <div className="font-semibold">{statusMsg.text}</div>
@@ -776,7 +776,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
               </span>
               <button
                 onClick={() => setShowSubmenuModal(true)}
-                className="text-xs px-2.5 py-1 rounded bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30"
+                className="text-xs px-2.5 py-1 rounded bg-[#0c2538] text-[#38bdf8] hover:bg-sky-950/60 border border-sky-500/30 font-medium transition"
               >
                 + Add Submenu
               </button>
@@ -787,7 +787,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
                 onClick={() => setActiveMenuId("root")}
                 className={`text-xs px-3 py-1.5 rounded font-medium border transition ${
                   activeMenuId === "root"
-                    ? "bg-blue-600 text-white border-blue-500 shadow-sm"
+                    ? "bg-[#0c2538] text-[#38bdf8] border-sky-500/50 shadow-sm"
                     : "bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:bg-zinc-800"
                 }`}
               >
@@ -800,7 +800,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
                     onClick={() => setActiveMenuId(sub.id)}
                     className={`text-xs px-3 py-1.5 rounded-l font-medium border-y border-l transition ${
                       activeMenuId === sub.id
-                        ? "bg-blue-600 text-white border-blue-500"
+                        ? "bg-[#0c2538] text-[#38bdf8] border-sky-500/50"
                         : "bg-[var(--bg)] text-[var(--text)] border-[var(--border)] hover:bg-zinc-800"
                     }`}
                   >
@@ -834,7 +834,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
                 </div>
                 <button
                   onClick={handleOpenAddButton}
-                  className="btn-primary text-xs px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium"
+                  className="btn-primary text-xs px-3 py-1.5 rounded bg-[#38bdf8] hover:bg-[#20b3f7] text-slate-950 font-bold transition"
                 >
                   + Add Button
                 </button>
@@ -890,7 +890,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
                                 ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
                                 : btn.actionType === "REQUEST_CONTACT"
                                 ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+                                : "bg-sky-500/10 text-[#38bdf8] border border-sky-500/20"
                             }`}
                           >
                             {btn.actionType === "SEND_TEXT"
@@ -964,7 +964,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
                         </button>
                         <button
                           onClick={() => handleOpenEditButton(index)}
-                          className="px-2.5 py-1 rounded border border-[var(--border)] text-blue-400 hover:bg-blue-950/30"
+                          className="px-2.5 py-1 rounded border border-[var(--border)] text-[#38bdf8] hover:bg-sky-950/30"
                         >
                           Edit
                         </button>
@@ -1007,7 +1007,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
             <div className="phone-mockup border-2 border-zinc-700 rounded-2xl bg-zinc-950 shadow-2xl overflow-hidden flex flex-col h-[520px]">
               {/* Phone Header */}
               <div className="bg-zinc-900 px-4 py-3 border-b border-zinc-800 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xs text-white">
+                <div className="w-8 h-8 rounded-full bg-[#0c2538] border border-sky-500/40 flex items-center justify-center font-bold text-xs text-[#38bdf8]">
                   🤖
                 </div>
                 <div>
@@ -1041,7 +1041,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
                       <div
                         className={`max-w-[85%] p-2.5 rounded-lg whitespace-pre-wrap ${
                           msg.sender === "user"
-                            ? "bg-blue-600 text-white rounded-br-none"
+                            ? "bg-[#0c2538] border border-sky-500/30 text-white rounded-br-none"
                             : "bg-zinc-800 text-zinc-100 rounded-bl-none border border-zinc-700/50"
                         }`}
                       >
@@ -1059,7 +1059,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
                                   e.preventDefault();
                                 }
                               }}
-                              className="block text-center text-xs py-1.5 px-3 rounded bg-zinc-700 hover:bg-zinc-600 text-blue-300 font-medium"
+                              className="block text-center text-xs py-1.5 px-3 rounded bg-zinc-700 hover:bg-zinc-600 text-[#38bdf8] font-medium"
                             >
                               {msg.inlineButton.label} ↗
                             </a>
@@ -1321,7 +1321,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
+                  className="px-4 py-1.5 rounded-lg bg-[#38bdf8] hover:bg-[#20b3f7] text-slate-950 text-xs font-bold transition shadow-sm"
                 >
                   Save Button
                 </button>
@@ -1374,7 +1374,7 @@ export function BotdeskFlowEditor({ bots, initialBotId }: BotdeskFlowEditorProps
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold"
+                  className="px-4 py-1.5 rounded-lg bg-[#38bdf8] hover:bg-[#20b3f7] text-slate-950 text-xs font-bold transition shadow-sm"
                 >
                   Create Submenu
                 </button>

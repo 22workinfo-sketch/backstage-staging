@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import { NextRequest } from "next/server";
 import {
   GET as webhookGET,
@@ -27,6 +27,21 @@ describe("Telegram Webhook Route & Public Hardening Security", () => {
   const originalEnv = { ...process.env };
   const TEST_SECRET = "super_secure_webhook_secret_token_123456789";
   const TEST_BOT_ID = "00000000-0000-0000-0000-000000000001";
+
+  beforeAll(async () => {
+    await prisma.bot.upsert({
+      where: { id: TEST_BOT_ID },
+      create: {
+        id: TEST_BOT_ID,
+        name: "Webhook Test Bot",
+        username: "webhook_test_bot",
+        isActive: true,
+      },
+      update: {
+        isActive: true,
+      },
+    });
+  });
 
   beforeEach(async () => {
     process.env.TELEGRAM_WEBHOOK_SECRET = TEST_SECRET;

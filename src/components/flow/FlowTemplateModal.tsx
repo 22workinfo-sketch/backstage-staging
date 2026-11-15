@@ -103,26 +103,26 @@ export function FlowTemplateModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-xl max-h-[620px] flex flex-col shadow-2xl overflow-hidden text-slate-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+      <div className="bg-[#0f1420] border border-slate-800 rounded-2xl w-full max-w-xl max-h-[620px] flex flex-col shadow-2xl overflow-hidden text-slate-200">
         {/* Header */}
-        <div className="bg-slate-800/90 px-5 py-3.5 border-b border-white/10 flex items-center justify-between">
+        <div className="bg-[#0d121c] px-5 py-3.5 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-lg">📚</span>
-            <h3 className="font-semibold text-white text-sm">Flow Templates Library</h3>
+            <h3 className="font-bold text-white text-sm">Flow Templates Library</h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 rounded">
+          <button onClick={onClose} className="text-slate-400 hover:text-white p-1 cursor-pointer">
             ✕
           </button>
         </div>
 
         {/* Tabs */}
-        <div className="flex border-b border-white/10 px-5 pt-2 bg-slate-900/60">
+        <div className="flex border-b border-slate-800 px-5 pt-2 bg-[#090d16]">
           <button
             onClick={() => setTab("browse")}
-            className={`pb-2.5 px-3 text-xs font-semibold border-b-2 transition-colors ${
+            className={`pb-2.5 px-3 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
               tab === "browse"
-                ? "border-sky-400 text-sky-400"
+                ? "border-[#38bdf8] text-[#38bdf8]"
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
@@ -130,9 +130,9 @@ export function FlowTemplateModal({
           </button>
           <button
             onClick={() => setTab("save")}
-            className={`pb-2.5 px-3 text-xs font-semibold border-b-2 transition-colors ${
+            className={`pb-2.5 px-3 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
               tab === "save"
-                ? "border-sky-400 text-sky-400"
+                ? "border-[#38bdf8] text-[#38bdf8]"
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
           >
@@ -144,10 +144,10 @@ export function FlowTemplateModal({
         <div className="flex-1 p-5 overflow-y-auto space-y-4">
           {status && (
             <div
-              className={`p-3 rounded-lg text-xs border ${
+              className={`p-3 rounded-xl text-xs border ${
                 status.type === "success"
-                  ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300"
-                  : "bg-rose-950/40 border-rose-500/40 text-rose-300"
+                  ? "bg-emerald-950/60 border-emerald-500/40 text-emerald-300"
+                  : "bg-rose-950/60 border-rose-500/40 text-rose-300"
               }`}
             >
               {status.text}
@@ -163,10 +163,10 @@ export function FlowTemplateModal({
                   <button
                     key={cat}
                     onClick={() => setCategory(cat)}
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                       category === cat
-                        ? "bg-sky-500 text-white"
-                        : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                        ? "bg-[#0c2538] text-[#38bdf8] border border-sky-500/40 font-semibold"
+                        : "bg-[#0d121c] text-slate-400 hover:text-white border border-slate-800"
                     }`}
                   >
                     {cat}
@@ -177,12 +177,12 @@ export function FlowTemplateModal({
               {loading ? (
                 <p className="text-xs text-slate-400 py-6 text-center">Loading templates...</p>
               ) : templates.length === 0 ? (
-                <div className="text-center py-10 bg-slate-800/30 rounded-xl border border-white/5 space-y-2">
+                <div className="text-center py-10 bg-[#0d121c] rounded-2xl border border-slate-800 space-y-2">
                   <span className="text-3xl">📭</span>
                   <p className="text-xs text-slate-400">No flow templates found in this category.</p>
                   <button
                     onClick={() => setTab("save")}
-                    className="text-xs text-sky-400 hover:underline"
+                    className="text-xs text-[#38bdf8] hover:underline cursor-pointer"
                   >
                     Save your current flow as the first template!
                   </button>
@@ -192,12 +192,12 @@ export function FlowTemplateModal({
                   {templates.map((tpl) => (
                     <div
                       key={tpl.id}
-                      className="bg-slate-800/60 hover:bg-slate-800 border border-white/10 rounded-xl p-3.5 flex items-center justify-between gap-3 transition-colors"
+                      className="bg-[#0d121c] hover:bg-[#131926] border border-slate-800 rounded-xl p-3.5 flex items-center justify-between gap-3 transition-colors"
                     >
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-semibold text-xs text-white">{tpl.name}</h4>
-                          <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full border border-white/5">
+                          <h4 className="font-bold text-xs text-white">{tpl.name}</h4>
+                          <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full border border-slate-700">
                             {tpl.category}
                           </span>
                         </div>
@@ -214,7 +214,7 @@ export function FlowTemplateModal({
 
                       <button
                         onClick={() => handleApply(tpl.id)}
-                        className="bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                        className="bg-[#38bdf8] hover:bg-[#20b3f7] text-slate-950 text-xs font-bold px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap cursor-pointer"
                       >
                         Load to Draft
                       </button>
@@ -226,7 +226,7 @@ export function FlowTemplateModal({
           ) : (
             <form onSubmit={handleSaveAsTemplate} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
                   Template Name *
                 </label>
                 <input
@@ -235,18 +235,18 @@ export function FlowTemplateModal({
                   value={saveName}
                   onChange={(e) => setSaveName(e.target.value)}
                   placeholder="e.g. VIP Member Onboarding Flow"
-                  className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8]"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
                   Category
                 </label>
                 <select
                   value={saveCategory}
                   onChange={(e) => setSaveCategory(e.target.value)}
-                  className="w-full bg-slate-800 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8]"
                 >
                   <option value="GENERAL">General</option>
                   <option value="ONBOARDING">Onboarding</option>
@@ -256,7 +256,7 @@ export function FlowTemplateModal({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
                   Description (Optional)
                 </label>
                 <textarea
@@ -264,18 +264,18 @@ export function FlowTemplateModal({
                   value={saveDesc}
                   onChange={(e) => setSaveDesc(e.target.value)}
                   placeholder="Briefly describe what this flow does..."
-                  className="w-full bg-slate-800 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                  className="w-full bg-[#0d121c] border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#38bdf8]"
                 />
               </div>
 
-              <div className="bg-sky-950/30 border border-sky-500/20 p-3 rounded-xl text-[11px] text-sky-300">
+              <div className="bg-sky-950/40 border border-sky-500/25 p-3 rounded-xl text-[11px] text-sky-300">
                 ℹ️ This will package the currently displayed nodes, edges and settings ({graph.nodes.length} nodes). Tokens, staff permissions, user states, and real phone numbers are never stored in templates.
               </div>
 
               <button
                 type="submit"
                 disabled={saving || !saveName.trim()}
-                className="w-full bg-sky-500 hover:bg-sky-400 disabled:opacity-50 text-white font-semibold text-xs py-2 rounded-lg transition-colors"
+                className="w-full bg-[#38bdf8] hover:bg-[#20b3f7] disabled:opacity-50 text-slate-950 font-bold text-xs py-2 rounded-xl transition-colors cursor-pointer"
               >
                 {saving ? "Saving Template..." : "Save Template"}
               </button>

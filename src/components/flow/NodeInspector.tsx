@@ -124,29 +124,29 @@ export function NodeInspector({
   };
 
   return (
-    <div className="w-80 md:w-96 bg-slate-900/95 border-l border-white/10 p-5 flex flex-col h-full overflow-y-auto text-slate-200 shadow-2xl backdrop-blur-xl">
+    <div className="w-80 md:w-96 bg-[#0f1420] border-l border-slate-800 p-5 flex flex-col h-full overflow-y-auto text-slate-200 shadow-2xl backdrop-blur-xl">
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-white/10">
+      <div className="flex items-center justify-between pb-4 border-b border-slate-800">
         <div>
-          <span className="text-xs uppercase font-bold tracking-wider text-slate-400">
+          <span className="text-[11px] uppercase font-bold tracking-wider text-slate-500">
             Node Inspector
           </span>
-          <h3 className="font-semibold text-base text-white truncate max-w-[220px]">
+          <h3 className="font-bold text-base text-white truncate max-w-[220px]">
             {data.title || node.id}
           </h3>
         </div>
         <button
           onClick={onClose}
-          className="text-slate-400 hover:text-white p-1 rounded hover:bg-white/10 transition-colors"
+          className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
         >
           ✕
         </button>
       </div>
 
       {/* Common Controls */}
-      <div className="space-y-4 py-4 border-b border-white/10">
+      <div className="space-y-4 py-4 border-b border-slate-800">
         <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">
+          <label className="block text-xs font-semibold text-slate-300 mb-1">
             Node Title
           </label>
           <input
@@ -154,7 +154,7 @@ export function NodeInspector({
             value={data.title || ""}
             onChange={(e) => updateData({ title: e.target.value })}
             placeholder="Step label..."
-            className="w-full bg-slate-800/80 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
+            className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
           />
         </div>
 
@@ -164,7 +164,7 @@ export function NodeInspector({
             type="checkbox"
             checked={Boolean(data.disabled)}
             onChange={(e) => updateData({ disabled: e.target.checked })}
-            className="rounded border-slate-700 text-sky-500 focus:ring-sky-500"
+            className="accent-[#38bdf8] rounded"
           />
         </div>
       </div>
@@ -174,7 +174,7 @@ export function NodeInspector({
         {/* TEXT NODE */}
         {nodeType === "TEXT" && (
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
               Message Text *
             </label>
             <textarea
@@ -182,7 +182,7 @@ export function NodeInspector({
               value={data.text || ""}
               onChange={(e) => updateData({ text: e.target.value })}
               placeholder="Enter message text sent to user..."
-              className="w-full bg-slate-800/80 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-sky-500 resize-y"
+              className="w-full bg-[#0d121c] border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] resize-y"
             />
           </div>
         )}
@@ -191,7 +191,7 @@ export function NodeInspector({
         {(nodeType === "IMAGE" || nodeType === "VIDEO") && (
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
                 Upload {nodeType === "IMAGE" ? "Photo" : "Video"}
               </label>
               <input
@@ -199,10 +199,10 @@ export function NodeInspector({
                 accept={nodeType === "IMAGE" ? "image/*" : "video/*"}
                 onChange={handleFileUpload}
                 disabled={uploading}
-                className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:bg-sky-600 file:text-white hover:file:bg-sky-500 cursor-pointer"
+                className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-3 file:rounded-xl file:border-0 file:text-xs file:bg-[#38bdf8] file:text-slate-950 file:font-bold hover:file:bg-[#20b3f7] cursor-pointer"
               />
               {uploading && (
-                <p className="text-[11px] text-sky-400 mt-1">Uploading...</p>
+                <p className="text-[11px] text-[#38bdf8] mt-1">Uploading...</p>
               )}
               {uploadError && (
                 <p className="text-[11px] text-rose-400 mt-1">{uploadError}</p>
@@ -210,7 +210,7 @@ export function NodeInspector({
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
                 Or Direct Media URL
               </label>
               <input
@@ -218,12 +218,12 @@ export function NodeInspector({
                 value={data.mediaUrl || ""}
                 onChange={(e) => updateData({ mediaUrl: e.target.value })}
                 placeholder="https://..."
-                className="w-full bg-slate-800/80 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
+                className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
                 Caption (Optional)
               </label>
               <textarea
@@ -231,7 +231,7 @@ export function NodeInspector({
                 value={data.caption || ""}
                 onChange={(e) => updateData({ caption: e.target.value })}
                 placeholder="Caption text..."
-                className="w-full bg-slate-800/80 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                className="w-full bg-[#0d121c] border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
               />
             </div>
           </div>
@@ -240,7 +240,7 @@ export function NodeInspector({
         {/* BUTTON MENU */}
         {nodeType === "BUTTON_MENU" && (
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
               Menu Prompt Message
             </label>
             <input
@@ -248,7 +248,7 @@ export function NodeInspector({
               value={data.text || ""}
               onChange={(e) => updateData({ text: e.target.value })}
               placeholder="e.g. Please choose an option from the menu:"
-              className="w-full bg-slate-800/80 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
+              className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
             />
           </div>
         )}
@@ -257,13 +257,13 @@ export function NodeInspector({
         {(nodeType === "BUTTON_MENU" || nodeType === "TEXT") && (
           <div className="space-y-2 pt-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-amber-300">
+              <span className="text-xs font-bold text-amber-300">
                 Menu Buttons ({data.buttons?.length || 0})
               </span>
               <button
                 type="button"
                 onClick={handleAddButton}
-                className="text-[11px] bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 px-2 py-0.5 rounded border border-amber-500/30 transition-colors"
+                className="text-[11px] bg-[#0c2538] text-[#38bdf8] hover:bg-[#10344d] px-2.5 py-1 rounded-lg border border-sky-500/30 transition-colors font-medium cursor-pointer"
               >
                 + Add Button
               </button>
@@ -273,7 +273,7 @@ export function NodeInspector({
               {data.buttons?.map((btn, idx) => (
                 <div
                   key={btn.id}
-                  className="bg-black/40 p-2.5 rounded-lg border border-white/10 space-y-2 text-xs"
+                  className="bg-[#0d121c] p-2.5 rounded-xl border border-slate-800 space-y-2 text-xs"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <input
@@ -283,12 +283,12 @@ export function NodeInspector({
                         handleUpdateButton(idx, { label: e.target.value })
                       }
                       placeholder="Button label..."
-                      className="flex-1 bg-slate-800 border border-white/10 rounded px-2 py-1 text-white text-xs"
+                      className="flex-1 bg-[#131926] border border-slate-700/80 rounded-lg px-2.5 py-1 text-white text-xs"
                     />
                     <button
                       type="button"
                       onClick={() => handleDeleteButton(idx)}
-                      className="text-slate-400 hover:text-rose-400 p-1"
+                      className="text-slate-400 hover:text-rose-400 p-1 cursor-pointer"
                       title="Remove button"
                     >
                       ✕
@@ -304,7 +304,7 @@ export function NodeInspector({
                           actionType: e.target.value as any,
                         })
                       }
-                      className="bg-slate-800 border border-white/10 rounded px-1.5 py-0.5 text-xs text-white"
+                      className="bg-[#131926] border border-slate-700/80 rounded-lg px-2 py-1 text-xs text-white"
                     >
                       <option value="TRANSITION">Next Step (Edge)</option>
                       <option value="URL">Open URL</option>
@@ -322,7 +322,7 @@ export function NodeInspector({
                         handleUpdateButton(idx, { url: e.target.value })
                       }
                       placeholder="https://..."
-                      className="w-full bg-slate-800 border border-white/10 rounded px-2 py-1 text-xs text-white"
+                      className="w-full bg-[#131926] border border-slate-700/80 rounded-lg px-2 py-1 text-xs text-white"
                     />
                   )}
                 </div>
@@ -335,13 +335,13 @@ export function NodeInspector({
         {nodeType === "CONDITION" && (
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
                 Target Channel to Check *
               </label>
               <select
                 value={data.channelId || ""}
                 onChange={(e) => updateData({ channelId: e.target.value })}
-                className="w-full bg-slate-800/80 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500"
+                className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
               >
                 <option value="">-- Choose Channel --</option>
                 {channels.map((ch) => (
@@ -364,7 +364,7 @@ export function NodeInspector({
         {nodeType === "USER_INPUT" && (
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
                 Input Prompt *
               </label>
               <textarea
@@ -372,22 +372,22 @@ export function NodeInspector({
                 value={data.inputPrompt || ""}
                 onChange={(e) => updateData({ inputPrompt: e.target.value })}
                 placeholder="What should the bot ask the user?"
-                className="w-full bg-slate-800/80 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                className="w-full bg-[#0d121c] border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
                 Save Response to Variable *
               </label>
               <div className="flex items-center gap-1">
-                <span className="text-teal-400 font-mono text-sm">$</span>
+                <span className="text-[#38bdf8] font-mono text-sm">$</span>
                 <input
                   type="text"
                   value={data.variableName || ""}
                   onChange={(e) => updateData({ variableName: e.target.value })}
                   placeholder="e.g. userName, orderNotes"
-                  className="flex-1 bg-slate-800/80 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-sky-500"
+                  className="flex-1 bg-[#0d121c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
                 />
               </div>
             </div>
@@ -406,7 +406,7 @@ export function NodeInspector({
                       minLength: e.target.value ? parseInt(e.target.value, 10) : undefined,
                     })
                   }
-                  className="w-full bg-slate-800 border border-white/10 rounded px-2 py-1 text-xs text-white"
+                  className="w-full bg-[#0d121c] border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white focus:border-[#38bdf8]"
                 />
               </div>
               <div>
@@ -422,7 +422,7 @@ export function NodeInspector({
                       maxLength: e.target.value ? parseInt(e.target.value, 10) : undefined,
                     })
                   }
-                  className="w-full bg-slate-800 border border-white/10 rounded px-2 py-1 text-xs text-white"
+                  className="w-full bg-[#0d121c] border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white focus:border-[#38bdf8]"
                 />
               </div>
             </div>
@@ -433,7 +433,7 @@ export function NodeInspector({
         {nodeType === "REQUEST_PHONE" && (
           <div className="space-y-3">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
                 Prompt Explanation
               </label>
               <textarea
@@ -441,11 +441,11 @@ export function NodeInspector({
                 value={data.promptText || ""}
                 onChange={(e) => updateData({ promptText: e.target.value })}
                 placeholder="Explain why phone number is requested..."
-                className="w-full bg-slate-800/80 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-sky-500"
+                className="w-full bg-[#0d121c] border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1">
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
                 Button Label
               </label>
               <input
@@ -453,7 +453,7 @@ export function NodeInspector({
                 value={data.buttonLabel || ""}
                 onChange={(e) => updateData({ buttonLabel: e.target.value })}
                 placeholder="📱 Share Phone Number"
-                className="w-full bg-slate-800/80 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white"
+                className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
               />
             </div>
           </div>
@@ -462,7 +462,7 @@ export function NodeInspector({
         {/* END NODE */}
         {nodeType === "END" && (
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">
+            <label className="block text-xs font-semibold text-slate-300 mb-1">
               End Completion Message
             </label>
             <textarea
@@ -470,20 +470,20 @@ export function NodeInspector({
               value={data.endMessage || ""}
               onChange={(e) => updateData({ endMessage: e.target.value })}
               placeholder="Thank you! The flow has ended."
-              className="w-full bg-slate-800/80 border border-white/10 rounded-lg p-2 text-xs text-white focus:outline-none focus:border-sky-500"
+              className="w-full bg-[#0d121c] border border-slate-800 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
             />
           </div>
         )}
 
         {/* Auto Delete Toggle */}
-        <div className="pt-3 border-t border-white/10 space-y-2">
+        <div className="pt-3 border-t border-slate-800 space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-slate-300">Auto-delete this message</span>
             <input
               type="checkbox"
               checked={Boolean(data.autoDeleteReply)}
               onChange={(e) => updateData({ autoDeleteReply: e.target.checked })}
-              className="rounded border-slate-700 text-amber-500 focus:ring-amber-500"
+              className="accent-[#38bdf8] rounded"
             />
           </div>
 
@@ -502,7 +502,7 @@ export function NodeInspector({
                     deleteAfterSeconds: parseInt(e.target.value, 10) || 30,
                   })
                 }
-                className="w-full bg-slate-800 border border-white/10 rounded px-2 py-1 text-xs text-white"
+                className="w-full bg-[#0d121c] border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-white focus:border-[#38bdf8]"
               />
             </div>
           )}
@@ -510,12 +510,12 @@ export function NodeInspector({
       </div>
 
       {/* Footer Actions */}
-      <div className="pt-4 border-t border-white/10 flex items-center justify-between gap-2">
+      <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-2">
         {nodeType !== "START" && (
           <button
             type="button"
             onClick={() => onDuplicateNode(node)}
-            className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs py-1.5 rounded-lg border border-white/10 transition-colors"
+            className="flex-1 bg-[#131926] hover:bg-slate-800 text-slate-200 text-xs py-2 rounded-xl border border-slate-800 transition-colors cursor-pointer"
           >
             📋 Duplicate
           </button>
@@ -524,7 +524,7 @@ export function NodeInspector({
           <button
             type="button"
             onClick={() => onDeleteNode(node.id)}
-            className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs px-3 py-1.5 rounded-lg transition-colors"
+            className="bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
           >
             🗑️ Delete
           </button>

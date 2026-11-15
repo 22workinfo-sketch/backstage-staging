@@ -227,130 +227,187 @@ export function BotdeskChannelsPage({
   return (
     <div className="space-y-6">
       {/* Screen Heading */}
-      <div>
-        <span className="botdesk-badge blue mb-2 inline-block">
-          COMMUNITY & MEMBERSHIP
-        </span>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)]">
-          Telegram Channels & Communities
-        </h1>
-        <p className="text-sm text-[var(--muted)] mt-1">
-          Configure official channels for membership verification, gating, and voluntary user subscription.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-sky-500/10 text-[#38bdf8] border border-sky-500/25 mb-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> Community & Membership
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            Telegram Channels & Communities
+          </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Configure official channels for membership verification, gating, and voluntary user subscription.
+          </p>
+        </div>
       </div>
 
       {/* Administrator Setup Advice Banner */}
-      <div className="p-4 rounded-lg bg-[var(--bluebg)] border border-[var(--border)] text-xs text-[var(--accent)] leading-relaxed space-y-1.5">
-        <strong className="block text-sm">
-          ℹ️ Administrator Setup Guide for Channel Verification:
-        </strong>
-        <p>
-          For reliable membership verification via the Telegram Bot API, add your bot (
-          <strong>@{activeBot?.username || "your_bot"}</strong>) as an{" "}
-          <strong>Administrator</strong> in each channel or supergroup.
+      <div className="p-4 sm:p-5 rounded-2xl bg-[#0f172a]/60 border border-slate-800/80 text-xs text-slate-300 leading-relaxed space-y-3 shadow-lg backdrop-blur-sm">
+        <div className="flex items-center gap-2 text-[#38bdf8] font-semibold text-xs">
+          <span className="text-base">ℹ️</span>
+          <span>Administrator Setup Guide for Channel Verification</span>
+        </div>
+        <p className="text-[11px] text-slate-400">
+          For reliable membership verification via the Telegram Bot API, ensure your bot (<code className="font-semibold text-[#38bdf8] font-mono bg-[#090d16] px-1.5 py-0.5 rounded border border-slate-800">@{activeBot?.username || "your_bot"}</code>) is added as an <strong className="text-white font-semibold">Administrator</strong> in each channel or supergroup.
         </p>
-        <p className="text-[11px] text-[var(--muted)]">
-          • <strong>Public Channels:</strong> Enter the username handle (e.g. <code className="font-mono">@mychannel</code>).
-          <br />
-          • <strong>Private Channels:</strong> Enter the numeric Chat ID (e.g. <code className="font-mono">-1001234567890</code>) and a valid invite link.
-          <br />
-          • <strong>Important:</strong> The bot never silently forces users to join. Users open links voluntarily and tap "Check Joined" in the bot.
-        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-slate-800/80 text-[11px]">
+          <div className="p-3 rounded-xl bg-[#0b0f19] border border-slate-800/80 hover:border-slate-700 transition">
+            <span className="font-semibold text-white block mb-0.5">📢 Public Channels</span>
+            <span className="text-slate-400 font-mono text-[10px]">@mychannel</span>
+          </div>
+          <div className="p-3 rounded-xl bg-[#0b0f19] border border-slate-800/80 hover:border-slate-700 transition">
+            <span className="font-semibold text-white block mb-0.5">🔒 Private Channels</span>
+            <span className="text-slate-400 font-mono text-[10px]">-1001234567890</span>
+          </div>
+          <div className="p-3 rounded-xl bg-[#0b0f19] border border-slate-800/80 hover:border-slate-700 transition">
+            <span className="font-semibold text-white block mb-0.5">🛡️ Voluntary Opt-In</span>
+            <span className="text-slate-400 text-[10px]">Users tap &quot;Check Joined&quot;</span>
+          </div>
+        </div>
       </div>
 
       {statusMessage && (
         <div
-          className={`p-3.5 rounded-lg text-sm border ${
+          className={`p-4 rounded-xl text-xs border flex items-center justify-between gap-3 shadow-md ${
             statusMessage.type === "success"
-              ? "bg-[var(--greenbg)] border-[var(--green)] text-[var(--green)]"
-              : "bg-[var(--redbg)] border-[var(--red)] text-[var(--red)]"
+              ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-200"
+              : "bg-rose-950/40 border-rose-800/60 text-rose-200"
           }`}
         >
-          {statusMessage.text}
+          <div className="flex items-center gap-2">
+            <span>{statusMessage.type === "success" ? "✅" : "⚠️"}</span>
+            <span className="font-medium">{statusMessage.text}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusMessage(null)}
+            className="text-xs opacity-70 hover:opacity-100 p-1 cursor-pointer"
+          >
+            ✕
+          </button>
         </div>
       )}
 
       {/* Main Channels Card */}
-      <div className="botdesk-card">
-        <div className="card-header">
+      <div className="p-5 sm:p-6 rounded-2xl border border-slate-800/80 bg-[#0f1420] shadow-xl space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-800/80">
           <div>
-            <h2 className="text-base font-bold text-[var(--text)]">
-              Configured Channels
-            </h2>
-            <p className="text-xs text-[var(--muted)]">
-              Scoped strictly to {activeBot?.name} (@{activeBot?.username})
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <span>📢</span>
+                <span>Configured Channels</span>
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-[#0c2538] text-[#38bdf8] border border-sky-500/30">
+                {channels.length} / 20
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Channels attached to <span className="font-semibold text-white">{activeBot?.name}</span> (@{activeBot?.username})
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <select
-              value={selectedBotId}
-              onChange={(e) => setSelectedBotId(e.target.value)}
-              className="botdesk-select text-xs min-h-[34px] py-1"
-            >
-              {bots.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name} (@{b.username})
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex items-center gap-2">
+              <label className="text-[11px] text-slate-400 font-semibold uppercase tracking-wider hidden sm:inline">
+                Bot:
+              </label>
+              <select
+                value={selectedBotId}
+                onChange={(e) => setSelectedBotId(e.target.value)}
+                className="text-xs min-h-[38px] py-1.5 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition cursor-pointer"
+              >
+                {bots.map((b) => (
+                  <option key={b.id} value={b.id} className="bg-[#0f1420] text-white">
+                    {b.name} (@{b.username})
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <button
               type="button"
               onClick={handleOpenAdd}
               disabled={channels.length >= 20}
-              className="botdesk-btn primary text-xs"
+              className="inline-flex items-center gap-1.5 text-xs py-2 px-4 rounded-xl font-bold bg-[#38bdf8] text-slate-950 hover:bg-[#20b3f7] active:scale-[0.98] transition shadow-sm cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
             >
-              ＋ Add Channel
+              <span>＋ Add Channel</span>
             </button>
           </div>
         </div>
 
-        <div className="card-body space-y-4">
+        <div className="space-y-4">
           {channels.length === 0 ? (
-            <div className="py-10 text-center text-xs text-[var(--muted)] border border-dashed border-[var(--border)] rounded-lg">
-              No channels configured yet for this bot. Click "＋ Add Channel" to configure your first Telegram channel.
+            <div className="py-14 text-center text-xs text-slate-400 border border-dashed border-slate-800/80 rounded-2xl bg-[#0b0f19]/40 space-y-2">
+              <div className="text-2xl">📢</div>
+              <p>No channels configured yet for this bot.</p>
+              <p className="text-[11px] text-slate-500">Click &quot;＋ Add Channel&quot; to configure your first Telegram channel.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {channels.map((ch, idx) => (
                 <div
                   key={idx}
-                  className={`p-4 rounded-lg border flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition ${
+                  className={`p-4 sm:p-5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-sm ${
                     ch.isEnabled
-                      ? "bg-[var(--bg)] border-[var(--border)]"
-                      : "bg-[var(--surface)] border-[var(--border)] opacity-60"
+                      ? "bg-[#131926] border-slate-800/80 hover:border-sky-500/40 hover:shadow-md"
+                      : "bg-[#131926]/40 border-slate-800/40 opacity-60"
                   }`}
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-2 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <strong className="text-sm font-semibold text-[var(--text)]">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#090d16] text-slate-400 border border-slate-800 font-mono">
+                        #{idx + 1}
+                      </span>
+                      <strong className="text-sm sm:text-base font-bold text-white">
                         {ch.name}
                       </strong>
 
                       <span
-                        className={`botdesk-badge text-[11px] font-mono ${
-                          ch.isRequired ? "paused" : "blue"
+                        className={`text-[10px] px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 font-bold uppercase tracking-wider border ${
+                          ch.isRequired
+                            ? "bg-amber-500/10 text-amber-400 border-amber-500/25"
+                            : "bg-sky-500/10 text-[#38bdf8] border-sky-500/25"
                         }`}
                       >
-                        {ch.isRequired ? "REQUIRED GATE" : "OPTIONAL"}
+                        <span className={`w-1.5 h-1.5 rounded-full ${ch.isRequired ? "bg-amber-400" : "bg-[#38bdf8]"}`} />
+                        {ch.isRequired ? "REQUIRED GATE" : "OPTIONAL GATE"}
                       </span>
 
                       <span
-                        className={`botdesk-badge text-[10px] ${
-                          ch.isEnabled ? "enabled" : "paused"
+                        className={`text-[10px] px-2.5 py-0.5 rounded-full inline-flex items-center gap-1.5 font-bold uppercase tracking-wider border ${
+                          ch.isEnabled
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
+                            : "bg-slate-800/50 text-slate-400 border-slate-700/50"
                         }`}
                       >
+                        <span className={`w-1.5 h-1.5 rounded-full ${ch.isEnabled ? "bg-emerald-400" : "bg-slate-500"}`} />
                         {ch.isEnabled ? "ENABLED" : "DISABLED"}
                       </span>
                     </div>
 
-                    <div className="text-xs text-[var(--muted)] font-mono flex items-center gap-4 flex-wrap">
-                      <span>Target: {ch.telegramChatId}</span>
-                      <span>Button: "{ch.buttonLabel}"</span>
-                      <span className="text-[var(--accent)] truncate max-w-xs">
-                        Link: {ch.inviteLink.replace(/^https:\/\/t\.me\/\+?.{4}/, "https://t.me/...")}
-                      </span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1.5 text-xs text-slate-400 pt-1">
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="text-slate-500 font-semibold">🎯 Target:</span>
+                        <span className="font-mono text-slate-200 bg-[#090d16] px-2 py-0.5 rounded border border-slate-800 text-[11px] truncate">
+                          {ch.telegramChatId}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="text-slate-500 font-semibold">🔘 Button:</span>
+                        <span className="text-slate-200 font-medium truncate">&quot;{ch.buttonLabel}&quot;</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="text-slate-500 font-semibold">🔗 Link:</span>
+                        <a
+                          href={ch.inviteLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[#38bdf8] hover:underline truncate font-mono text-[11px] flex items-center gap-1"
+                          title={ch.inviteLink}
+                        >
+                          {ch.inviteLink.replace(/^https:\/\/t\.me\/\+?.{4}/, "https://t.me/...")} ↗
+                        </a>
+                      </div>
                     </div>
                   </div>
 
@@ -360,7 +417,7 @@ export function BotdeskChannelsPage({
                       type="button"
                       disabled={idx === 0}
                       onClick={() => handleMove(idx, "up")}
-                      className="botdesk-btn text-xs py-1 px-2 min-h-[30px]"
+                      className="bg-[#0d121c] border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs py-1 px-2.5 min-h-[30px] rounded-lg disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
                       title="Move Up"
                     >
                       ↑
@@ -369,7 +426,7 @@ export function BotdeskChannelsPage({
                       type="button"
                       disabled={idx === channels.length - 1}
                       onClick={() => handleMove(idx, "down")}
-                      className="botdesk-btn text-xs py-1 px-2 min-h-[30px]"
+                      className="bg-[#0d121c] border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs py-1 px-2.5 min-h-[30px] rounded-lg disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
                       title="Move Down"
                     >
                       ↓
@@ -377,21 +434,26 @@ export function BotdeskChannelsPage({
                     <button
                       type="button"
                       onClick={() => handleToggle(idx)}
-                      className="botdesk-btn text-xs py-1 px-2.5 min-h-[30px]"
+                      className={`bg-[#0d121c] border border-slate-800 hover:border-slate-700 text-xs py-1 px-3 min-h-[30px] rounded-lg font-semibold transition cursor-pointer ${
+                        ch.isEnabled
+                          ? "text-slate-400 hover:text-white"
+                          : "text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/10"
+                      }`}
                     >
                       {ch.isEnabled ? "Disable" : "Enable"}
                     </button>
                     <button
                       type="button"
                       onClick={() => handleOpenEdit(idx)}
-                      className="botdesk-btn text-xs py-1 px-2.5 min-h-[30px]"
+                      className="bg-[#0c2538] border border-sky-500/40 text-[#38bdf8] hover:bg-sky-950/60 text-xs py-1 px-3.5 min-h-[30px] rounded-lg font-semibold transition cursor-pointer shadow-sm"
                     >
                       Edit
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDelete(idx)}
-                      className="botdesk-btn danger text-xs py-1 px-2 min-h-[30px]"
+                      className="bg-rose-950/30 border border-rose-900/40 text-rose-300 hover:bg-rose-900/40 text-xs py-1 px-2.5 min-h-[30px] rounded-lg font-semibold transition cursor-pointer"
+                      title="Delete channel"
                     >
                       Delete
                     </button>
@@ -402,17 +464,30 @@ export function BotdeskChannelsPage({
           )}
 
           {/* Bottom Action */}
-          <div className="pt-4 border-t border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <span className="text-xs text-[var(--muted)]">
-              Channels are displayed in order as inline URL buttons with a "Check Joined" verification button.
+          <div className="pt-5 border-t border-slate-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <span className="text-xs text-slate-400">
+              Channels are ordered as inline verification buttons. Click &quot;Save Channels to Database&quot; to persist changes to PostgreSQL.
             </span>
             <button
               type="button"
               onClick={handleSaveAllToDatabase}
               disabled={saving}
-              className="botdesk-btn primary text-xs"
+              className="inline-flex items-center gap-2 text-xs py-2.5 px-5 rounded-xl font-bold bg-[#38bdf8] text-slate-950 hover:bg-[#20b3f7] active:scale-[0.98] transition shadow-lg shadow-sky-950/40 cursor-pointer disabled:opacity-50"
             >
-              {saving ? "Saving Channels..." : "Save Channels to Database"}
+              {saving ? (
+                <>
+                  <svg className="animate-spin h-3.5 w-3.5 text-slate-950" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Saving Channels...</span>
+                </>
+              ) : (
+                <>
+                  <span>💾</span>
+                  <span>Save Channels to Database</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -420,24 +495,37 @@ export function BotdeskChannelsPage({
 
       {/* Add / Edit Channel Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl">
-            <h2 className="text-lg font-bold text-[var(--text)] mb-1">
-              {editingIndex !== null ? "Edit Channel" : "Add Telegram Channel"}
-            </h2>
-            <p className="text-xs text-[var(--muted)] mb-4">
-              Configure channel identifiers for voluntary joining and Telegram API verification.
-            </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="w-full max-w-lg rounded-2xl bg-[#0f1420] border border-slate-800 p-6 shadow-2xl space-y-5 text-slate-200">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3.5">
+              <div>
+                <h2 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>📢</span>
+                  <span>{editingIndex !== null ? "Edit Telegram Channel" : "Add Telegram Channel"}</span>
+                </h2>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Configure channel identifiers for voluntary joining and Telegram API verification.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="text-slate-400 hover:text-white text-base p-1 rounded-lg hover:bg-slate-800/50 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
 
             {formError && (
-              <div className="mb-4 p-2.5 rounded-lg bg-[var(--redbg)] border border-[var(--red)] text-xs text-[var(--red)]">
-                {formError}
+              <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-xs text-rose-200 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{formError}</span>
               </div>
             )}
 
-            <form onSubmit={handleSaveModal} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
+            <form onSubmit={handleSaveModal} className="space-y-4 text-xs">
+              <div className="space-y-1.5">
+                <label className="block font-semibold uppercase tracking-wider text-slate-400 text-[11px]">
                   Display Name (e.g. Official Announcements)
                 </label>
                 <input
@@ -447,12 +535,12 @@ export function BotdeskChannelsPage({
                   value={formName}
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="Official Announcements"
-                  className="botdesk-input text-xs"
+                  className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
+              <div className="space-y-1.5">
+                <label className="block font-semibold uppercase tracking-wider text-slate-400 text-[11px]">
                   Telegram Username or Chat ID (for Verification)
                 </label>
                 <input
@@ -461,15 +549,15 @@ export function BotdeskChannelsPage({
                   value={formChatId}
                   onChange={(e) => setFormChatId(e.target.value)}
                   placeholder="@mychannel or -1001234567890"
-                  className="botdesk-input text-xs font-mono"
+                  className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition"
                 />
-                <span className="text-[11px] text-[var(--muted)] mt-0.5 block">
-                  Used by the bot to verify membership via <code className="font-mono">getChatMember</code>.
+                <span className="text-[11px] text-slate-500 block">
+                  Used by the bot to verify membership via <code className="font-mono bg-[#090d16] text-[#38bdf8] px-1.5 py-0.5 rounded border border-slate-800">getChatMember</code>.
                 </span>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
+              <div className="space-y-1.5">
+                <label className="block font-semibold uppercase tracking-wider text-slate-400 text-[11px]">
                   Invite Link (Opened by User in Telegram)
                 </label>
                 <input
@@ -478,15 +566,15 @@ export function BotdeskChannelsPage({
                   value={formInviteLink}
                   onChange={(e) => setFormInviteLink(e.target.value)}
                   placeholder="https://t.me/mychannel or https://t.me/+hash"
-                  className="botdesk-input text-xs font-mono"
+                  className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition"
                 />
-                <span className="text-[11px] text-[var(--muted)] mt-0.5 block">
+                <span className="text-[11px] text-slate-500 block">
                   Must be a valid Telegram URL. Private invite links are treated as sensitive operational data.
                 </span>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
+              <div className="space-y-1.5">
+                <label className="block font-semibold uppercase tracking-wider text-slate-400 text-[11px]">
                   Inline Button Label
                 </label>
                 <input
@@ -496,44 +584,47 @@ export function BotdeskChannelsPage({
                   value={formButtonLabel}
                   onChange={(e) => setFormButtonLabel(e.target.value)}
                   placeholder="📢 Join Announcement Channel"
-                  className="botdesk-input text-xs"
+                  className="w-full bg-[#0d121c] border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/40 transition"
                 />
               </div>
 
-              <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)] space-y-3">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-[var(--text)]">
+              <div className="p-3.5 rounded-xl border border-slate-800 bg-[#090d16] space-y-2">
+                <label className="flex items-center gap-2.5 cursor-pointer text-xs font-semibold text-white">
                   <input
                     type="checkbox"
                     checked={formIsRequired}
                     onChange={(e) => setFormIsRequired(e.target.checked)}
-                    className="accent-[var(--accent)]"
+                    className="w-4 h-4 rounded border-slate-700 bg-[#0d121c] text-[#38bdf8] accent-[#38bdf8] focus:ring-0 cursor-pointer"
                   />
                   <span>Required for Membership Verification</span>
                 </label>
-                <p className="text-[11px] text-[var(--muted)] pl-6">
-                  When checked, the user must join this channel to pass the "Check Joined" gate. Optional channels do not block verification.
+                <p className="text-[11px] text-slate-400 pl-6.5">
+                  When checked, users must join this channel to pass the &quot;Check Joined&quot; gate. Optional channels do not block verification.
                 </p>
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-[var(--text)]">
+              <label className="flex items-center gap-2.5 cursor-pointer text-xs font-medium text-slate-300 p-3 rounded-xl border border-slate-800 bg-[#090d16]">
                 <input
                   type="checkbox"
                   checked={formIsEnabled}
                   onChange={(e) => setFormIsEnabled(e.target.checked)}
-                  className="accent-[var(--accent)]"
+                  className="w-4 h-4 rounded border-slate-700 bg-[#0d121c] text-[#38bdf8] accent-[#38bdf8] focus:ring-0 cursor-pointer"
                 />
                 <span>Enabled immediately</span>
               </label>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="botdesk-btn text-xs"
+                  className="px-4 py-2 rounded-xl border border-slate-800 hover:bg-slate-800/60 text-slate-300 hover:text-white text-xs font-semibold transition cursor-pointer"
                 >
                   Cancel
                 </button>
-                <button type="submit" className="botdesk-btn primary text-xs">
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-[#38bdf8] hover:bg-[#20b3f7] text-slate-950 text-xs font-bold transition shadow-sm cursor-pointer"
+                >
                   Save Channel
                 </button>
               </div>

@@ -345,26 +345,26 @@ export function BotdeskMenuPage({
     <div className="space-y-6">
       {/* Screen Heading */}
       <div>
-        <span className="botdesk-badge blue mb-2 inline-block">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-sky-500/10 text-[#38bdf8] border border-sky-500/25 mb-2">
           BOT CONFIGURATION
         </span>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)]">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
           Bot menu & flow builder
         </h1>
-        <p className="text-sm text-[var(--muted)] mt-1">
+        <p className="text-sm text-slate-400 mt-1">
           Configure hierarchical Telegram bot flows, submenus, URL links, drafts, and publish directly to live bots.
         </p>
       </div>
 
       {/* Editor Mode Selector */}
-      <div className="flex flex-wrap gap-2 border-b border-[var(--border)] pb-3">
+      <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
         <button
           type="button"
           onClick={() => setEditorMode("visual")}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
             editorMode === "visual"
-              ? "bg-sky-600 text-white shadow-sm"
-              : "bg-[var(--card)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]"
+              ? "bg-[#0c2538] text-white border border-sky-500/40 shadow-xs"
+              : "bg-[#131926] text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700"
           }`}
         >
           🎨 Visual Flow Canvas V2 (Drag & Drop, Branches, Input)
@@ -372,10 +372,10 @@ export function BotdeskMenuPage({
         <button
           type="button"
           onClick={() => setEditorMode("flow")}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
             editorMode === "flow"
-              ? "bg-blue-600 text-white shadow-sm"
-              : "bg-[var(--card)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]"
+              ? "bg-[#0c2538] text-white border border-sky-500/40 shadow-xs"
+              : "bg-[#131926] text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700"
           }`}
         >
           ⚡ Tree / List Flow Editor (V1)
@@ -383,10 +383,10 @@ export function BotdeskMenuPage({
         <button
           type="button"
           onClick={() => setEditorMode("legacy")}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition ${
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
             editorMode === "legacy"
-              ? "bg-blue-600 text-white shadow-sm"
-              : "bg-[var(--card)] text-[var(--muted)] hover:text-[var(--text)] border border-[var(--border)]"
+              ? "bg-[#0c2538] text-white border border-sky-500/40 shadow-xs"
+              : "bg-[#131926] text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700"
           }`}
         >
           📋 Classic Flat Buttons (Legacy)
@@ -570,9 +570,19 @@ export function BotdeskMenuPage({
                 type="button"
                 onClick={handleSaveAllToDatabase}
                 disabled={saving}
-                className="botdesk-btn primary text-xs"
+                className="botdesk-btn primary text-xs inline-flex items-center gap-1.5"
               >
-                {saving ? "Saving Menu..." : "Save Menu Changes"}
+                {saving ? (
+                  <>
+                    <svg className="animate-spin h-3.5 w-3.5 text-white" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span>Saving Menu...</span>
+                  </>
+                ) : (
+                  "Save Menu Changes"
+                )}
               </button>
             </div>
           </div>
@@ -650,7 +660,7 @@ export function BotdeskMenuPage({
       {/* Add / Edit Dialog */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl">
+          <div className="modal-pop w-full max-w-md rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl">
             <h2 className="text-lg font-bold text-[var(--text)] mb-1">
               {editingIndex !== null ? "Edit button" : "Add button"}
             </h2>

@@ -47,7 +47,7 @@ export function FlowAnalyticsView({
   return (
     <div className="space-y-6 text-slate-200">
       {/* Top Header & Range Filter */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-800/40 p-4 rounded-2xl border border-white/10">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-[#131926] p-4 rounded-2xl border border-slate-800/80 shadow-xs">
         <div>
           <h3 className="font-bold text-base text-white">
             Flow Performance & Funnel ({botName})
@@ -57,14 +57,14 @@ export function FlowAnalyticsView({
           </p>
         </div>
 
-        <div className="flex items-center gap-1.5 bg-slate-900 p-1 rounded-xl border border-white/10 text-xs">
+        <div className="flex items-center gap-1.5 bg-[#0d121c] p-1 rounded-xl border border-slate-800 text-xs">
           {(["24h", "7d", "30d", "all"] as const).map((range) => (
             <button
               key={range}
               onClick={() => setDateRange(range)}
-              className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+              className={`px-3 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
                 dateRange === range
-                  ? "bg-sky-500 text-white shadow-sm"
+                  ? "bg-[#0c2538] text-[#38bdf8] border border-sky-500/40 shadow-xs"
                   : "text-slate-400 hover:text-white"
               }`}
             >
@@ -81,7 +81,7 @@ export function FlowAnalyticsView({
       </div>
 
       {error && (
-        <div className="bg-rose-950/40 border border-rose-500/40 p-3 rounded-xl text-xs text-rose-300">
+        <div className="bg-rose-950/60 border border-rose-500/40 p-3 rounded-xl text-xs text-rose-300">
           {error}
         </div>
       )}
@@ -98,7 +98,7 @@ export function FlowAnalyticsView({
         <div className="space-y-6">
           {/* Stat Cards */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div className="bg-slate-800/50 border border-white/10 p-4 rounded-2xl">
+            <div className="bg-[#131926] border border-slate-800/80 p-4 rounded-2xl shadow-xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                 Total Started
               </span>
@@ -108,17 +108,17 @@ export function FlowAnalyticsView({
               <span className="text-[10px] text-slate-500">Flow starts recorded</span>
             </div>
 
-            <div className="bg-slate-800/50 border border-white/10 p-4 rounded-2xl">
+            <div className="bg-[#131926] border border-slate-800/80 p-4 rounded-2xl shadow-xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                 Unique Users
               </span>
-              <span className="text-2xl font-bold text-sky-400 mt-1 block">
+              <span className="text-2xl font-bold text-[#38bdf8] mt-1 block">
                 {data.uniqueUsers}
               </span>
               <span className="text-[10px] text-slate-500">Distinct Telegram accounts</span>
             </div>
 
-            <div className="bg-slate-800/50 border border-white/10 p-4 rounded-2xl">
+            <div className="bg-[#131926] border border-slate-800/80 p-4 rounded-2xl shadow-xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                 Completed
               </span>
@@ -128,7 +128,7 @@ export function FlowAnalyticsView({
               <span className="text-[10px] text-slate-500">Reached end node</span>
             </div>
 
-            <div className="bg-slate-800/50 border border-white/10 p-4 rounded-2xl">
+            <div className="bg-[#131926] border border-slate-800/80 p-4 rounded-2xl shadow-xs">
               <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
                 Completion Rate
               </span>
@@ -140,10 +140,10 @@ export function FlowAnalyticsView({
           </div>
 
           {/* Node Visits & Funnel Table */}
-          <div className="bg-slate-800/40 border border-white/10 rounded-2xl overflow-hidden shadow-sm">
-            <div className="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+          <div className="bg-[#131926] border border-slate-800/80 rounded-2xl overflow-hidden shadow-xs">
+            <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
               <div>
-                <h4 className="font-semibold text-sm text-white">
+                <h4 className="font-bold text-sm text-white">
                   Step-by-Step Node Visits & Drop-Off
                 </h4>
                 <p className="text-[11px] text-slate-400">
@@ -154,7 +154,7 @@ export function FlowAnalyticsView({
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-300">
-                <thead className="bg-slate-900/60 text-[10px] uppercase font-bold text-slate-400 tracking-wider border-b border-white/5">
+                <thead className="bg-[#0d121c] text-[10px] uppercase font-bold text-slate-400 tracking-wider border-b border-slate-800">
                   <tr>
                     <th className="py-3 px-4">Node / Step</th>
                     <th className="py-3 px-4">Type</th>
@@ -164,14 +164,14 @@ export function FlowAnalyticsView({
                     <th className="py-3 px-4 text-right">Drop-Off Rate</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-slate-800/60">
                   {data.nodeVisits.map((item) => (
-                    <tr key={item.nodeId} className="hover:bg-white/[0.02]">
-                      <td className="py-3 px-4 font-medium text-white flex items-center gap-2">
+                    <tr key={item.nodeId} className="hover:bg-slate-800/40">
+                      <td className="py-3 px-4 font-semibold text-white flex items-center gap-2">
                         <span>{item.nodeTitle || item.nodeId}</span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="bg-slate-800 text-slate-300 px-2 py-0.5 rounded text-[10px] border border-white/10">
+                        <span className="bg-[#0d121c] text-slate-300 px-2 py-0.5 rounded-lg text-[10px] border border-slate-800">
                           {item.nodeType}
                         </span>
                       </td>
@@ -188,8 +188,8 @@ export function FlowAnalyticsView({
                         <span
                           className={`px-1.5 py-0.5 rounded text-[11px] ${
                             item.dropOffRate > 50
-                              ? "bg-rose-500/20 text-rose-300"
-                              : "bg-slate-800 text-slate-300"
+                              ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                              : "bg-[#0d121c] text-slate-300 border border-slate-800"
                           }`}
                         >
                           {item.dropOffRate}%

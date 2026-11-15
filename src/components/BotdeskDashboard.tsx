@@ -541,15 +541,33 @@ export function BotdeskDashboard({
   const activeBotUsers = initialUsersByBot[activeBotId] || [];
 
   return (
-    <div className="space-y-6">
-      {/* Heading */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto">
+      {/* 1. Hero Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pt-1">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)]">
-            Your bots, in sync.
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight flex items-baseline flex-wrap gap-x-2">
+            <span>Your bots, in</span>
+            <span className="relative inline-block text-white">
+              sync.
+              <svg
+                className="absolute -bottom-1 left-0 w-full overflow-visible"
+                height="8"
+                viewBox="0 0 100 8"
+                fill="none"
+                preserveAspectRatio="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M1 5.5C25 1.5 75 1.5 99 5.5"
+                  stroke="#38bdf8"
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </span>
           </h1>
-          <p className="text-sm text-[var(--muted)] mt-1">
-            Manage multiple Telegram bots independently from one backstage panel.
+          <p className="text-sm sm:text-base text-slate-400 mt-2 font-normal">
+            Manage your Telegram bots in one place.
           </p>
         </div>
 
@@ -557,22 +575,25 @@ export function BotdeskDashboard({
           <button
             type="button"
             onClick={handleOpenAdd}
-            className="botdesk-btn primary self-start sm:self-auto font-semibold flex items-center gap-1.5"
+            className="self-start sm:self-auto bg-[#38bdf8] hover:bg-[#20b3f7] active:scale-[0.98] text-slate-950 font-bold text-sm px-5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
           >
-            <span>＋</span> Add Telegram Bot
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+            </svg>
+            <span>Add Telegram Bot</span>
           </button>
         )}
       </div>
 
-      {/* Global Notice Alert */}
+      {/* Global Notice Alert if active */}
       {globalNotice && (
         <div
-          className={`p-3.5 rounded-lg border text-xs flex items-center justify-between ${
+          className={`p-3.5 rounded-xl text-xs flex items-center justify-between border shadow-xs ${
             globalNotice.type === "success"
-              ? "bg-[var(--greenbg)] border-[var(--green)] text-[var(--green)]"
+              ? "bg-emerald-950/60 border-emerald-500/40 text-emerald-300"
               : globalNotice.type === "error"
-              ? "bg-[var(--redbg)] border-[var(--red)] text-[var(--red)]"
-              : "bg-[var(--bluebg)] border-[var(--border)] text-[var(--accent)]"
+              ? "bg-rose-950/60 border-rose-500/40 text-rose-300"
+              : "bg-sky-950/60 border-sky-500/40 text-sky-300"
           }`}
         >
           <span>{globalNotice.text}</span>
@@ -586,225 +607,266 @@ export function BotdeskDashboard({
         </div>
       )}
 
-      {/* Summary Metrics */}
-      <div className="summary-grid">
-        <div className="metric-box">
-          <span>Connected bots</span>
-          <strong>{bots.length}</strong>
+      {/* 2. Metric Cards (3 columns) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Card 1: Connected bots */}
+        <div className="bg-[#131926] border border-slate-800/80 rounded-2xl p-5 shadow-xs flex items-center gap-4 hover:border-slate-700 transition-all">
+          <div className="w-12 h-12 rounded-xl bg-[#0c2538] border border-sky-500/30 flex items-center justify-center text-[#38bdf8] flex-shrink-0">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 8V4H8" />
+              <rect width="16" height="12" x="4" y="8" rx="2" />
+              <path d="M2 14h2" />
+              <path d="M20 14h2" />
+              <path d="M15 13v2" />
+              <path d="M9 13v2" />
+            </svg>
+          </div>
+          <div>
+            <span className="text-xs text-slate-400 font-medium block">Connected bots</span>
+            <strong className="text-3xl font-extrabold text-white leading-tight block mt-0.5">
+              {bots.length}
+            </strong>
+          </div>
         </div>
-        <div className="metric-box">
-          <span>Automation enabled</span>
-          <strong className="text-[var(--green)]">
-            {bots.filter((b) => b.isActive).length}
-          </strong>
+
+        {/* Card 2: Automation enabled */}
+        <div className="bg-[#131926] border border-slate-800/80 rounded-2xl p-5 shadow-xs flex items-center gap-4 hover:border-slate-700 transition-all">
+          <div className="w-12 h-12 rounded-xl bg-[#0c2538] border border-sky-500/30 flex items-center justify-center text-[#38bdf8] flex-shrink-0">
+            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+            </svg>
+          </div>
+          <div>
+            <span className="text-xs text-slate-400 font-medium block">Automation enabled</span>
+            <strong className="text-3xl font-extrabold text-white leading-tight block mt-0.5">
+              {bots.filter((b) => b.isActive).length}
+            </strong>
+          </div>
         </div>
-        <div className="metric-box">
-          <span>Total registered users</span>
-          <strong className="text-[var(--accent)]">
-            {bots.reduce((acc, b) => acc + (b._count?.users || 0), 0)}
-          </strong>
+
+        {/* Card 3: Registered users */}
+        <div className="bg-[#131926] border border-slate-800/80 rounded-2xl p-5 shadow-xs flex items-center gap-4 hover:border-slate-700 transition-all">
+          <div className="w-12 h-12 rounded-xl bg-[#0c2538] border border-sky-500/30 flex items-center justify-center text-[#38bdf8] flex-shrink-0">
+            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </div>
+          <div>
+            <span className="text-xs text-slate-400 font-medium block">Registered users</span>
+            <strong className="text-3xl font-extrabold text-white leading-tight block mt-0.5">
+              {bots.reduce((acc, b) => acc + (b._count?.users || 0), 0)}
+            </strong>
+          </div>
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <input
-          type="search"
-          placeholder="Search by bot name, username, description…"
-          aria-label="Search bots"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="botdesk-input sm:max-w-xs text-sm"
-        />
-        <span className="text-xs text-[var(--muted)]">
-          Scope:{" "}
-          <strong className="text-[var(--text)]">
-            {selectedIds.size === 0
-              ? "No bots selected"
-              : selectedIds.size === bots.length
-              ? "All bots"
-              : `${selectedIds.size} selected`}
-          </strong>
-        </span>
-      </div>
+      {/* 3. "Your bots" Section & Table */}
+      <div className="bg-[#131926] border border-slate-800/80 rounded-2xl p-6 shadow-xs">
+        {/* Table Top Header: Title & Search */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+          <div>
+            <h2 className="text-xl font-bold text-white tracking-tight">Your bots</h2>
+          </div>
 
-      {/* Bots Table */}
-      <div className="botdesk-card overflow-hidden">
+          <div className="relative w-full sm:w-64">
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="search"
+              placeholder="Search bots..."
+              aria-label="Search bots"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full rounded-xl border border-slate-800 bg-[#0d121c] text-xs py-2 pl-9 pr-3 text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition"
+            />
+          </div>
+        </div>
+
+        {/* Table Body */}
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm border-collapse">
+          <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] text-xs uppercase font-medium">
-                <th className="py-2.5 px-3 w-10 text-center">
-                  <input
-                    type="checkbox"
-                    checked={
-                      filteredBots.length > 0 &&
-                      filteredBots.every((b) => selectedIds.has(b.id))
-                    }
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedIds(new Set(filteredBots.map((b) => b.id)));
-                      } else {
-                        setSelectedIds(new Set());
-                      }
-                    }}
-                    className="accent-[var(--accent)] cursor-pointer"
-                  />
-                </th>
-                <th className="py-2.5 px-4">Bot</th>
-                <th className="py-2.5 px-4">Token Source</th>
-                <th className="py-2.5 px-4">Status</th>
-                <th className="py-2.5 px-4">Connection State</th>
-                <th className="py-2.5 px-4">Users</th>
-                <th className="py-2.5 px-4 text-right">Actions</th>
+              <tr className="border-b border-slate-800/80 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                <th className="py-3.5 px-4">Bot</th>
+                <th className="py-3.5 px-4">Username</th>
+                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-4">Users</th>
+                <th className="py-3.5 px-4">Automation</th>
+                <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--border)]">
+            <tbody className="divide-y divide-slate-800/60">
               {filteredBots.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-[var(--muted)]">
-                    No bots found matching "{search}".
+                  <td colSpan={6} className="py-8 text-center text-xs text-slate-500">
+                    No bots found matching &quot;{search}&quot;.
                   </td>
                 </tr>
               ) : (
-                filteredBots.map((b) => {
+                filteredBots.map((b, idx) => {
                   const isViewing = b.id === activeBotId;
-                  const isChecked = selectedIds.has(b.id);
                   const isTesting = testingId === b.id;
 
-                  const statusClass =
-                    b.connectionStatus === "CONNECTED"
-                      ? "healthy"
-                      : b.connectionStatus === "STANDBY"
-                      ? "paused"
-                      : b.connectionStatus === "ERROR"
-                      ? "failed"
-                      : "paused";
+                  // Dark pastel avatar palettes matching target dark reference
+                  const avatarPalettes = [
+                    { bg: "bg-sky-500/20", text: "text-[#38bdf8]", icon: "robot" },
+                    { bg: "bg-purple-500/20", text: "text-purple-400", icon: "game" },
+                    { bg: "bg-rose-500/20", text: "text-rose-400", icon: "18plus" },
+                    { bg: "bg-amber-500/20", text: "text-amber-400", icon: "bot" },
+                  ];
+                  const palette = avatarPalettes[idx % avatarPalettes.length];
 
                   return (
                     <tr
                       key={b.id}
-                      className={`hover:bg-[var(--surface)] transition ${
-                        isChecked ? "bg-[var(--bluebg)]/40" : ""
+                      className={`hover:bg-slate-800/40 transition-colors ${
+                        isViewing ? "bg-slate-800/25" : ""
                       }`}
                     >
-                      <td className="py-3 px-3 text-center">
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => {
-                            const next = new Set(selectedIds);
-                            e.target.checked ? next.add(b.id) : next.delete(b.id);
-                            setSelectedIds(next);
-                          }}
-                          className="accent-[var(--accent)] cursor-pointer"
-                        />
-                      </td>
-
-                      <td className="py-3 px-4">
-                        <button
-                          type="button"
-                          onClick={() => handleSelectBot(b.id)}
-                          className="flex items-center gap-3 text-left w-full group cursor-pointer"
-                        >
-                          <span className="w-8 h-8 rounded-lg bg-[var(--surface)] border border-[var(--border)] grid place-items-center font-bold text-sm text-[var(--accent)] flex-shrink-0">
-                            {b.name.charAt(0).toUpperCase()}
-                          </span>
-                          <div>
-                            <div className="font-semibold text-sm text-[var(--text)] group-hover:text-[var(--accent)] flex items-center gap-1.5">
-                              {b.name}
-                              {isViewing && (
-                                <span className="text-[10px] font-normal text-[var(--accent)] bg-[var(--bluebg)] px-1.5 py-0.2 rounded">
-                                  Viewing
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-xs text-[var(--muted)] font-mono">
-                              @{b.username}
-                              {b.telegramBotId ? ` · Telegram Bot ID: ${b.telegramBotId}` : ""}
-                            </div>
+                      {/* Bot Info */}
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-10 h-10 rounded-xl ${palette.bg} ${palette.text} flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs border border-white/5`}
+                          >
+                            {palette.icon === "game" ? (
+                              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <line x1="6" y1="12" x2="10" y2="12" />
+                                <line x1="8" y1="10" x2="8" y2="14" />
+                                <line x1="15" y1="13" x2="15.01" y2="13" />
+                                <line x1="18" y1="11" x2="18.01" y2="11" />
+                                <rect width="20" height="12" x="2" y="6" rx="6" />
+                              </svg>
+                            ) : palette.icon === "18plus" ? (
+                              <span className="text-xs font-bold font-mono">18+</span>
+                            ) : (
+                              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 8V4H8" />
+                                <rect width="16" height="12" x="4" y="8" rx="2" />
+                                <path d="M2 14h2" />
+                                <path d="M20 14h2" />
+                                <path d="M15 13v2" />
+                                <path d="M9 13v2" />
+                              </svg>
+                            )}
                           </div>
-                        </button>
-                      </td>
-
-                      <td className="py-3 px-4">
-                        <span className="text-xs font-mono text-[var(--muted)] bg-[var(--surface)] px-2 py-0.5 rounded border border-[var(--border)]">
-                          {b.hasStoredToken
-                            ? `Encrypted (${b.tokenLast4 || "••••"})`
-                            : `ENV: ${b.tokenEnvVar}`}
-                        </span>
-                      </td>
-
-                      <td className="py-3 px-4">
-                        <span
-                          className={`botdesk-badge ${
-                            b.isActive ? "enabled" : "paused"
-                          }`}
-                        >
-                          {b.isActive ? "Active" : "Paused"}
-                        </span>
-                      </td>
-
-                      <td className="py-3 px-4">
-                        <div className="flex flex-col gap-0.5">
-                          <span className={`botdesk-badge ${statusClass} inline-flex items-center gap-1`}>
-                            {b.connectionStatus || (b.isActive ? "STANDBY" : "DISCONNECTED")}
-                          </span>
-                          {b.lastError && (
-                            <span
-                              className="text-[10px] text-[var(--red)] truncate max-w-[160px]"
-                              title={b.lastError}
-                            >
-                              ⚠️ {b.lastError}
+                          <div>
+                            <span className="font-bold text-sm text-white block leading-snug">
+                              {b.name}
                             </span>
-                          )}
+                            <span className="text-xs text-slate-400 block mt-0.5 font-normal">
+                              {b.description || (b.name === "Test Bot" ? "General purpose bot" : "Telegram community bot")}
+                            </span>
+                          </div>
                         </div>
                       </td>
 
-                      <td className="py-3 px-4 font-mono text-xs text-[var(--text)]">
-                        {b._count?.users || 0}
+                      {/* Username */}
+                      <td className="py-4 px-4">
+                        <span className="text-xs font-medium text-slate-300 font-mono">
+                          @{b.username}
+                        </span>
                       </td>
 
-                      <td className="py-3 px-4 text-right">
+                      {/* Status */}
+                      <td className="py-4 px-4">
+                        <span
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium inline-flex items-center gap-1.5 ${
+                            b.isActive
+                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                              : "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              b.isActive ? "bg-emerald-400" : "bg-amber-400"
+                            }`}
+                          />
+                          {b.isActive ? "Active" : "Standby"}
+                        </span>
+                      </td>
+
+                      {/* Users */}
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
+                          <svg className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                          </svg>
+                          <span>{b._count?.users || 0}</span>
+                        </div>
+                      </td>
+
+                      {/* Automation */}
+                      <td className="py-4 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <svg className={`w-4 h-4 ${b.isActive ? "text-[#38bdf8] fill-current" : "text-slate-500"}`} viewBox="0 0 24 24">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                          </svg>
+                          <span className={`text-xs font-semibold ${b.isActive ? "text-[#38bdf8]" : "text-slate-500"}`}>
+                            {b.isActive ? "Enabled" : "Paused"}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-4 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
+                          {/* Quick test button */}
                           <button
                             type="button"
                             onClick={() => handleTestConnection(b.id)}
                             disabled={isTesting}
-                            className="botdesk-btn text-xs py-1 px-2 border border-[var(--border)]"
-                            title="Test connection via Telegram getMe"
+                            className="w-8 h-8 rounded-lg border border-slate-800 bg-[#0d121c] text-slate-400 hover:text-white hover:border-slate-700 flex items-center justify-center text-xs shadow-xs transition cursor-pointer"
+                            title="Test connection via Telegram API"
                           >
-                            {isTesting ? "Testing…" : "Test"}
+                            {isTesting ? (
+                              <span className="w-3.5 h-3.5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              "⚡"
+                            )}
                           </button>
 
+                          {/* Quick Edit */}
                           {isSuperAdmin && (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleActive(b)}
-                                className="botdesk-btn text-xs py-1 px-2 border border-[var(--border)]"
-                                title={b.isActive ? "Pause automation" : "Enable automation"}
-                              >
-                                {b.isActive ? "Pause" : "Enable"}
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleOpenEdit(b)}
-                                className="botdesk-btn text-xs py-1 px-2 border border-[var(--border)]"
-                                title="Edit display settings or replace token"
-                              >
-                                Settings
-                              </button>
-                            </>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEdit(b)}
+                              className="w-8 h-8 rounded-lg border border-slate-800 bg-[#0d121c] text-slate-400 hover:text-white hover:border-slate-700 flex items-center justify-center text-xs shadow-xs transition font-mono cursor-pointer"
+                              title="Bot Settings & Token"
+                            >
+                              •••
+                            </button>
                           )}
 
-                          <Link
-                            href={`/bots/${b.id}`}
-                            className="text-xs font-semibold text-[var(--accent)] hover:underline ml-1"
+                          {/* Manage > Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleSelectBot(b.id)}
+                            className={`border text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs flex items-center gap-1 transition cursor-pointer ${
+                              isViewing
+                                ? "bg-[#0c2538] border-sky-500/40 text-[#38bdf8]"
+                                : "bg-[#0d121c] border-slate-800 text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                            }`}
                           >
-                            Details →
-                          </Link>
+                            <span>Manage</span>
+                            <span className="text-[10px]">›</span>
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -820,34 +882,34 @@ export function BotdeskDashboard({
       {activeBot && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
           {/* Left Card: Bot Configuration */}
-          <section className="lg:col-span-7 botdesk-card">
-            <div className="card-header">
+          <section className="lg:col-span-7 bg-[#131926] border border-slate-800/80 rounded-2xl shadow-xs overflow-hidden">
+            <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-[var(--text)]">
+                <h2 className="text-base font-bold text-white">
                   {activeBot.name}
                 </h2>
-                <div className="text-xs text-[var(--muted)] font-mono flex flex-wrap gap-x-3 gap-y-0.5">
+                <div className="text-xs text-slate-400 font-mono flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
                   <span>@{activeBot.username}</span>
-                  <span title="Internal Database UUID">BackStage Bot ID: {activeBot.id}</span>
+                  <span title="Internal Database UUID">ID: {activeBot.id}</span>
                   {activeBot.telegramBotId && (
-                    <span title="Numeric Telegram Bot ID">Telegram Bot ID: {activeBot.telegramBotId}</span>
+                    <span title="Numeric Telegram Bot ID">TG ID: {activeBot.telegramBotId}</span>
                   )}
                 </div>
               </div>
-              <span className="text-xs text-[var(--muted)] font-mono border border-[var(--border)] px-2 py-0.5 rounded">
-                Individual Bot
+              <span className="text-xs text-sky-400 font-medium bg-sky-500/10 px-2.5 py-1 rounded-full border border-sky-500/25">
+                Active Bot
               </span>
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-[var(--border)] px-4 gap-2 bg-[var(--surface)]">
+            <div className="flex border-b border-slate-800/80 px-5 py-2.5 gap-2 bg-[#0e1422]/60">
               <button
                 type="button"
                 onClick={() => setActiveTab("settings")}
-                className={`py-2.5 px-3 text-xs font-semibold border-b-2 transition ${
+                className={`py-1.5 px-3.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
                   activeTab === "settings"
-                    ? "border-[var(--accent)] text-[var(--accent)]"
-                    : "border-transparent text-[var(--muted)] hover:text-[var(--text)]"
+                    ? "bg-[#131926] text-white border border-slate-700 shadow-xs"
+                    : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 Welcome Message
@@ -855,45 +917,45 @@ export function BotdeskDashboard({
               <button
                 type="button"
                 onClick={() => setActiveTab("users")}
-                className={`py-2.5 px-3 text-xs font-semibold border-b-2 transition ${
+                className={`py-1.5 px-3.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
                   activeTab === "users"
-                    ? "border-[var(--accent)] text-[var(--accent)]"
-                    : "border-transparent text-[var(--muted)] hover:text-[var(--text)]"
+                    ? "bg-[#131926] text-white border border-slate-700 shadow-xs"
+                    : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 Registered Users ({activeBotUsers.length})
               </button>
             </div>
 
-            <div className="card-body">
+            <div className="p-5">
               {activeTab === "settings" ? (
                 <form onSubmit={handleSaveWelcome} className="space-y-4">
                   <div>
                     <label
                       htmlFor="welcome-message-input"
-                      className="block text-xs font-medium text-[var(--text)] mb-1"
+                      className="block text-xs font-semibold text-slate-200 mb-1.5"
                     >
                       Welcome Greeting (/start)
                     </label>
                     <textarea
                       id="welcome-message-input"
-                      rows={6}
+                      rows={5}
                       value={welcomeText}
                       onChange={(e) => setWelcomeText(e.target.value)}
-                      className="botdesk-input text-xs font-mono leading-relaxed"
+                      className="w-full rounded-xl border border-slate-800 bg-[#0d121c] p-3 text-xs font-mono text-slate-100 leading-relaxed focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
                       placeholder="Enter the message your bot sends when a user taps /start..."
                     />
-                    <p className="text-[11px] text-[var(--muted)] mt-1">
+                    <p className="text-[11px] text-slate-500 mt-1">
                       Dynamically loaded from PostgreSQL for this specific bot.
                     </p>
                   </div>
 
                   {saveStatus && (
                     <div
-                      className={`p-2.5 rounded text-xs ${
+                      className={`p-3 rounded-xl text-xs ${
                         saveStatus.includes("successfully")
-                          ? "bg-[var(--greenbg)] border border-[var(--green)] text-[var(--green)]"
-                          : "bg-[var(--redbg)] border border-[var(--red)] text-[var(--red)]"
+                          ? "bg-emerald-950/60 border border-emerald-500/40 text-emerald-300"
+                          : "bg-rose-950/60 border border-rose-500/40 text-rose-300"
                       }`}
                     >
                       {saveStatus}
@@ -901,16 +963,16 @@ export function BotdeskDashboard({
                   )}
 
                   <div className="flex items-center justify-between pt-2">
-                    <span className="text-xs text-[var(--muted)]">
+                    <span className="text-xs text-slate-400">
                       Bot Status:{" "}
-                      <strong className="text-[var(--text)]">
+                      <strong className="text-white font-semibold">
                         {activeBot.isActive ? "Active" : "Paused"}
                       </strong>
                     </span>
                     <button
                       type="submit"
                       disabled={savingWelcome}
-                      className="botdesk-btn primary text-xs"
+                      className="bg-[#38bdf8] hover:bg-[#20b3f7] active:scale-[0.98] text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-xs transition cursor-pointer"
                     >
                       {savingWelcome ? "Saving..." : "Save Welcome Message"}
                     </button>
@@ -919,47 +981,47 @@ export function BotdeskDashboard({
               ) : (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-[var(--muted)]">
-                      Users who interacted with <strong>{activeBot.name}</strong>
+                    <span className="text-xs text-slate-300">
+                      Users who interacted with <strong className="text-white">{activeBot.name}</strong>
                     </span>
-                    <span className="text-xs text-[var(--muted)] font-mono">
+                    <span className="text-xs text-slate-400 font-mono">
                       {activeBotUsers.length} total
                     </span>
                   </div>
 
                   {activeBotUsers.length === 0 ? (
-                    <div className="py-8 text-center text-xs text-[var(--muted)] border border-dashed border-[var(--border)] rounded-lg">
+                    <div className="py-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-xl">
                       No users have sent /start to this bot yet.
                     </div>
                   ) : (
-                    <div className="overflow-x-auto border border-[var(--border)] rounded-lg">
+                    <div className="overflow-x-auto border border-slate-800 rounded-xl">
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
-                          <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-[var(--muted)]">
-                            <th className="py-2 px-3">User</th>
-                            <th className="py-2 px-3">Telegram ID</th>
-                            <th className="py-2 px-3">Phone</th>
-                            <th className="py-2 px-3">Last Seen</th>
+                          <tr className="border-b border-slate-800 bg-[#0d121c] text-slate-400 font-semibold">
+                            <th className="py-2.5 px-3">User</th>
+                            <th className="py-2.5 px-3">Telegram ID</th>
+                            <th className="py-2.5 px-3">Phone</th>
+                            <th className="py-2.5 px-3">Last Seen</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[var(--border)] font-mono">
+                        <tbody className="divide-y divide-slate-800 font-mono">
                           {activeBotUsers.map((u) => (
-                            <tr key={u.id} className="hover:bg-[var(--surface)]">
-                              <td className="py-2 px-3 text-[var(--text)] font-sans">
+                            <tr key={u.id} className="hover:bg-slate-800/40">
+                              <td className="py-2 px-3 text-slate-200 font-sans">
                                 {u.firstName || ""} {u.lastName || ""}
                                 {u.username && (
-                                  <span className="text-[var(--muted)] ml-1 font-mono">
+                                  <span className="text-slate-400 ml-1 font-mono">
                                     (@{u.username})
                                   </span>
                                 )}
                               </td>
-                              <td className="py-2 px-3 text-[var(--muted)]">
+                              <td className="py-2 px-3 text-slate-400">
                                 {u.telegramId}
                               </td>
-                              <td className="py-2 px-3 text-[var(--accent)] font-semibold">
+                              <td className="py-2 px-3 text-slate-200 font-semibold">
                                 {u.telegramPhNo || "—"}
                               </td>
-                              <td className="py-2 px-3 text-[var(--muted)]">
+                              <td className="py-2 px-3 text-slate-400">
                                 {new Date(u.lastSeenAt).toLocaleDateString()}
                               </td>
                             </tr>
@@ -974,13 +1036,13 @@ export function BotdeskDashboard({
           </section>
 
           {/* Right Card: Interactive Telegram Simulator */}
-          <section className="lg:col-span-5 botdesk-card">
-            <div className="card-header">
+          <section className="lg:col-span-5 bg-[#131926] border border-slate-800/80 rounded-2xl shadow-xs overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
               <div>
-                <h2 className="text-base font-bold text-[var(--text)]">
+                <h2 className="text-base font-bold text-white">
                   Chat Simulator
                 </h2>
-                <p className="text-xs text-[var(--muted)]">
+                <p className="text-xs text-slate-400">
                   Preview for {activeBot.name} (@{activeBot.username})
                 </p>
               </div>
@@ -995,23 +1057,23 @@ export function BotdeskDashboard({
                     },
                   ])
                 }
-                className="botdesk-btn text-xs py-1 px-2 border border-[var(--border)]"
+                className="text-xs py-1 px-2.5 rounded-lg border border-slate-800 bg-[#0d121c] text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer"
               >
                 Reset
               </button>
             </div>
 
-            <div className="card-body space-y-3">
-              <div className="chat-window">
+            <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
+              <div className="chat-window bg-[#0d121c] border border-slate-800 rounded-xl p-3 min-h-[180px] max-h-[260px] overflow-y-auto space-y-2">
                 {chatMessages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`chat-bubble ${
+                    className={`text-xs p-2.5 rounded-xl max-w-[85%] leading-relaxed ${
                       msg.sender === "user"
-                        ? "user"
+                        ? "bg-[#0c2538] border border-sky-500/30 text-white ml-auto"
                         : msg.sender === "note"
-                        ? "note"
-                        : ""
+                        ? "bg-slate-800/50 text-slate-400 text-center mx-auto text-[11px]"
+                        : "bg-[#161f30] text-slate-200 border border-slate-800 shadow-xs mr-auto"
                     }`}
                   >
                     {msg.text}
@@ -1021,8 +1083,8 @@ export function BotdeskDashboard({
 
               {/* Simulated Reply Keyboard */}
               {simActiveButtons.length > 0 && (
-                <div className="p-2 rounded-lg bg-[var(--surface)] border border-[var(--border)]">
-                  <div className="text-[10px] uppercase font-bold text-[var(--muted)] mb-1.5 flex justify-between">
+                <div className="p-2.5 rounded-xl bg-[#0d121c] border border-slate-800">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 flex justify-between">
                     <span>
                       Menu: {simCurrentMenuId === "root" ? "Main Menu" : simCurrentMenuId}
                     </span>
@@ -1034,7 +1096,7 @@ export function BotdeskDashboard({
                         key={btn.id}
                         type="button"
                         onClick={() => handleSimulateAction(btn.label)}
-                        className="py-1.5 px-2 rounded bg-[var(--card)] hover:bg-[var(--border)] text-[var(--text)] text-xs font-medium text-center border border-[var(--border)] truncate transition active:scale-95"
+                        className="py-1.5 px-2 rounded-lg bg-[#161f30] hover:bg-slate-800 text-slate-200 text-xs font-medium text-center border border-slate-700/80 truncate transition active:scale-95 cursor-pointer shadow-2xs"
                         title={btn.label}
                       >
                         {btn.label}
@@ -1044,21 +1106,24 @@ export function BotdeskDashboard({
                 </div>
               )}
 
-              <form onSubmit={handleSendChatMessage} className="flex gap-2">
+              <form onSubmit={handleSendChatMessage} className="flex gap-2 pt-1">
                 <input
                   type="text"
                   placeholder="Send /start or test a message..."
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  className="botdesk-input text-xs"
+                  className="w-full rounded-xl border border-slate-800 bg-[#0d121c] px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
                 />
-                <button type="submit" className="botdesk-btn primary text-xs">
+                <button
+                  type="submit"
+                  className="bg-[#38bdf8] hover:bg-[#20b3f7] text-slate-950 font-bold text-xs px-3.5 py-2 rounded-xl transition cursor-pointer"
+                >
                   Send
                 </button>
               </form>
 
-              <p className="text-[11px] text-[var(--muted)] italic">
-                Local simulation only. Live messages are processed in real time by your running long polling bot runner.
+              <p className="text-[11px] text-slate-500 italic">
+                Local simulation only. Real messages are polled live by your Telegram bot runner.
               </p>
             </div>
           </section>
@@ -1067,36 +1132,36 @@ export function BotdeskDashboard({
 
       {/* Modal: Add Telegram Bot */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="botdesk-modal-anim w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[#0f1420] border border-slate-800 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
-                <h2 className="text-lg font-bold text-[var(--text)]">
-                  Connect a New Telegram Bot
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span className="text-[#38bdf8]">✈</span> Connect a New Telegram Bot
                 </h2>
-                <p className="text-xs text-[var(--muted)] mt-0.5">
+                <p className="text-xs text-slate-400 mt-0.5">
                   Register another Telegram bot to manage its menu, channels, users, and posts.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowAddModal(false)}
-                className="text-xs text-[var(--muted)] hover:text-[var(--text)] font-bold cursor-pointer"
+                className="text-xs text-slate-400 hover:text-white font-bold cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             {addError && (
-              <div className="p-3 rounded-lg bg-[var(--redbg)] border border-[var(--red)] text-xs text-[var(--red)]">
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-400">
                 ⚠️ {addError}
               </div>
             )}
 
             <form onSubmit={handleSaveAddBot} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text)] mb-1">
-                  Bot Display Name <span className="text-[var(--red)]">*</span>
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
+                  Bot Display Name <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -1104,20 +1169,20 @@ export function BotdeskDashboard({
                   placeholder="e.g. VIP Member Bot, Customer Support Bot"
                   value={addName}
                   onChange={(e) => setAddName(e.target.value)}
-                  className="botdesk-input text-xs"
+                  className="w-full rounded-xl border border-slate-800 bg-[#0d121c] p-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
                   maxLength={64}
                 />
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-[var(--text)]">
-                    Telegram Bot Token <span className="text-[var(--red)]">*</span>
+                  <label className="text-xs font-semibold text-slate-200">
+                    Telegram Bot Token <span className="text-rose-400">*</span>
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowAddTokenText((prev) => !prev)}
-                    className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
+                    className="text-[11px] text-[#38bdf8] hover:underline cursor-pointer"
                   >
                     {showAddTokenText ? "Hide token" : "Show token"}
                   </button>
@@ -1128,48 +1193,48 @@ export function BotdeskDashboard({
                   placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
                   value={addToken}
                   onChange={(e) => setAddToken(e.target.value)}
-                  className="botdesk-input text-xs font-mono"
+                  className="w-full rounded-xl border border-slate-800 bg-[#0d121c] p-2.5 text-xs font-mono text-white placeholder:text-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
                   autoComplete="off"
                 />
-                <p className="text-[11px] text-[var(--muted)] mt-1">
+                <p className="text-[11px] text-slate-400 mt-1">
                   Obtain your token by messaging <strong>@BotFather</strong> on Telegram.
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text)] mb-1">
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
                   Description / Notes (Optional)
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Primary subscriber bot for Myanmar channel"
+                  placeholder="e.g. Primary subscriber bot for channel"
                   value={addDescription}
                   onChange={(e) => setAddDescription(e.target.value)}
-                  className="botdesk-input text-xs"
+                  className="w-full rounded-xl border border-slate-800 bg-[#0d121c] p-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
                   maxLength={255}
                 />
               </div>
 
-              <div className="p-3 rounded-lg bg-[var(--bluebg)] border border-[var(--border)] text-xs text-[var(--accent)] space-y-1">
+              <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-400/20 text-xs text-sky-300 space-y-1">
                 <strong className="block font-semibold">🔒 Authenticated Token Encryption:</strong>
-                <p className="text-[11px] leading-relaxed">
-                  Your bot token will be verified via Telegram <code className="font-mono">getMe</code> and encrypted with <strong>AES-256-GCM</strong> before saving. It is never exposed in responses or logs.
+                <p className="text-[11px] leading-relaxed text-slate-300">
+                  Your bot token will be verified via Telegram <code className="font-mono text-[#38bdf8]">getMe</code> and encrypted with <strong>AES-256-GCM</strong> before saving. It is never exposed in responses or logs.
                 </p>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
                   disabled={addingBot}
-                  className="botdesk-btn text-xs py-2 px-3 border border-[var(--border)]"
+                  className="text-xs py-2 px-3.5 rounded-xl border border-slate-800 bg-[#0d121c] text-slate-300 hover:text-white cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={addingBot}
-                  className="botdesk-btn primary text-xs py-2 px-4 font-semibold"
+                  className="bg-[#38bdf8] hover:bg-[#20b3f7] active:scale-[0.98] text-slate-950 font-bold text-xs py-2 px-4 rounded-xl shadow-xs transition cursor-pointer"
                 >
                   {addingBot ? "Verifying & Adding..." : "Verify & Connect Bot"}
                 </button>
@@ -1181,39 +1246,36 @@ export function BotdeskDashboard({
 
       {/* Modal: Edit Bot / Replace Token */}
       {editingBot && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border)]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
+          <div className="botdesk-modal-anim w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[#0f1420] border border-slate-800 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
-                <h2 className="text-lg font-bold text-[var(--text)]">
+                <h2 className="text-lg font-bold text-white">
                   Edit Bot Settings
                 </h2>
-                <div className="text-xs text-[var(--muted)] font-mono mt-0.5 flex flex-wrap gap-x-3">
+                <div className="text-xs text-slate-400 font-mono mt-0.5 flex flex-wrap gap-x-3">
                   <span>@{editingBot.username}</span>
-                  <span>BackStage Bot ID: {editingBot.id}</span>
-                  {editingBot.telegramBotId && (
-                    <span>Telegram Bot ID: {editingBot.telegramBotId}</span>
-                  )}
+                  <span>ID: {editingBot.id}</span>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setEditingBot(null)}
-                className="text-xs text-[var(--muted)] hover:text-[var(--text)] font-bold cursor-pointer"
+                className="text-xs text-slate-400 hover:text-white font-bold cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
             {editError && (
-              <div className="p-3 rounded-lg bg-[var(--redbg)] border border-[var(--red)] text-xs text-[var(--red)]">
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-400">
                 ⚠️ {editError}
               </div>
             )}
 
             <form onSubmit={handleSaveEditBot} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--text)] mb-1">
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
                   Display Name
                 </label>
                 <input
@@ -1221,52 +1283,52 @@ export function BotdeskDashboard({
                   required
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="botdesk-input text-xs"
+                  className="w-full rounded-xl border border-slate-800 bg-[#0d121c] p-2.5 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
                   maxLength={64}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text)] mb-1">
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
                   Description / Notes
                 </label>
                 <input
                   type="text"
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  className="botdesk-input text-xs"
+                  className="w-full rounded-xl border border-slate-800 bg-[#0d121c] p-2.5 text-xs text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
                   maxLength={255}
                 />
               </div>
 
-              <div className="flex items-center gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-slate-800 bg-[#0d121c]">
                 <input
                   type="checkbox"
                   id="bot-active-checkbox"
                   checked={editIsActive}
                   onChange={(e) => setEditIsActive(e.target.checked)}
-                  className="accent-[var(--accent)] w-4 h-4 cursor-pointer"
+                  className="accent-[#38bdf8] w-4 h-4 cursor-pointer"
                 />
                 <label
                   htmlFor="bot-active-checkbox"
-                  className="text-xs font-semibold text-[var(--text)] cursor-pointer"
+                  className="text-xs font-semibold text-slate-200 cursor-pointer"
                 >
                   Enable bot automation (Active)
-                  <span className="block text-[11px] font-normal text-[var(--muted)]">
-                    When paused, incoming webhook updates or long polling are gracefully suspended.
+                  <span className="block text-[11px] font-normal text-slate-400">
+                    When paused, incoming updates or long polling are gracefully suspended.
                   </span>
                 </label>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-[var(--text)]">
+                  <label className="text-xs font-semibold text-slate-200">
                     Replace Telegram Bot Token (Optional)
                   </label>
                   <button
                     type="button"
                     onClick={() => setShowEditTokenText((prev) => !prev)}
-                    className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
+                    className="text-[11px] text-[#38bdf8] hover:underline cursor-pointer"
                   >
                     {showEditTokenText ? "Hide token" : "Show token"}
                   </button>
@@ -1276,32 +1338,24 @@ export function BotdeskDashboard({
                   placeholder="Leave blank to keep existing token"
                   value={editToken}
                   onChange={(e) => setEditToken(e.target.value)}
-                  className="botdesk-input text-xs font-mono"
+                  className="w-full rounded-xl border border-slate-800 bg-[#0d121c] p-2.5 text-xs font-mono text-white focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8]"
                   autoComplete="off"
                 />
-                <p className="text-[11px] text-[var(--muted)] mt-1">
-                  Current Token:{" "}
-                  <code className="font-mono text-[var(--text)]">
-                    {editingBot.hasStoredToken
-                      ? `••••${editingBot.tokenLast4 || ""}`
-                      : `ENV: ${editingBot.tokenEnvVar}`}
-                  </code>
-                </p>
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setEditingBot(null)}
                   disabled={savingEdit}
-                  className="botdesk-btn text-xs py-2 px-3 border border-[var(--border)]"
+                  className="text-xs py-2 px-3.5 rounded-xl border border-slate-800 bg-[#0d121c] text-slate-300 hover:text-white cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingEdit}
-                  className="botdesk-btn primary text-xs py-2 px-4 font-semibold"
+                  className="bg-[#38bdf8] hover:bg-[#20b3f7] active:scale-[0.98] text-slate-950 font-bold text-xs py-2 px-4 rounded-xl shadow-xs transition cursor-pointer"
                 >
                   {savingEdit ? "Saving Changes..." : "Save Changes"}
                 </button>

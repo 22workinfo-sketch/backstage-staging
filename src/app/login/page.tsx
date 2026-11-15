@@ -8,7 +8,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
 
   const [mode, setMode] = useState<"LOGIN" | "CHANGE_PASSWORD">("LOGIN");
-  const [email, setEmail] = useState("admin@local.test");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -24,19 +24,63 @@ function LoginForm() {
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      setError("Please enter your admin email.");
+      return;
+    }
+
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      let res: Response;
+      try {
+        res = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: trimmedEmail, password }),
+        });
+      } catch {
+        setError(
+          "Unable to connect to the authentication service. Please check your network connection or verify that the server is running."
+        );
+        return;
+      }
 
-      const data = await res.json();
+      let data: any = null;
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        try {
+          data = await res.json();
+        } catch {
+          // JSON parsing failed despite header
+        }
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || "Login failed");
+        if (data && typeof data.error === "string") {
+          setError(data.error);
+        } else if (res.status === 502 || res.status === 503 || res.status === 504) {
+          setError(
+            "The authentication server is temporarily unavailable. Please try again in a few moments."
+          );
+        } else if (res.status === 500) {
+          setError("Authentication service encountered an unexpected error. Please check server logs.");
+        } else {
+          setError(`Authentication request failed (${res.status} ${res.statusText || "Error"}).`);
+        }
+        return;
+      }
+
+      if (!data) {
+        setError("Received an unexpected non-JSON response from the server.");
+        return;
       }
 
       if (data.user?.mustChangePassword) {
@@ -48,7 +92,7 @@ function LoginForm() {
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Authentication error");
+      setError(err instanceof Error ? err.message : "Authentication error occurred");
     } finally {
       setLoading(false);
     }
@@ -57,6 +101,11 @@ function LoginForm() {
   const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!password) {
+      setError("Please enter your current password.");
+      return;
+    }
 
     if (newPassword.length < 8) {
       setError("New password must be at least 8 characters long.");
@@ -71,19 +120,40 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/change-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          oldPassword: password,
-          newPassword,
-        }),
-      });
+      let res: Response;
+      try {
+        res = await fetch("/api/auth/change-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            oldPassword: password,
+            newPassword,
+          }),
+        });
+      } catch {
+        setError(
+          "Unable to connect to the authentication service. Please check your network connection."
+        );
+        return;
+      }
 
-      const data = await res.json();
+      let data: any = null;
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        try {
+          data = await res.json();
+        } catch {
+          // JSON parsing failed
+        }
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to update password");
+        if (data && typeof data.error === "string") {
+          setError(data.error);
+        } else {
+          setError(`Failed to update password (${res.status} ${res.statusText || "Error"}).`);
+        }
+        return;
       }
 
       router.push("/dashboard");
@@ -127,10 +197,11 @@ function LoginForm() {
               <input
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="botdesk-input text-xs"
-                placeholder="admin@local.test"
+                placeholder="Enter your registered admin email"
               />
             </div>
 
@@ -141,10 +212,11 @@ function LoginForm() {
               <input
                 type="password"
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="botdesk-input text-xs"
-                placeholder="••••••••••••"
+                placeholder="Enter your password"
               />
             </div>
 

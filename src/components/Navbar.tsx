@@ -29,9 +29,6 @@ export function Navbar({ userEmail, role }: NavbarProps) {
               Bot Backstage
             </span>
           </Link>
-          <span className="rounded-full bg-slate-800 border border-slate-700 px-2.5 py-0.5 text-xs font-medium text-slate-400">
-            Local MVP
-          </span>
         </div>
 
         <div className="flex items-center space-x-4">
