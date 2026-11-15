@@ -126,6 +126,7 @@ export function MarketingDashboard({
   const [campaignError, setCampaignError] = useState<string | null>(null);
   const [campaignSuccess, setCampaignSuccess] = useState<string | null>(null);
   const [creatingCampaign, setCreatingCampaign] = useState<boolean>(false);
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
   // Filter channels based on selected bot
   const filteredChannels =
@@ -254,69 +255,95 @@ export function MarketingDashboard({
     }
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, slug: string) => {
     navigator.clipboard.writeText(text);
-    alert("Campaign link copied to clipboard!");
+    setCopiedSlug(slug);
+    setTimeout(() => setCopiedSlug(null), 2500);
   };
 
   return (
     <div className="space-y-6">
-      {/* Top Banner & Tab Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
+      {/* Screen Heading & Segmented Tab Navigation */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-2">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text)]">
-            Marketing Intelligence & Audience Segmentation
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-sky-500/10 text-[#38bdf8] border border-sky-500/25 mb-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> Marketing & Audience Intel
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+            Marketing Intelligence & Audience
           </h1>
-          <p className="text-xs text-[var(--muted)]">
+          <p className="text-xs text-slate-400 mt-1 max-w-2xl">
             Measure bot and channel growth, analyze permission-based audience segments, and track campaign acquisition links.
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex items-center bg-[var(--surface)] p-1 rounded-lg border border-[var(--border)]">
+        {/* Tab Switcher - Segmented Pill Control */}
+        <div className="flex items-center p-1 rounded-xl bg-[#0b0f19] border border-slate-800/80 self-start md:self-auto overflow-x-auto max-w-full">
           <button
             type="button"
             onClick={() => setActiveTab("overview")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer ${
               activeTab === "overview"
-                ? "bg-[var(--accent)] text-white shadow-sm"
-                : "text-[var(--muted)] hover:text-[var(--text)]"
+                ? "bg-[#38bdf8] text-slate-950 shadow-md shadow-sky-500/20 font-bold"
+                : "text-slate-400 hover:text-white hover:bg-[#141b2d]/60"
             }`}
           >
-            📊 Growth & Metrics
+            <span>📊</span>
+            <span>Growth & Metrics</span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("audience")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer ${
               activeTab === "audience"
-                ? "bg-[var(--accent)] text-white shadow-sm"
-                : "text-[var(--muted)] hover:text-[var(--text)]"
+                ? "bg-[#38bdf8] text-slate-950 shadow-md shadow-sky-500/20 font-bold"
+                : "text-slate-400 hover:text-white hover:bg-[#141b2d]/60"
             }`}
           >
-            👥 Audience Profiles ({audienceTotal})
+            <span>👥</span>
+            <span>Audience Profiles</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                activeTab === "audience"
+                  ? "bg-slate-950/20 text-slate-950 font-bold"
+                  : "bg-slate-800 text-slate-400"
+              }`}
+            >
+              {audienceTotal}
+            </span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab("campaigns")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer ${
               activeTab === "campaigns"
-                ? "bg-[var(--accent)] text-white shadow-sm"
-                : "text-[var(--muted)] hover:text-[var(--text)]"
+                ? "bg-[#38bdf8] text-slate-950 shadow-md shadow-sky-500/20 font-bold"
+                : "text-slate-400 hover:text-white hover:bg-[#141b2d]/60"
             }`}
           >
-            🔗 Campaign Links ({campaigns.length})
+            <span>🔗</span>
+            <span>Campaign Links</span>
+            <span
+              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                activeTab === "campaigns"
+                  ? "bg-slate-950/20 text-slate-950 font-bold"
+                  : "bg-slate-800 text-slate-400"
+              }`}
+            >
+              {campaigns.length}
+            </span>
           </button>
         </div>
       </div>
 
       {/* Global Filter Bar */}
-      <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-sm space-y-3">
+      <div className="p-4 sm:p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 shadow-xl space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Bot Selector */}
           <div>
-            <label className="block text-xs font-medium text-[var(--muted)] mb-1">
-              Select Bot
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <span>🤖</span>
+              <span>Select Bot</span>
             </label>
             <select
               value={selectedBotId}
@@ -324,11 +351,11 @@ export function MarketingDashboard({
                 setSelectedBotId(e.target.value);
                 setSelectedChannelId("all");
               }}
-              className="botdesk-input text-xs w-full py-1.5"
+              className="text-xs min-h-[38px] w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition cursor-pointer"
             >
-              <option value="all">All Assigned Bots</option>
+              <option value="all" className="bg-[#0f1420] text-white">All Assigned Bots</option>
               {bots.map((b) => (
-                <option key={b.id} value={b.id}>
+                <option key={b.id} value={b.id} className="bg-[#0f1420] text-white">
                   {b.name} (@{b.username})
                 </option>
               ))}
@@ -337,17 +364,18 @@ export function MarketingDashboard({
 
           {/* Channel Selector */}
           <div>
-            <label className="block text-xs font-medium text-[var(--muted)] mb-1">
-              Channel Filter
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <span>📢</span>
+              <span>Channel Filter</span>
             </label>
             <select
               value={selectedChannelId}
               onChange={(e) => setSelectedChannelId(e.target.value)}
-              className="botdesk-input text-xs w-full py-1.5"
+              className="text-xs min-h-[38px] w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition cursor-pointer"
             >
-              <option value="all">All Channels</option>
+              <option value="all" className="bg-[#0f1420] text-white">All Channels</option>
               {filteredChannels.map((ch) => (
-                <option key={ch.id} value={ch.id}>
+                <option key={ch.id} value={ch.id} className="bg-[#0f1420] text-white">
                   {ch.name} ({ch.telegramChatId})
                 </option>
               ))}
@@ -356,18 +384,19 @@ export function MarketingDashboard({
 
           {/* Date Range Selector */}
           <div>
-            <label className="block text-xs font-medium text-[var(--muted)] mb-1">
-              Date Range
+            <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <span>📅</span>
+              <span>Date Range</span>
             </label>
             <select
               value={selectedDateRange}
               onChange={(e) => setSelectedDateRange(e.target.value as any)}
-              className="botdesk-input text-xs w-full py-1.5"
+              className="text-xs min-h-[38px] w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition cursor-pointer"
             >
-              <option value="all">All Time (Since Tracking Inception)</option>
-              <option value="today">Today</option>
-              <option value="7d">Last 7 Days</option>
-              <option value="30d">Last 30 Days</option>
+              <option value="all" className="bg-[#0f1420] text-white">All Time (Since Tracking Inception)</option>
+              <option value="today" className="bg-[#0f1420] text-white">Today</option>
+              <option value="7d" className="bg-[#0f1420] text-white">Last 7 Days</option>
+              <option value="30d" className="bg-[#0f1420] text-white">Last 30 Days</option>
             </select>
           </div>
         </div>
@@ -379,11 +408,11 @@ export function MarketingDashboard({
       {activeTab === "overview" && (
         <div className="space-y-6">
           {/* Tracking Inception Notice */}
-          <div className="p-3.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
+          <div className="p-4 rounded-xl bg-[#0b0f19] border border-slate-800/80 text-xs text-slate-400 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-sm">
+            <div className="flex items-center gap-2.5">
               <span className="text-base">📅</span>
               <span>
-                <strong>Tracking Inception:</strong>{" "}
+                <strong className="text-slate-200">Tracking Inception:</strong>{" "}
                 {metrics.trackingStartDate
                   ? `Activity observation active since ${new Date(
                       metrics.trackingStartDate
@@ -395,7 +424,7 @@ export function MarketingDashboard({
                   : "No events recorded yet."}
               </span>
             </div>
-            <span className="text-[11px] text-[var(--muted)] italic">
+            <span className="text-[11px] text-slate-500 italic">
               {metrics.dataCompletenessNote}
             </span>
           </div>
@@ -403,193 +432,199 @@ export function MarketingDashboard({
           {/* KPI Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* New Bot Users */}
-            <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-sm space-y-1">
+            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--muted)]">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   New Bot Users
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400">
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-sky-500/10 text-[#38bdf8] border border-sky-500/25">
                   Bot
                 </span>
               </div>
-              <div className="text-2xl font-bold text-[var(--text)]">
+              <div className="text-3xl font-extrabold tracking-tight text-white group-hover:text-[#38bdf8] transition-colors">
                 {metrics.newBotUsers.toLocaleString()}
               </div>
-              <p className="text-[11px] text-[var(--muted)] leading-tight">
+              <p className="text-[11px] text-slate-400 leading-snug">
                 First-time users who initiated contact with your bot in this period.
               </p>
             </div>
 
             {/* Observed Channel Joins */}
-            <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-sm space-y-1">
+            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--muted)]">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Observed Joins
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400">
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/25">
                   Channel
                 </span>
               </div>
-              <div className="text-2xl font-bold text-emerald-400">
+              <div className="text-3xl font-extrabold tracking-tight text-emerald-400">
                 +{metrics.observedJoins.toLocaleString()}
               </div>
-              <p className="text-[11px] text-[var(--muted)] leading-tight">
+              <p className="text-[11px] text-slate-400 leading-snug">
                 Users observed joining managed channels via live Telegram updates.
               </p>
             </div>
 
             {/* Observed Channel Leaves */}
-            <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-sm space-y-1">
+            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--muted)]">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Observed Leaves / Removed
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-rose-500/10 text-rose-400">
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/25">
                   Channel
                 </span>
               </div>
-              <div className="text-2xl font-bold text-rose-400">
+              <div className="text-3xl font-extrabold tracking-tight text-rose-400">
                 -{metrics.observedLeaves.toLocaleString()}
               </div>
-              <p className="text-[11px] text-[var(--muted)] leading-tight">
+              <p className="text-[11px] text-slate-400 leading-snug">
                 Users observed leaving or removed/banned by administrators.
               </p>
             </div>
 
             {/* Net Observed Joins */}
-            <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-sm space-y-1">
+            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--muted)]">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Net Observed Joins
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400">
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/25">
                   Net Delta
                 </span>
               </div>
               <div
-                className={`text-2xl font-bold ${
+                className={`text-3xl font-extrabold tracking-tight ${
                   metrics.netObservedJoins >= 0 ? "text-emerald-400" : "text-rose-400"
                 }`}
               >
                 {metrics.netObservedJoins >= 0 ? "+" : ""}
                 {metrics.netObservedJoins.toLocaleString()}
               </div>
-              <p className="text-[11px] text-[var(--muted)] leading-tight">
+              <p className="text-[11px] text-slate-400 leading-snug">
                 Observed Joins minus Leaves. Represents event delta, not total subscriber count.
               </p>
             </div>
 
             {/* Channel Link Selectors */}
-            <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-sm space-y-1">
+            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--muted)]">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Unique Channel Selectors
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-purple-500/10 text-purple-400">
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/25">
                   Intent
                 </span>
               </div>
-              <div className="text-2xl font-bold text-purple-400">
+              <div className="text-3xl font-extrabold tracking-tight text-purple-400">
                 {metrics.uniqueChannelSelectors.toLocaleString()}
               </div>
-              <p className="text-[11px] text-[var(--muted)] leading-tight">
+              <p className="text-[11px] text-slate-400 leading-snug">
                 Distinct users who tapped an official channel join button in your bot.
               </p>
             </div>
 
             {/* Verified Channel Members */}
-            <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-sm space-y-1">
+            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-[var(--muted)]">
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Confirmed Members
                 </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-blue-500/10 text-blue-400">
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-mono font-semibold bg-sky-500/10 text-[#38bdf8] border border-sky-500/25">
                   Verified
                 </span>
               </div>
-              <div className="text-2xl font-bold text-blue-400">
+              <div className="text-3xl font-extrabold tracking-tight text-[#38bdf8]">
                 {metrics.uniqueMembershipConfirmed.toLocaleString()}
               </div>
-              <p className="text-[11px] text-[var(--muted)] leading-tight">
+              <p className="text-[11px] text-slate-400 leading-snug">
                 Distinct users whose membership was actively verified by bot check.
               </p>
             </div>
           </div>
 
           {/* Marketing Consent Breakdown */}
-          <div className="p-5 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-sm space-y-4">
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#0f1420] border border-slate-800/80 shadow-xl space-y-4">
             <div>
-              <h3 className="text-sm font-bold text-[var(--text)]">
-                Marketing Consent & Eligibility Distribution
-              </h3>
-              <p className="text-xs text-[var(--muted)]">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🛡️</span>
+                <h3 className="text-sm font-bold text-white">
+                  Marketing Consent & Eligibility Distribution
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
                 In strict compliance with privacy standards, only explicit opt-ins are marked eligible.
                 Starting the bot or joining a channel does NOT constitute marketing consent.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] space-y-1">
+              <div className="p-4 rounded-xl bg-[#0b0f19] border border-emerald-500/20 space-y-1.5 shadow-sm">
                 <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   Explicitly Opted In
                 </div>
-                <div className="text-xl font-bold text-[var(--text)]">
+                <div className="text-2xl font-extrabold text-white">
                   {metrics.marketingConsent.optedIn.toLocaleString()}
                 </div>
-                <span className="text-[10px] text-[var(--muted)]">
+                <span className="text-[11px] text-emerald-300/80 block">
                   Eligible for future broadcasts via /optin
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] space-y-1">
+              <div className="p-4 rounded-xl bg-[#0b0f19] border border-rose-500/20 space-y-1.5 shadow-sm">
                 <div className="text-xs font-semibold text-rose-400 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-rose-400" />
                   Opted Out / Revoked
                 </div>
-                <div className="text-xl font-bold text-[var(--text)]">
+                <div className="text-2xl font-extrabold text-white">
                   {metrics.marketingConsent.optedOut.toLocaleString()}
                 </div>
-                <span className="text-[10px] text-[var(--muted)]">
+                <span className="text-[11px] text-rose-300/80 block">
                   Excluded from all marketing via /optout
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] space-y-1">
+              <div className="p-4 rounded-xl bg-[#0b0f19] border border-slate-800/80 space-y-1.5 shadow-sm">
                 <div className="text-xs font-semibold text-slate-400 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-slate-400" />
+                  <span className="w-2 h-2 rounded-full bg-slate-500" />
                   Unspecified (No Consent)
                 </div>
-                <div className="text-xl font-bold text-[var(--text)]">
+                <div className="text-2xl font-extrabold text-white">
                   {metrics.marketingConsent.unspecified.toLocaleString()}
                 </div>
-                <span className="text-[10px] text-[var(--muted)]">
-                  Protected: Excluded from broadcasts until explicit opt-in
+                <span className="text-[11px] text-slate-400 block">
+                  Protected: Excluded until explicit opt-in
                 </span>
               </div>
             </div>
           </div>
 
           {/* Growth Trend Timeline */}
-          <div className="p-5 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-sm space-y-4">
+          <div className="p-5 sm:p-6 rounded-2xl bg-[#0f1420] border border-slate-800/80 shadow-xl space-y-4">
             <div>
-              <h3 className="text-sm font-bold text-[var(--text)]">
-                Observed Channel Growth Timeline
-              </h3>
-              <p className="text-xs text-[var(--muted)]">
+              <div className="flex items-center gap-2">
+                <span className="text-base">📈</span>
+                <h3 className="text-sm font-bold text-white">
+                  Observed Channel Growth Timeline
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
                 Daily timeline of observed channel joins versus departures.
               </p>
             </div>
 
             {metrics.growthTrend.length === 0 ? (
-              <div className="p-8 text-center text-xs text-[var(--muted)]">
+              <div className="py-12 text-center text-xs text-slate-500 border border-dashed border-slate-800/80 rounded-xl bg-[#0b0f19]/40">
                 No join/leave activity recorded in this period.
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <div className="min-w-[500px] flex items-end gap-2 h-44 pt-6 border-b border-[var(--border)] pb-2 px-2">
+                <div className="min-w-[500px] flex items-end gap-2 h-48 pt-6 border-b border-slate-800 pb-2 px-2 bg-[#0b0f19]/30 rounded-xl">
                   {metrics.growthTrend.map((t) => {
-                    const maxHeight = 100;
+                    const maxHeight = 120;
                     const maxVal = Math.max(
                       1,
                       ...metrics.growthTrend.map((x) => Math.max(x.joins, x.leaves))
@@ -602,37 +637,37 @@ export function MarketingDashboard({
                         key={t.date}
                         className="flex-1 flex flex-col items-center gap-1 h-full justify-end group"
                       >
-                        <div className="text-[10px] font-mono text-[var(--muted)] opacity-0 group-hover:opacity-100 transition-opacity">
-                          +{t.joins}/-{t.leaves}
+                        <div className="text-[10px] font-mono text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                          +{t.joins} / -{t.leaves}
                         </div>
-                        <div className="w-full flex items-end justify-center gap-0.5">
+                        <div className="w-full flex items-end justify-center gap-1">
                           {/* Joins Bar */}
                           <div
                             style={{ height: `${Math.max(4, joinH)}px` }}
-                            className="w-1/2 bg-emerald-500/80 rounded-t-sm"
+                            className="w-1/2 bg-emerald-500/85 hover:bg-emerald-400 rounded-t-sm transition-all"
                             title={`${t.date}: +${t.joins} joins`}
                           />
                           {/* Leaves Bar */}
                           <div
                             style={{ height: `${Math.max(4, leaveH)}px` }}
-                            className="w-1/2 bg-rose-500/80 rounded-t-sm"
+                            className="w-1/2 bg-rose-500/85 hover:bg-rose-400 rounded-t-sm transition-all"
                             title={`${t.date}: -${t.leaves} leaves`}
                           />
                         </div>
-                        <span className="text-[10px] text-[var(--muted)] font-mono whitespace-nowrap mt-1">
+                        <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap mt-1">
                           {t.date.slice(5)}
                         </span>
                       </div>
                     );
                   })}
                 </div>
-                <div className="flex items-center justify-center gap-6 pt-3 text-xs text-[var(--muted)]">
+                <div className="flex items-center justify-center gap-6 pt-4 text-xs text-slate-400">
                   <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-sm bg-emerald-500/80" />
+                    <span className="w-3 h-3 rounded-sm bg-emerald-500/85" />
                     <span>Observed Joins</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-sm bg-rose-500/80" />
+                    <span className="w-3 h-3 rounded-sm bg-rose-500/85" />
                     <span>Observed Leaves</span>
                   </div>
                 </div>
@@ -648,11 +683,11 @@ export function MarketingDashboard({
       {activeTab === "audience" && (
         <div className="space-y-4">
           {/* Audience Filter Bar */}
-          <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-sm space-y-3">
+          <div className="p-4 sm:p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 shadow-xl space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               {/* Marketing Consent Filter */}
               <div>
-                <label className="block text-xs font-medium text-[var(--muted)] mb-1">
+                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                   Consent Status
                 </label>
                 <select
@@ -661,18 +696,18 @@ export function MarketingDashboard({
                     setAudienceConsent(e.target.value);
                     setAudiencePage(1);
                   }}
-                  className="botdesk-input text-xs w-full py-1.5"
+                  className="text-xs min-h-[38px] w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition cursor-pointer"
                 >
-                  <option value="all">All Consent Types</option>
-                  <option value="OPTED_IN">🟢 Explicitly Opted In</option>
-                  <option value="OPTED_OUT">🔴 Opted Out / Revoked</option>
-                  <option value="UNSPECIFIED">⚪ Unspecified (No Consent)</option>
+                  <option value="all" className="bg-[#0f1420] text-white">All Consent Types</option>
+                  <option value="OPTED_IN" className="bg-[#0f1420] text-white">🟢 Explicitly Opted In</option>
+                  <option value="OPTED_OUT" className="bg-[#0f1420] text-white">🔴 Opted Out / Revoked</option>
+                  <option value="UNSPECIFIED" className="bg-[#0f1420] text-white">⚪ Unspecified (No Consent)</option>
                 </select>
               </div>
 
               {/* Campaign Source Filter */}
               <div>
-                <label className="block text-xs font-medium text-[var(--muted)] mb-1">
+                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                   Campaign Source
                 </label>
                 <select
@@ -681,11 +716,11 @@ export function MarketingDashboard({
                     setAudienceCampaign(e.target.value);
                     setAudiencePage(1);
                   }}
-                  className="botdesk-input text-xs w-full py-1.5"
+                  className="text-xs min-h-[38px] w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition cursor-pointer"
                 >
-                  <option value="all">All Campaign Sources</option>
+                  <option value="all" className="bg-[#0f1420] text-white">All Campaign Sources</option>
                   {campaigns.map((c) => (
-                    <option key={c.slug} value={c.slug}>
+                    <option key={c.slug} value={c.slug} className="bg-[#0f1420] text-white">
                       {c.name} ({c.slug})
                     </option>
                   ))}
@@ -694,7 +729,7 @@ export function MarketingDashboard({
 
               {/* Search */}
               <div className="sm:col-span-2">
-                <label className="block text-xs font-medium text-[var(--muted)] mb-1">
+                <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
                   Search Audience
                 </label>
                 <div className="relative">
@@ -706,9 +741,9 @@ export function MarketingDashboard({
                       setAudienceSearch(e.target.value);
                       setAudiencePage(1);
                     }}
-                    className="botdesk-input text-xs w-full py-1.5 pl-8"
+                    className="text-xs min-h-[38px] w-full py-2 pl-9 pr-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition"
                   />
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs">
                     🔍
                   </span>
                 </div>
@@ -717,37 +752,38 @@ export function MarketingDashboard({
           </div>
 
           {/* Privacy & Methodology Callout */}
-          <div className="p-3.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--muted)] space-y-1">
-            <div className="font-semibold text-[var(--text)] flex items-center gap-1.5">
-              <span>🛡️</span> Audience Integrity & Privacy Protections
+          <div className="p-4 rounded-xl bg-[#0b0f19] border border-slate-800/80 text-xs text-slate-300 space-y-1.5 shadow-sm">
+            <div className="font-semibold text-white flex items-center gap-2">
+              <span>🛡️</span>
+              <span>Audience Integrity & Privacy Protections</span>
             </div>
-            <ul className="list-disc list-inside space-y-0.5 pl-1">
+            <ul className="list-disc list-inside space-y-1 pl-1 text-[11px] text-slate-400">
               <li>
-                <strong>Unique User Integrity:</strong> Each Telegram user is represented as <strong>1 unique profile</strong> regardless of how many channels they interact with.
+                <strong className="text-slate-200">Unique User Integrity:</strong> Each Telegram user is represented as <strong>1 unique profile</strong> regardless of how many channels they interact with.
               </li>
               <li>
-                <strong>Point-in-Time Observations:</strong> Channel badges indicate the <em>last observed state</em> and timestamp. They are not guaranteed real-time unless re-verified.
+                <strong className="text-slate-200">Point-in-Time Observations:</strong> Channel badges indicate the <em>last observed state</em> and timestamp. They are not guaranteed real-time unless re-verified.
               </li>
               <li>
-                <strong>Privacy by Design:</strong> Phone numbers are never exposed in marketing audience lists.
+                <strong className="text-slate-200">Privacy by Design:</strong> Phone numbers are never exposed in marketing audience lists.
               </li>
             </ul>
           </div>
 
           {/* Audience Table */}
-          <div className="rounded-xl bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-sm">
+          <div className="rounded-2xl bg-[#0f1420] border border-slate-800/80 overflow-hidden shadow-xl">
             {loadingAudience ? (
-              <div className="p-12 text-center text-xs text-[var(--muted)]">
-                <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent mb-2" />
+              <div className="py-16 text-center text-xs text-slate-400">
+                <div className="inline-block animate-spin rounded-full h-7 w-7 border-2 border-[#38bdf8] border-t-transparent mb-3" />
                 <p>Loading audience profiles...</p>
               </div>
             ) : audience.length === 0 ? (
-              <div className="p-12 text-center space-y-2">
+              <div className="py-16 text-center space-y-2">
                 <span className="text-3xl block">👥</span>
-                <h3 className="text-sm font-semibold text-[var(--text)]">
+                <h3 className="text-sm font-semibold text-white">
                   No audience profiles match filters
                 </h3>
-                <p className="text-xs text-[var(--muted)] max-w-sm mx-auto">
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
                   Try broadening your search or adjusting consent filters.
                 </p>
               </div>
@@ -755,54 +791,54 @@ export function MarketingDashboard({
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] uppercase font-mono tracking-wider text-[10px]">
-                      <th className="py-2.5 px-3">User Profile</th>
-                      <th className="py-2.5 px-3">Bot</th>
-                      <th className="py-2.5 px-3">Associated Channels & Last Status</th>
-                      <th className="py-2.5 px-3">Consent Status</th>
-                      <th className="py-2.5 px-3">Campaign Source</th>
-                      <th className="py-2.5 px-3">First Seen</th>
-                      <th className="py-2.5 px-3">Last Active</th>
+                    <tr className="border-b border-slate-800 bg-[#0b0f19] text-slate-400 font-mono tracking-wider text-[10px] uppercase">
+                      <th className="py-3 px-4 font-semibold">User Profile</th>
+                      <th className="py-3 px-4 font-semibold">Bot</th>
+                      <th className="py-3 px-4 font-semibold">Associated Channels & Last Status</th>
+                      <th className="py-3 px-4 font-semibold">Consent Status</th>
+                      <th className="py-3 px-4 font-semibold">Campaign Source</th>
+                      <th className="py-3 px-4 font-semibold">First Seen</th>
+                      <th className="py-3 px-4 font-semibold">Last Active</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--border)]">
+                  <tbody className="divide-y divide-slate-800/80">
                     {audience.map((u) => (
                       <tr
                         key={u.id}
-                        className="hover:bg-[var(--surface)]/50 transition-colors"
+                        className="hover:bg-[#141b2d]/50 transition-colors"
                       >
                         {/* User Profile */}
-                        <td className="py-3 px-3">
-                          <div className="font-semibold text-[var(--text)] truncate max-w-[160px]">
+                        <td className="py-3.5 px-4">
+                          <div className="font-semibold text-white truncate max-w-[160px]">
                             {u.displayName}
                           </div>
-                          <div className="text-[11px] text-[var(--muted)] font-mono">
+                          <div className="text-[11px] text-slate-400 font-mono">
                             ID: {u.telegramId}
                           </div>
                         </td>
 
                         {/* Bot */}
-                        <td className="py-3 px-3 whitespace-nowrap text-[var(--text)]">
-                          <span>{u.botName}</span>
-                          <span className="block text-[11px] text-[var(--muted)] font-mono">
+                        <td className="py-3.5 px-4 whitespace-nowrap text-white">
+                          <span className="font-medium">{u.botName}</span>
+                          <span className="block text-[11px] text-slate-400 font-mono">
                             @{u.botUsername}
                           </span>
                         </td>
 
                         {/* Channels */}
-                        <td className="py-3 px-3 max-w-[220px]">
+                        <td className="py-3.5 px-4 max-w-[220px]">
                           {u.associatedChannels.length === 0 ? (
-                            <span className="text-slate-500">None observed</span>
+                            <span className="text-slate-500 font-mono text-[11px]">None observed</span>
                           ) : (
                             <div className="flex flex-wrap gap-1">
                               {u.associatedChannels.map((ch, idx) => (
                                 <span
                                   key={idx}
-                                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono border ${
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono border ${
                                     ch.latestStatus === "member"
-                                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/25"
                                       : ch.latestStatus === "left" || ch.latestStatus === "kicked"
-                                      ? "bg-rose-500/10 text-rose-400 border-rose-500/20"
+                                      ? "bg-rose-500/10 text-rose-400 border-rose-500/25"
                                       : "bg-slate-800 text-slate-300 border-slate-700"
                                   }`}
                                   title={`Last observed: ${new Date(
@@ -817,34 +853,34 @@ export function MarketingDashboard({
                         </td>
 
                         {/* Consent Status */}
-                        <td className="py-3 px-3 whitespace-nowrap">
+                        <td className="py-3.5 px-4 whitespace-nowrap">
                           {u.marketingConsent === "OPTED_IN" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                               Opted In
                             </span>
                           ) : u.marketingConsent === "OPTED_OUT" ||
                             u.marketingConsent === "REVOKED" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
                               Opted Out
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800/80 text-slate-400 border border-slate-700/80">
                               No Consent
                             </span>
                           )}
                           {u.marketingConsentSource && (
-                            <span className="block text-[10px] text-[var(--muted)] font-mono">
+                            <span className="block text-[10px] text-slate-400 font-mono mt-0.5">
                               via {u.marketingConsentSource}
                             </span>
                           )}
                         </td>
 
                         {/* Campaign Source */}
-                        <td className="py-3 px-3 text-[var(--muted)] font-mono text-[11px] whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-slate-400 font-mono text-[11px] whitespace-nowrap">
                           {u.firstCampaignSource ? (
-                            <span className="px-1.5 py-0.5 rounded bg-[var(--surface)] border border-[var(--border)] text-[var(--accent)]">
+                            <span className="px-2 py-0.5 rounded-md bg-[#0c2538] border border-sky-500/30 text-[#38bdf8] font-semibold">
                               c_{u.firstCampaignSource}
                             </span>
                           ) : (
@@ -853,12 +889,12 @@ export function MarketingDashboard({
                         </td>
 
                         {/* First Seen */}
-                        <td className="py-3 px-3 whitespace-nowrap text-[var(--muted)] font-mono text-[11px]">
+                        <td className="py-3.5 px-4 whitespace-nowrap text-slate-400 font-mono text-[11px]">
                           {new Date(u.firstSeenAt).toLocaleDateString()}
                         </td>
 
                         {/* Last Active */}
-                        <td className="py-3 px-3 whitespace-nowrap text-[var(--muted)] font-mono text-[11px]">
+                        <td className="py-3.5 px-4 whitespace-nowrap text-slate-400 font-mono text-[11px]">
                           {new Date(u.lastSeenAt).toLocaleDateString()}
                         </td>
                       </tr>
@@ -870,28 +906,28 @@ export function MarketingDashboard({
 
             {/* Pagination */}
             {audiencePages > 1 && (
-              <div className="p-3 border-t border-[var(--border)] bg-[var(--surface)]/30 flex items-center justify-between text-xs">
-                <span className="text-[var(--muted)]">
+              <div className="p-4 border-t border-slate-800 bg-[#0b0f19] flex items-center justify-between text-xs">
+                <span className="text-slate-400">
                   Showing {(audiencePage - 1) * 20 + 1}–
                   {Math.min(audiencePage * 20, audienceTotal)} of {audienceTotal} profiles
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setAudiencePage((p) => Math.max(1, p - 1))}
                     disabled={audiencePage <= 1 || loadingAudience}
-                    className="botdesk-btn text-xs py-1 px-2.5 disabled:opacity-40"
+                    className="px-3 py-1.5 rounded-xl bg-[#141b2d] border border-slate-800 text-slate-300 hover:text-white hover:bg-[#1a233a] disabled:opacity-40 transition cursor-pointer"
                   >
                     Previous
                   </button>
-                  <span className="px-2 font-mono text-[var(--text)]">
+                  <span className="px-2 font-mono text-white font-medium">
                     {audiencePage} / {audiencePages}
                   </span>
                   <button
                     type="button"
                     onClick={() => setAudiencePage((p) => Math.min(audiencePages, p + 1))}
                     disabled={audiencePage >= audiencePages || loadingAudience}
-                    className="botdesk-btn text-xs py-1 px-2.5 disabled:opacity-40"
+                    className="px-3 py-1.5 rounded-xl bg-[#141b2d] border border-slate-800 text-slate-300 hover:text-white hover:bg-[#1a233a] disabled:opacity-40 transition cursor-pointer"
                   >
                     Next
                   </button>
@@ -907,40 +943,51 @@ export function MarketingDashboard({
       {/* ======================================================== */}
       {activeTab === "campaigns" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h3 className="text-sm font-bold text-[var(--text)]">
-                Acquisition Campaigns & Deep Tracking Links
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <span>🔗</span>
+                <span>Acquisition Campaigns & Deep Tracking Links</span>
               </h3>
-              <p className="text-xs text-[var(--muted)]">
-                Generate Telegram deep links (<code className="font-mono">t.me/Bot?start=c_slug</code>) to attribute incoming bot starts and downstream channel growth.
+              <p className="text-xs text-slate-400 mt-0.5">
+                Generate Telegram deep links (<code className="font-mono text-[#38bdf8] bg-[#0c2538] px-1 py-0.5 rounded border border-sky-500/25">t.me/Bot?start=c_slug</code>) to attribute incoming bot starts and downstream channel growth.
               </p>
             </div>
 
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="botdesk-btn primary text-xs py-1.5 px-3"
+              className="inline-flex items-center gap-1.5 text-xs py-2 px-4 rounded-xl font-bold bg-[#38bdf8] text-slate-950 hover:bg-[#20b3f7] active:scale-[0.98] transition shadow-md shadow-sky-500/20 cursor-pointer self-start sm:self-auto"
             >
-              + Create Campaign Link
+              <span>＋ Create Campaign Link</span>
             </button>
           </div>
 
           {campaignSuccess && (
-            <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs">
-              {campaignSuccess}
+            <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-800/60 text-emerald-200 text-xs flex items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center gap-2">
+                <span>✅</span>
+                <span className="font-medium">{campaignSuccess}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCampaignSuccess(null)}
+                className="text-xs opacity-70 hover:opacity-100 p-1 cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
           )}
 
           {/* Campaigns Table */}
-          <div className="rounded-xl bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-sm">
+          <div className="rounded-2xl bg-[#0f1420] border border-slate-800/80 overflow-hidden shadow-xl">
             {campaigns.length === 0 ? (
-              <div className="p-12 text-center space-y-2">
+              <div className="py-16 text-center space-y-2">
                 <span className="text-3xl block">🔗</span>
-                <h3 className="text-sm font-semibold text-[var(--text)]">
+                <h3 className="text-sm font-semibold text-white">
                   No campaigns created yet
                 </h3>
-                <p className="text-xs text-[var(--muted)] max-w-sm mx-auto">
+                <p className="text-xs text-slate-400 max-w-sm mx-auto">
                   Create your first tracking link to start measuring promotional campaign performance.
                 </p>
               </div>
@@ -948,64 +995,68 @@ export function MarketingDashboard({
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] uppercase font-mono tracking-wider text-[10px]">
-                      <th className="py-2.5 px-3">Campaign Name & Slug</th>
-                      <th className="py-2.5 px-3">Bot</th>
-                      <th className="py-2.5 px-3">Deep Link</th>
-                      <th className="py-2.5 px-3">Target Channel</th>
-                      <th className="py-2.5 px-3">Clicks</th>
-                      <th className="py-2.5 px-3">Unique Starts</th>
-                      <th className="py-2.5 px-3">Created</th>
+                    <tr className="border-b border-slate-800 bg-[#0b0f19] text-slate-400 font-mono tracking-wider text-[10px] uppercase">
+                      <th className="py-3 px-4 font-semibold">Campaign Name & Slug</th>
+                      <th className="py-3 px-4 font-semibold">Bot</th>
+                      <th className="py-3 px-4 font-semibold">Deep Link</th>
+                      <th className="py-3 px-4 font-semibold">Target Channel</th>
+                      <th className="py-3 px-4 font-semibold">Clicks</th>
+                      <th className="py-3 px-4 font-semibold">Unique Starts</th>
+                      <th className="py-3 px-4 font-semibold">Created</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--border)]">
+                  <tbody className="divide-y divide-slate-800/80">
                     {campaigns.map((c) => (
                       <tr
                         key={c.id}
-                        className="hover:bg-[var(--surface)]/50 transition-colors"
+                        className="hover:bg-[#141b2d]/50 transition-colors"
                       >
-                        <td className="py-3 px-3">
-                          <div className="font-semibold text-[var(--text)]">
+                        <td className="py-3.5 px-4">
+                          <div className="font-semibold text-white">
                             {c.name}
                           </div>
-                          <div className="text-[11px] text-[var(--muted)] font-mono">
-                            slug: c_{c.slug}
+                          <div className="text-[11px] text-slate-400 font-mono">
+                            slug: <span className="text-[#38bdf8]">c_{c.slug}</span>
                           </div>
                         </td>
 
-                        <td className="py-3 px-3 whitespace-nowrap text-[var(--text)]">
+                        <td className="py-3.5 px-4 whitespace-nowrap text-white font-medium">
                           {c.botName}
                         </td>
 
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-[11px] text-[var(--accent)] truncate max-w-[200px]">
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[11px] text-[#38bdf8] truncate max-w-[200px] bg-[#0c2538] px-2 py-0.5 rounded border border-sky-500/25">
                               {c.deepLink}
                             </span>
                             <button
                               type="button"
-                              onClick={() => copyToClipboard(c.deepLink)}
-                              className="botdesk-btn text-[10px] py-0.5 px-1.5"
-                              title="Copy Telegram Link"
+                              onClick={() => copyToClipboard(c.deepLink, c.slug)}
+                              className={`text-[11px] py-1 px-2.5 rounded-lg border font-medium transition cursor-pointer ${
+                                copiedSlug === c.slug
+                                  ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                                  : "bg-[#141b2d] text-slate-300 border-slate-800 hover:text-white hover:bg-[#1a233a]"
+                              }`}
+                              title="Copy Telegram Deep Link"
                             >
-                              Copy
+                              {copiedSlug === c.slug ? "✓ Copied" : "Copy"}
                             </button>
                           </div>
                         </td>
 
-                        <td className="py-3 px-3 text-[var(--muted)]">
+                        <td className="py-3.5 px-4 text-slate-400">
                           {c.targetChannelName || "General Bot Onboarding"}
                         </td>
 
-                        <td className="py-3 px-3 font-semibold text-[var(--text)]">
+                        <td className="py-3.5 px-4 font-semibold text-white">
                           {c.clicksCount}
                         </td>
 
-                        <td className="py-3 px-3 font-semibold text-emerald-400">
+                        <td className="py-3.5 px-4 font-semibold text-emerald-400">
                           {c.uniqueStartsCount}
                         </td>
 
-                        <td className="py-3 px-3 text-[var(--muted)] font-mono text-[11px] whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-slate-400 font-mono text-[11px] whitespace-nowrap">
                           {new Date(c.createdAt).toLocaleDateString()}
                         </td>
                       </tr>
@@ -1017,19 +1068,20 @@ export function MarketingDashboard({
           </div>
 
           {/* Attribution Rules Guidance */}
-          <div className="p-4 rounded-xl bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--muted)] space-y-2">
-            <h4 className="font-semibold text-[var(--text)]">
-              ℹ️ Campaign Source Attribution Rules
+          <div className="p-5 rounded-2xl bg-[#0b0f19] border border-slate-800/80 text-xs text-slate-300 space-y-2 shadow-sm">
+            <h4 className="font-semibold text-white flex items-center gap-2">
+              <span>ℹ️</span>
+              <span>Campaign Source Attribution Rules</span>
             </h4>
-            <ul className="list-disc list-inside space-y-1 pl-1">
+            <ul className="list-disc list-inside space-y-1 pl-1 text-[11px] text-slate-400">
               <li>
-                <strong>First-Touch Attribution:</strong> When a user starts the bot for the first time via <code className="font-mono font-bold">t.me/Bot?start=c_slug</code>, that campaign slug is permanently stored on their profile.
+                <strong className="text-slate-200">First-Touch Attribution:</strong> When a user starts the bot for the first time via <code className="font-mono text-[#38bdf8]">t.me/Bot?start=c_slug</code>, that campaign slug is permanently stored on their profile.
               </li>
               <li>
-                <strong>Return-Touch Attribution:</strong> Returning users starting via campaign links have each touch recorded in the campaign ledger with timestamp.
+                <strong className="text-slate-200">Return-Touch Attribution:</strong> Returning users starting via campaign links have each touch recorded in the campaign ledger with timestamp.
               </li>
               <li>
-                <strong>Channel Join Attribution Integrity:</strong> A channel join is only credited to a campaign if the user actively interacted with the campaign within the attribution window. Organic or direct joins are never falsely credited.
+                <strong className="text-slate-200">Channel Join Attribution Integrity:</strong> A channel join is only credited to a campaign if the user actively interacted with the campaign within the attribution window. Organic or direct joins are never falsely credited.
               </li>
             </ul>
           </div>
@@ -1038,40 +1090,42 @@ export function MarketingDashboard({
 
       {/* CREATE CAMPAIGN MODAL */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="w-full max-w-md rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-[var(--text)]">
-                Create Campaign Tracking Link
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#0f1420] border border-slate-700/80 p-6 sm:p-7 shadow-2xl space-y-5 text-white">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <span>🔗</span>
+                <span>Create Campaign Tracking Link</span>
               </h3>
               <button
                 type="button"
                 onClick={() => setShowCreateModal(false)}
-                className="text-[var(--muted)] hover:text-[var(--text)] text-sm"
+                className="text-slate-400 hover:text-white text-base p-1 cursor-pointer transition"
               >
                 ✕
               </button>
             </div>
 
             {campaignError && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs">
-                {campaignError}
+              <div className="p-3.5 rounded-xl bg-rose-950/50 border border-rose-800/80 text-rose-200 text-xs flex items-center gap-2">
+                <span>⚠️</span>
+                <span>{campaignError}</span>
               </div>
             )}
 
-            <form onSubmit={handleCreateCampaign} className="space-y-3 text-xs">
+            <form onSubmit={handleCreateCampaign} className="space-y-4 text-xs">
               <div>
-                <label className="block text-[var(--muted)] font-medium mb-1">
+                <label className="block text-slate-400 font-semibold mb-1.5 uppercase tracking-wider text-[11px]">
                   Target Bot
                 </label>
                 <select
                   value={newCampBotId}
                   onChange={(e) => setNewCampBotId(e.target.value)}
-                  className="botdesk-input w-full text-xs py-1.5"
+                  className="text-xs min-h-[38px] w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition cursor-pointer"
                   required
                 >
                   {bots.map((b) => (
-                    <option key={b.id} value={b.id}>
+                    <option key={b.id} value={b.id} className="bg-[#0f1420] text-white">
                       {b.name} (@{b.username})
                     </option>
                   ))}
@@ -1079,7 +1133,7 @@ export function MarketingDashboard({
               </div>
 
               <div>
-                <label className="block text-[var(--muted)] font-medium mb-1">
+                <label className="block text-slate-400 font-semibold mb-1.5 uppercase tracking-wider text-[11px]">
                   Campaign Name
                 </label>
                 <input
@@ -1087,17 +1141,19 @@ export function MarketingDashboard({
                   placeholder="e.g. Summer Promo 2026"
                   value={newCampName}
                   onChange={(e) => setNewCampName(e.target.value)}
-                  className="botdesk-input w-full text-xs py-1.5"
+                  className="text-xs min-h-[38px] w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-[var(--muted)] font-medium mb-1">
+                <label className="block text-slate-400 font-semibold mb-1.5 uppercase tracking-wider text-[11px]">
                   URL Slug (unique, lowercase, alphanumeric, 2-32 chars)
                 </label>
-                <div className="flex items-center gap-1">
-                  <span className="font-mono text-[var(--muted)]">?start=c_</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-mono text-xs text-slate-400 bg-[#0d121c] border border-slate-800 px-2.5 py-2 rounded-xl">
+                    ?start=c_
+                  </span>
                   <input
                     type="text"
                     placeholder="summer26"
@@ -1107,26 +1163,26 @@ export function MarketingDashboard({
                         e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "")
                       )
                     }
-                    className="botdesk-input flex-1 text-xs py-1.5 font-mono"
+                    className="text-xs min-h-[38px] flex-1 py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-mono placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition"
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[var(--muted)] font-medium mb-1">
+                <label className="block text-slate-400 font-semibold mb-1.5 uppercase tracking-wider text-[11px]">
                   Target Channel (Optional)
                 </label>
                 <select
                   value={newCampChannelId}
                   onChange={(e) => setNewCampChannelId(e.target.value)}
-                  className="botdesk-input w-full text-xs py-1.5"
+                  className="text-xs min-h-[38px] w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white font-medium focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition cursor-pointer"
                 >
-                  <option value="">General Bot Onboarding (No Specific Channel)</option>
+                  <option value="" className="bg-[#0f1420] text-white">General Bot Onboarding (No Specific Channel)</option>
                   {channels
                     .filter((ch) => ch.botId === newCampBotId)
                     .map((ch) => (
-                      <option key={ch.id} value={ch.id}>
+                      <option key={ch.id} value={ch.id} className="bg-[#0f1420] text-white">
                         {ch.name} ({ch.telegramChatId})
                       </option>
                     ))}
@@ -1134,29 +1190,29 @@ export function MarketingDashboard({
               </div>
 
               <div>
-                <label className="block text-[var(--muted)] font-medium mb-1">
+                <label className="block text-slate-400 font-semibold mb-1.5 uppercase tracking-wider text-[11px]">
                   Description / Notes (Optional)
                 </label>
                 <textarea
                   placeholder="Notes about placement (e.g. Twitter post, influencer partnership)..."
                   value={newCampDesc}
                   onChange={(e) => setNewCampDesc(e.target.value)}
-                  className="botdesk-input w-full text-xs py-1.5 h-16 resize-none"
+                  className="text-xs w-full py-2 px-3 rounded-xl bg-[#0d121c] border border-slate-800 text-white placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition h-20 resize-none"
                 />
               </div>
 
-              <div className="flex justify-end gap-2 pt-3 border-t border-[var(--border)]">
+              <div className="flex justify-end gap-2.5 pt-4 border-t border-slate-800">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="botdesk-btn text-xs py-1.5 px-3"
+                  className="px-4 py-2 rounded-xl bg-[#141b2d] border border-slate-800 text-slate-300 hover:text-white hover:bg-[#1a233a] font-semibold transition cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creatingCampaign}
-                  className="botdesk-btn primary text-xs py-1.5 px-3"
+                  className="px-5 py-2 rounded-xl font-bold bg-[#38bdf8] text-slate-950 hover:bg-[#20b3f7] active:scale-[0.98] transition shadow-md shadow-sky-500/20 disabled:opacity-50 cursor-pointer"
                 >
                   {creatingCampaign ? "Creating..." : "Create Link"}
                 </button>
