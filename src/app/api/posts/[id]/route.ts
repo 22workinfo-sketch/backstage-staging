@@ -6,6 +6,7 @@ import {
   updateDraftPost,
   deletePost,
   UpdatePostInput,
+  PostType,
 } from "@/lib/post-service";
 import {
   validateAndParseZonedDateTime,
@@ -105,7 +106,11 @@ export async function PUT(
           ? "VIDEO"
           : body.postType === "IMAGE"
           ? "IMAGE"
-          : "TEXT",
+          : body.postType === "TELEGRAM_VIDEO"
+          ? "TELEGRAM_VIDEO"
+          : body.postType === "TEXT"
+          ? "TEXT"
+          : (existing.postType as PostType),
       content: body.content !== undefined ? body.content : existing.content,
       mediaPath: body.mediaPath !== undefined ? body.mediaPath : existing.mediaPath,
       mediaOriginalName: body.mediaOriginalName !== undefined ? body.mediaOriginalName : existing.mediaOriginalName,
@@ -125,6 +130,38 @@ export async function PUT(
         body.sendAsDocument !== undefined
           ? Boolean(body.sendAsDocument)
           : existing.sendAsDocument,
+      telegramAssetId:
+        body.telegramAssetId !== undefined
+          ? body.telegramAssetId
+          : existing.telegramAssetId,
+      telegramFileId:
+        body.telegramFileId !== undefined
+          ? body.telegramFileId
+          : existing.telegramFileId,
+      telegramSourceChatId:
+        body.telegramSourceChatId !== undefined
+          ? body.telegramSourceChatId
+          : existing.telegramSourceChatId,
+      telegramSourceMessageId:
+        body.telegramSourceMessageId !== undefined
+          ? (body.telegramSourceMessageId ? Number(body.telegramSourceMessageId) : null)
+          : existing.telegramSourceMessageId,
+      telegramReuseMethod:
+        body.telegramReuseMethod !== undefined
+          ? body.telegramReuseMethod
+          : existing.telegramReuseMethod,
+      telegramDuration:
+        body.telegramDuration !== undefined
+          ? (body.telegramDuration ? Number(body.telegramDuration) : null)
+          : existing.telegramDuration,
+      telegramVideoWidth:
+        body.telegramVideoWidth !== undefined
+          ? (body.telegramVideoWidth ? Number(body.telegramVideoWidth) : null)
+          : existing.telegramVideoWidth,
+      telegramVideoHeight:
+        body.telegramVideoHeight !== undefined
+          ? (body.telegramVideoHeight ? Number(body.telegramVideoHeight) : null)
+          : existing.telegramVideoHeight,
     };
 
     if (body.status === "SCHEDULED" || body.action === "SCHEDULE") {

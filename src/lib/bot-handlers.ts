@@ -19,6 +19,11 @@ import {
 import { recordChannelActivityEvent } from "./activity-service";
 import { recordCampaignTouch, recordMarketingConsent } from "./marketing-service";
 import { prisma } from "./prisma";
+import {
+  isTelegramUserAuthorizedForBot,
+  verifyAndLinkTelegramStaff,
+  storeTelegramVideoAsset,
+} from "./telegram-media-service";
 
 async function dispatchFlowExecutionSteps(
   ctx: any,
@@ -259,6 +264,50 @@ export function registerBotHandlers(bot: Bot, botId: string): void {
     }
   });
 
+  // 1.8 Handle /link command (Staff Telegram Identity Verification)
+  bot.command("link", async (ctx) => {
+    try {
+      const from = ctx.from;
+      if (!from) return;
+
+      const code = ctx.match ? String(ctx.match).trim() : "";
+      console.log(
+        `[Staff Linking] Received /link command from @${from.username || "no_username"} (${from.id}) with code: "${code}"`
+      );
+      if (!code) {
+        await ctx.reply(
+          "ℹ️ Staff Telegram Linking:\n\n" +
+            "To authorize your Telegram account to manage bots and send media assets:\n" +
+            "1. Log in to Botdesk Backstage\n" +
+            "2. Go to Users & Access / Staff\n" +
+            "3. Click 'Generate Telegram Link Code'\n" +
+            "4. Send '/link <code>' to this bot."
+        );
+        return;
+      }
+
+      const res = await verifyAndLinkTelegramStaff(code, from.id, from.username);
+      if (res.success) {
+        console.log(
+          `[Staff Linking] Successfully linked @${from.username || "no_username"} (${from.id}) to ${res.adminUser?.email}`
+        );
+        await ctx.reply(
+          `✅ Account Linked Successfully!\n\n` +
+            `Telegram ID: ${from.id}\n` +
+            `Staff Account: ${res.adminUser?.email} (${res.adminUser?.role})\n\n` +
+            `You can now forward or send long videos directly to this bot to publish them in Botdesk without downloading.`
+        );
+      } else {
+        console.warn(
+          `[Staff Linking] Failed to link @${from.username || "no_username"} (${from.id}): ${res.message}`
+        );
+        await ctx.reply(`⚠️ Linking Failed: ${res.message}`);
+      }
+    } catch (err) {
+      console.error("[Bot Error /link]", err);
+    }
+  });
+
   // 2. Handle contact sharing (phone number collection with ownership validation)
   bot.on(":contact", async (ctx) => {
     try {
@@ -342,6 +391,109 @@ export function registerBotHandlers(bot: Bot, botId: string): void {
       return next();
     }
   );
+
+  // 2.8 Handle video messages (direct or forwarded) for Telegram video library reuse
+  bot.on(["message:video", "message:document"], async (ctx, next) => {
+    const msg = ctx.message;
+    const from = ctx.from;
+    if (!msg || !from) return next();
+
+    // Check if message is a video or a video document
+    const video = msg.video;
+    const doc = msg.document;
+    const isVideoDoc = Boolean(doc && doc.mime_type && doc.mime_type.startsWith("video/"));
+
+    if (!video && !isVideoDoc) {
+      return next();
+    }
+
+    console.log(
+      `[Telegram Media Reuse] Received video message from @${from.username || "no_username"} (${from.id}), size: ${video?.file_size || doc?.file_size || 0} bytes`
+    );
+
+    // 1. Authenticate sender: must be linked to active Backstage staff authorized for this bot
+    const auth = await isTelegramUserAuthorizedForBot(from.id, botId);
+
+    if (!auth.authorized) {
+      console.warn(
+        `[Telegram Media Reuse] Rejected video from unlinked/unauthorized user @${from.username || "no_user"} (${from.id}): ${auth.reason}`
+      );
+      await ctx.reply(
+        `⛔ Unauthorized: Your Telegram account (ID: ${from.id}) is not linked to an authorized staff account for this bot.\n\n` +
+          `To link your account:\n` +
+          `1. Log in to Botdesk Backstage\n` +
+          `2. Go to Users & Access / Staff -> Generate Link Code\n` +
+          `3. Send "/link <code>" to this bot.`
+      );
+      return;
+    }
+
+    // 2. Extract video metadata
+    const fileId = video ? video.file_id : doc!.file_id;
+    const fileUniqueId = video ? video.file_unique_id : doc!.file_unique_id;
+    const fileSize = video ? video.file_size : doc!.file_size;
+    const duration = video ? video.duration : undefined;
+    const width = video ? video.width : undefined;
+    const height = video ? video.height : undefined;
+    const mimeType = video ? video.mime_type || "video/mp4" : doc!.mime_type || "video/mp4";
+    const fileName = video ? (video as any).file_name : doc!.file_name;
+    const caption = msg.caption || undefined;
+
+    // Forward source info (if message was forwarded from another chat/channel)
+    const forwardFromChat = (msg as any).forward_from_chat;
+    const forwardFromMsgId = (msg as any).forward_from_message_id;
+    const forwardSenderName =
+      (msg as any).forward_sender_name ||
+      (msg as any).forward_from?.username ||
+      (msg as any).forward_from?.first_name;
+
+    // 3. Store asset in database
+    await storeTelegramVideoAsset({
+      botId,
+      telegramFileId: fileId,
+      telegramFileUniqueId: fileUniqueId,
+      sourceChatId: String(ctx.chat.id),
+      sourceMessageId: msg.message_id,
+      forwardFromChatId: forwardFromChat ? String(forwardFromChat.id) : undefined,
+      forwardFromMessageId: forwardFromMsgId ? Number(forwardFromMsgId) : undefined,
+      forwardFromChatTitle: forwardFromChat ? String(forwardFromChat.title) : undefined,
+      forwardSenderName,
+      fileType: video ? "VIDEO" : "DOCUMENT",
+      mimeType,
+      fileName,
+      fileSizeBytes: fileSize,
+      duration,
+      width,
+      height,
+      originalCaption: caption,
+      senderTelegramId: from.id,
+      senderUsername: from.username,
+      senderFirstName: from.first_name,
+      addedByUserId: auth.adminUser?.id,
+    });
+
+    // 4. Send rich confirmation to staff user in Telegram
+    const sizeMb = fileSize ? (fileSize / (1024 * 1024)).toFixed(1) : "Unknown";
+    const durStr = duration ? `${Math.floor(duration / 60)}m ${duration % 60}s` : "Unknown";
+
+    const botRecord = await prisma.bot.findUnique({
+      where: { id: botId },
+      select: { name: true, username: true },
+    });
+
+    await ctx.reply(
+      `🎬 Video Stored in Botdesk Library!\n\n` +
+        `📁 File: ${fileName || "Telegram Video"}\n` +
+        `⏱ Duration: ${durStr}\n` +
+        `📦 Size: ${sizeMb} MB (Telegram Native Reuse)\n` +
+        `🤖 Receiving Bot: @${botRecord?.username || botId}\n` +
+        (caption
+          ? `💬 Caption: "${caption.slice(0, 80)}${caption.length > 80 ? "..." : ""}"\n`
+          : "") +
+        `\n` +
+        `Ready to publish! Open Botdesk -> Channel Posts -> select @${botRecord?.username || "bot"} -> switch to "From Telegram" to publish or schedule.`
+    );
+  });
 
   // 3. Handle dynamic reply keyboard button presses (Flow V1 & V2 with legacy fallback)
   bot.on("message:text", async (ctx, next) => {
@@ -722,20 +874,32 @@ export function createTelegramBot(
   botId: string,
   botInfo?: any
 ): Bot {
-  const bot = new Bot(token, {
+  const isTest = process.env.NODE_ENV === "test" || Boolean(process.env.VITEST);
+  const defaultBotInfo = isTest
+    ? {
+        id: 123456789,
+        is_bot: true,
+        first_name: "BackStage Bot",
+        username: "backstage_bot",
+        can_join_groups: true,
+        can_read_all_group_messages: false,
+        supports_inline_queries: false,
+      }
+    : undefined;
+
+  const botConfig: any = {
     client: {
       baseFetchConfig: { agent: telegramHttpsAgent } as any,
     },
-    botInfo: botInfo || {
-      id: 123456789,
-      is_bot: true,
-      first_name: "BackStage Bot",
-      username: "backstage_bot",
-      can_join_groups: true,
-      can_read_all_group_messages: false,
-      supports_inline_queries: false,
-    },
-  });
+  };
+
+  if (botInfo !== undefined) {
+    botConfig.botInfo = botInfo;
+  } else if (defaultBotInfo) {
+    botConfig.botInfo = defaultBotInfo;
+  }
+
+  const bot = new Bot(token, botConfig);
   registerBotHandlers(bot, botId);
   return bot;
 }

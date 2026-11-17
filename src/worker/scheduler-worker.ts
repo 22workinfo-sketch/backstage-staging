@@ -1,13 +1,18 @@
 import crypto from "crypto";
+import fs from "fs";
 import dotenv from "dotenv";
+
+if (fs.existsSync(".env.local")) {
+  dotenv.config({ path: ".env.local" });
+}
+dotenv.config();
+
 import {
   recoverStalledScheduledPosts,
   claimDueScheduledPosts,
   executeClaimedScheduledPost,
 } from "../lib/post-service";
 import { redactTokens } from "../lib/token-encryption";
-
-dotenv.config();
 
 export interface SchedulerWorkerOptions {
   workerId?: string;

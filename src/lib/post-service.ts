@@ -16,7 +16,7 @@ export interface InlineUrlButton {
   order: number;
 }
 
-export type PostType = "TEXT" | "IMAGE" | "VIDEO" | "ALBUM";
+export type PostType = "TEXT" | "IMAGE" | "VIDEO" | "ALBUM" | "TELEGRAM_VIDEO";
 
 export interface AlbumItemInput {
   id?: string;
@@ -37,12 +37,20 @@ export interface CreatePostInput {
   mediaPath?: string | null;
   mediaOriginalName?: string | null;
   mediaMimeType?: string | null;
-  mediaSizeBytes?: number | null;
+  mediaSizeBytes?: number | bigint | null;
   albumItems?: AlbumItemInput[];
   buttons?: InlineUrlButton[];
   disableNotification?: boolean;
   hasSpoiler?: boolean;
   sendAsDocument?: boolean;
+  telegramAssetId?: string | null;
+  telegramFileId?: string | null;
+  telegramSourceChatId?: string | null;
+  telegramSourceMessageId?: number | null;
+  telegramReuseMethod?: "SEND_VIDEO" | "FORWARD_MESSAGE" | null;
+  telegramDuration?: number | null;
+  telegramVideoWidth?: number | null;
+  telegramVideoHeight?: number | null;
   status?: string;
   scheduledAt?: Date | string | null;
   scheduledTimezone?: string | null;
@@ -57,12 +65,20 @@ export interface UpdatePostInput {
   mediaPath?: string | null;
   mediaOriginalName?: string | null;
   mediaMimeType?: string | null;
-  mediaSizeBytes?: number | null;
+  mediaSizeBytes?: number | bigint | null;
   albumItems?: AlbumItemInput[];
   buttons?: InlineUrlButton[];
   disableNotification?: boolean;
   hasSpoiler?: boolean;
   sendAsDocument?: boolean;
+  telegramAssetId?: string | null;
+  telegramFileId?: string | null;
+  telegramSourceChatId?: string | null;
+  telegramSourceMessageId?: number | null;
+  telegramReuseMethod?: "SEND_VIDEO" | "FORWARD_MESSAGE" | null;
+  telegramDuration?: number | null;
+  telegramVideoWidth?: number | null;
+  telegramVideoHeight?: number | null;
   status?: string;
   scheduledAt?: Date | string | null;
   scheduledTimezone?: string | null;
@@ -208,12 +224,12 @@ export function validatePostContent(
         `Post text length (${trimmed.length} chars) exceeds Telegram limit of 4096 characters.`
       );
     }
-  } else if (postType === "IMAGE" || postType === "VIDEO" || postType === "ALBUM") {
+  } else if (postType === "IMAGE" || postType === "VIDEO" || postType === "ALBUM" || postType === "TELEGRAM_VIDEO") {
     if (trimmed.length > 1024) {
       const typeLabel =
         postType === "IMAGE"
           ? "Image"
-          : postType === "VIDEO"
+          : postType === "VIDEO" || postType === "TELEGRAM_VIDEO"
           ? "Video"
           : "Album";
       throw new Error(
@@ -310,9 +326,9 @@ export function validatePostOptions(
   const sendAsDocument = Boolean(options.sendAsDocument);
   const hasSpoiler = Boolean(options.hasSpoiler);
 
-  if (sendAsDocument && (postType === "TEXT" || postType === "ALBUM")) {
+  if (sendAsDocument && (postType === "TEXT" || postType === "ALBUM" || postType === "TELEGRAM_VIDEO")) {
     throw new Error(
-      `Cannot send a ${postType === "TEXT" ? "text-only message" : "media album"} as a document.`
+      `Cannot send a ${postType === "TEXT" ? "text-only message" : postType === "TELEGRAM_VIDEO" ? "Telegram video reuse" : "media album"} as a document.`
     );
   }
 
@@ -327,7 +343,7 @@ export function validatePostOptions(
   return {
     disableNotification,
     hasSpoiler:
-      (postType === "IMAGE" || postType === "VIDEO") && !sendAsDocument
+      (postType === "IMAGE" || postType === "VIDEO" || postType === "TELEGRAM_VIDEO") && !sendAsDocument
         ? hasSpoiler
         : false,
     sendAsDocument:
@@ -706,10 +722,28 @@ export async function checkBotChannelPermissions(
 }
 
 /**
+ * Normalizes a post object for safe JSON serialization by converting BigInt byte sizes to Numbers.
+ */
+export function formatSafePost<T extends Record<string, any>>(post: T): T {
+  if (!post) return post;
+  return {
+    ...post,
+    mediaSizeBytes:
+      post.mediaSizeBytes != null ? Number(post.mediaSizeBytes) : null,
+    albumItems: Array.isArray(post.albumItems)
+      ? post.albumItems.map((item: any) => ({
+          ...item,
+          sizeBytes: item.sizeBytes != null ? Number(item.sizeBytes) : null,
+        }))
+      : post.albumItems,
+  };
+}
+
+/**
  * Retrieves channel posts scoped to bot and optionally channel.
  */
 export async function getChannelPosts(botId: string, channelId?: string) {
-  return prisma.channelPost.findMany({
+  const posts = await prisma.channelPost.findMany({
     where: {
       botId,
       ...(channelId ? { channelId } : {}),
@@ -728,13 +762,14 @@ export async function getChannelPosts(botId: string, channelId?: string) {
       },
     },
   });
+  return posts.map(formatSafePost);
 }
 
 /**
  * Retrieves a single post by ID scoped to botId.
  */
 export async function getPostById(postId: string, botId?: string) {
-  return prisma.channelPost.findFirst({
+  const post = await prisma.channelPost.findFirst({
     where: {
       id: postId,
       ...(botId ? { botId } : {}),
@@ -752,6 +787,7 @@ export async function getPostById(postId: string, botId?: string) {
       },
     },
   });
+  return post ? formatSafePost(post) : null;
 }
 
 /**
@@ -779,6 +815,18 @@ export async function createDraftPost(
 
   // 3. Verify media requirements
   let validatedAlbumItems: AlbumItemInput[] = [];
+  let resolvedTelegramAssetId = input.telegramAssetId || null;
+  let resolvedTelegramFileId = input.telegramFileId || null;
+  let resolvedSourceChatId = input.telegramSourceChatId || null;
+  let resolvedSourceMessageId = input.telegramSourceMessageId || null;
+  let resolvedDuration = input.telegramDuration || null;
+  let resolvedWidth = input.telegramVideoWidth || null;
+  let resolvedHeight = input.telegramVideoHeight || null;
+  let resolvedOriginalName = input.mediaOriginalName || null;
+  let resolvedSizeBytes: bigint | null =
+    input.mediaSizeBytes != null ? BigInt(input.mediaSizeBytes) : null;
+  let resolvedMimeType = input.mediaMimeType || null;
+
   if (input.postType === "ALBUM") {
     validatedAlbumItems = validateAlbumItems(input.albumItems);
     for (let i = 0; i < validatedAlbumItems.length; i++) {
@@ -798,6 +846,27 @@ export async function createDraftPost(
     if (!exists) {
       throw new Error("Uploaded media file was not found on local storage.");
     }
+  } else if (input.postType === "TELEGRAM_VIDEO") {
+    if (input.telegramAssetId) {
+      const asset = await prisma.telegramMediaAsset.findUnique({
+        where: { id: input.telegramAssetId },
+      });
+      if (!asset || asset.botId !== input.botId) {
+        throw new Error("Telegram media asset does not belong to the selected bot.");
+      }
+      resolvedTelegramAssetId = asset.id;
+      resolvedTelegramFileId = asset.telegramFileId;
+      resolvedSourceChatId = asset.sourceChatId;
+      resolvedSourceMessageId = asset.sourceMessageId;
+      resolvedDuration = asset.duration;
+      resolvedWidth = asset.width;
+      resolvedHeight = asset.height;
+      resolvedOriginalName = asset.fileName || "telegram_video.mp4";
+      resolvedSizeBytes = asset.fileSizeBytes ? BigInt(asset.fileSizeBytes) : null;
+      resolvedMimeType = asset.mimeType;
+    } else if (!input.telegramFileId && !input.telegramSourceMessageId) {
+      throw new Error("Telegram video post requires a selected Telegram video asset or file_id.");
+    }
   }
 
   // 4. Save draft in PostgreSQL
@@ -813,13 +882,40 @@ export async function createDraftPost(
       channelId: input.channelId,
       postType: input.postType,
       content: validatedContent,
-      mediaPath: input.postType === "ALBUM" ? null : cleanMediaPath,
+      mediaPath:
+        input.postType === "ALBUM" || input.postType === "TELEGRAM_VIDEO"
+          ? null
+          : cleanMediaPath,
       mediaOriginalName:
-        input.postType === "ALBUM" ? null : input.mediaOriginalName || null,
+        input.postType === "ALBUM"
+          ? null
+          : resolvedOriginalName || input.mediaOriginalName || null,
       mediaMimeType:
-        input.postType === "ALBUM" ? null : input.mediaMimeType || null,
+        input.postType === "ALBUM"
+          ? null
+          : resolvedMimeType || input.mediaMimeType || null,
       mediaSizeBytes:
-        input.postType === "ALBUM" ? null : input.mediaSizeBytes || null,
+        input.postType === "ALBUM"
+          ? null
+          : resolvedSizeBytes || input.mediaSizeBytes || null,
+      telegramAssetId:
+        input.postType === "TELEGRAM_VIDEO" ? resolvedTelegramAssetId : null,
+      telegramFileId:
+        input.postType === "TELEGRAM_VIDEO" ? resolvedTelegramFileId : null,
+      telegramSourceChatId:
+        input.postType === "TELEGRAM_VIDEO" ? resolvedSourceChatId : null,
+      telegramSourceMessageId:
+        input.postType === "TELEGRAM_VIDEO" ? resolvedSourceMessageId : null,
+      telegramReuseMethod:
+        input.postType === "TELEGRAM_VIDEO"
+          ? input.telegramReuseMethod || "SEND_VIDEO"
+          : null,
+      telegramDuration:
+        input.postType === "TELEGRAM_VIDEO" ? resolvedDuration : null,
+      telegramVideoWidth:
+        input.postType === "TELEGRAM_VIDEO" ? resolvedWidth : null,
+      telegramVideoHeight:
+        input.postType === "TELEGRAM_VIDEO" ? resolvedHeight : null,
       buttonsConfig:
         validatedButtons.length > 0 ? (validatedButtons as any) : null,
       disableNotification: validatedOptions.disableNotification,
@@ -879,7 +975,7 @@ export async function createDraftPost(
     },
   });
 
-  return post;
+  return formatSafePost(post);
 }
 
 /**
@@ -919,6 +1015,55 @@ export async function updateDraftPost(
   const validatedOptions = validatePostOptions(input.postType, input);
 
   let validatedAlbumItems: AlbumItemInput[] = [];
+  let resolvedTelegramAssetId =
+    input.telegramAssetId !== undefined
+      ? input.telegramAssetId
+      : existing.telegramAssetId;
+  let resolvedTelegramFileId =
+    input.telegramFileId !== undefined
+      ? input.telegramFileId
+      : existing.telegramFileId;
+  let resolvedSourceChatId =
+    input.telegramSourceChatId !== undefined
+      ? input.telegramSourceChatId
+      : existing.telegramSourceChatId;
+  let resolvedSourceMessageId =
+    input.telegramSourceMessageId !== undefined
+      ? input.telegramSourceMessageId
+      : existing.telegramSourceMessageId;
+  let resolvedDuration =
+    input.telegramDuration !== undefined
+      ? input.telegramDuration
+      : existing.telegramDuration;
+  let resolvedWidth =
+    input.telegramVideoWidth !== undefined
+      ? input.telegramVideoWidth
+      : existing.telegramVideoWidth;
+  let resolvedHeight =
+    input.telegramVideoHeight !== undefined
+      ? input.telegramVideoHeight
+      : existing.telegramVideoHeight;
+  let resolvedOriginalName =
+    input.mediaOriginalName !== undefined
+      ? input.mediaOriginalName
+      : existing.mediaOriginalName;
+  let resolvedSizeBytes: bigint | null =
+    input.mediaSizeBytes !== undefined
+      ? input.mediaSizeBytes != null
+        ? BigInt(input.mediaSizeBytes)
+        : null
+      : existing.mediaSizeBytes != null
+      ? BigInt(existing.mediaSizeBytes)
+      : null;
+  let resolvedMimeType =
+    input.mediaMimeType !== undefined
+      ? input.mediaMimeType
+      : existing.mediaMimeType;
+  let resolvedReuseMethod =
+    input.telegramReuseMethod !== undefined
+      ? input.telegramReuseMethod
+      : existing.telegramReuseMethod;
+
   if (input.postType === "ALBUM") {
     if (input.albumItems) {
       validatedAlbumItems = validateAlbumItems(input.albumItems);
@@ -942,6 +1087,38 @@ export async function updateDraftPost(
         throw new Error("Uploaded media file was not found on local storage.");
       }
     }
+  } else if (input.postType === "TELEGRAM_VIDEO") {
+    if (input.telegramAssetId) {
+      const asset = await prisma.telegramMediaAsset.findUnique({
+        where: { id: input.telegramAssetId },
+      });
+      if (!asset || asset.botId !== input.botId) {
+        throw new Error("Telegram media asset does not belong to the selected bot.");
+      }
+      resolvedTelegramAssetId = asset.id;
+      resolvedTelegramFileId = asset.telegramFileId;
+      resolvedSourceChatId = asset.sourceChatId;
+      resolvedSourceMessageId = asset.sourceMessageId;
+      resolvedDuration = asset.duration;
+      resolvedWidth = asset.width;
+      resolvedHeight = asset.height;
+      resolvedOriginalName = asset.fileName || "telegram_video.mp4";
+      resolvedSizeBytes = asset.fileSizeBytes ? BigInt(asset.fileSizeBytes) : null;
+      resolvedMimeType = asset.mimeType;
+    } else if (!resolvedTelegramFileId && !resolvedSourceMessageId) {
+      throw new Error("Telegram video post requires a selected Telegram video asset or file_id.");
+    }
+  }
+
+  if (input.postType !== "TELEGRAM_VIDEO") {
+    resolvedTelegramAssetId = null;
+    resolvedTelegramFileId = null;
+    resolvedSourceChatId = null;
+    resolvedSourceMessageId = null;
+    resolvedDuration = null;
+    resolvedWidth = null;
+    resolvedHeight = null;
+    resolvedReuseMethod = null;
   }
 
   // Update album items if postType is ALBUM
@@ -965,27 +1142,32 @@ export async function updateDraftPost(
       postType: input.postType,
       content: validatedContent,
       mediaPath:
-        input.postType === "ALBUM"
+        input.postType === "ALBUM" || input.postType === "TELEGRAM_VIDEO"
           ? null
           : cleanUpdateMediaPath,
       mediaOriginalName:
         input.postType === "ALBUM"
           ? null
-          : input.mediaOriginalName !== undefined
-          ? input.mediaOriginalName
-          : existing.mediaOriginalName,
+          : resolvedOriginalName,
       mediaMimeType:
         input.postType === "ALBUM"
           ? null
-          : input.mediaMimeType !== undefined
-          ? input.mediaMimeType
-          : existing.mediaMimeType,
+          : resolvedMimeType,
       mediaSizeBytes:
         input.postType === "ALBUM"
           ? null
-          : input.mediaSizeBytes !== undefined
-          ? input.mediaSizeBytes
-          : existing.mediaSizeBytes,
+          : resolvedSizeBytes,
+      telegramAssetId: resolvedTelegramAssetId,
+      telegramFileId: resolvedTelegramFileId,
+      telegramSourceChatId: resolvedSourceChatId,
+      telegramSourceMessageId: resolvedSourceMessageId,
+      telegramReuseMethod:
+        input.postType === "TELEGRAM_VIDEO"
+          ? resolvedReuseMethod || "SEND_VIDEO"
+          : null,
+      telegramDuration: resolvedDuration,
+      telegramVideoWidth: resolvedWidth,
+      telegramVideoHeight: resolvedHeight,
       buttonsConfig:
         validatedButtons.length > 0 ? (validatedButtons as any) : null,
       disableNotification: validatedOptions.disableNotification,
@@ -1045,7 +1227,7 @@ export async function updateDraftPost(
     },
   });
 
-  return updated;
+  return formatSafePost(updated);
 }
 
 /**
@@ -1419,6 +1601,89 @@ export async function publishChannelPost(
           error: buttonDispatchError,
         };
       }
+    } else if (post.postType === "TELEGRAM_VIDEO") {
+      const reuseMethod = post.telegramReuseMethod || "SEND_VIDEO";
+
+      if (reuseMethod === "FORWARD_MESSAGE") {
+        if (!post.telegramSourceChatId || !post.telegramSourceMessageId) {
+          throw new Error(
+            "Cannot forward message: Telegram source chat ID or message ID is missing."
+          );
+        }
+
+        try {
+          const res = await api.forwardMessage(
+            targetChatId,
+            post.telegramSourceChatId,
+            post.telegramSourceMessageId,
+            {
+              disable_notification: post.disableNotification,
+            }
+          );
+          sentMessageId = res.message_id;
+        } catch (fwdErr: any) {
+          const fwdMsg = String(fwdErr?.message || fwdErr || "");
+          const lowerFwd = fwdMsg.toLowerCase();
+          if (
+            lowerFwd.includes("message to forward not found") ||
+            lowerFwd.includes("chat not found")
+          ) {
+            throw new Error(
+              "Cannot forward video: The source message was deleted or is no longer accessible on Telegram."
+            );
+          }
+          if (
+            lowerFwd.includes("protected") ||
+            lowerFwd.includes("content is protected") ||
+            lowerFwd.includes("can't be forwarded")
+          ) {
+            throw new Error(
+              "Cannot forward video: Content protection is enabled on the source chat (forwarding is restricted by Telegram)."
+            );
+          }
+          throw fwdErr;
+        }
+      } else {
+        // Direct Video reuse via sendVideo with Telegram file_id
+        if (!post.telegramFileId) {
+          throw new Error("Missing Telegram file_id for Telegram video post.");
+        }
+
+        try {
+          const res = await api.sendVideo(
+            targetChatId,
+            post.telegramFileId,
+            {
+              caption: post.content || undefined,
+              reply_markup: replyMarkup,
+              disable_notification: post.disableNotification,
+              has_spoiler: post.hasSpoiler,
+              supports_streaming: true,
+              duration: post.telegramDuration || undefined,
+              width: post.telegramVideoWidth || undefined,
+              height: post.telegramVideoHeight || undefined,
+            }
+          );
+          sentMessageId = res.message_id;
+        } catch (vidErr: any) {
+          const vidMsg = String(vidErr?.message || vidErr || "");
+          const lowerVid = vidMsg.toLowerCase();
+          if (
+            lowerVid.includes("wrong file identifier") ||
+            lowerVid.includes("wrong_file_identifier")
+          ) {
+            throw new Error(
+              "Telegram rejected file_id: The video file identifier is invalid or belongs to a different bot. Videos can only be reused by the exact bot that received them."
+            );
+          }
+          if (lowerVid.includes("file is too big")) {
+            throw new Error(
+              "Telegram rejected video: File exceeds Telegram Bot API size limits (maximum 2 GB for bot media)."
+            );
+          }
+          throw vidErr;
+        }
+      }
     } else {
       throw new Error(`Unsupported post type: ${post.postType}`);
     }
@@ -1692,7 +1957,7 @@ export async function schedulePost(options: SchedulePostInput) {
     },
   });
 
-  return updated;
+  return formatSafePost(updated);
 }
 
 /**
@@ -1760,7 +2025,7 @@ export async function cancelScheduledPost(postId: string, botId: string, adminUs
     },
   });
 
-  return updated;
+  return formatSafePost(updated);
 }
 
 /**

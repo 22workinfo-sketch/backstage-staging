@@ -85,6 +85,8 @@ export async function POST(
           ? "VIDEO"
           : body.postType === "IMAGE"
           ? "IMAGE"
+          : body.postType === "TELEGRAM_VIDEO"
+          ? "TELEGRAM_VIDEO"
           : "TEXT",
       content: body.content || "",
       mediaPath: body.mediaPath || null,
@@ -96,6 +98,14 @@ export async function POST(
       hasSpoiler: Boolean(body.hasSpoiler),
       sendAsDocument: Boolean(body.sendAsDocument),
       albumItems: body.albumItems || undefined,
+      telegramAssetId: body.telegramAssetId || null,
+      telegramFileId: body.telegramFileId || null,
+      telegramSourceChatId: body.telegramSourceChatId || null,
+      telegramSourceMessageId: body.telegramSourceMessageId ? Number(body.telegramSourceMessageId) : null,
+      telegramReuseMethod: body.telegramReuseMethod || "SEND_VIDEO",
+      telegramDuration: body.telegramDuration ? Number(body.telegramDuration) : null,
+      telegramVideoWidth: body.telegramVideoWidth ? Number(body.telegramVideoWidth) : null,
+      telegramVideoHeight: body.telegramVideoHeight ? Number(body.telegramVideoHeight) : null,
     };
 
     if (body.status === "SCHEDULED" || body.action === "SCHEDULE") {

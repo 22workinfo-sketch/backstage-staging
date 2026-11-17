@@ -36,6 +36,7 @@ model Bot {
   consentRecords        MarketingConsentRecord[]
   auditLogs        AuditLog[]
   staffAssignments StaffBotAssignment[]
+  telegramMediaAssets TelegramMediaAsset[]
 
   @@map("bots")
 }
@@ -90,6 +91,10 @@ model AdminUser {
   isActive           Boolean              @default(true)
   mustChangePassword Boolean              @default(false)
   tokenVersion       Int                  @default(1)
+  telegramUserId     BigInt?              @unique
+  telegramUsername   String?
+  telegramLinkCode   String?
+  telegramLinkExpiresAt DateTime?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   auditLogs          AuditLog[]
@@ -98,6 +103,7 @@ model AdminUser {
   publishedFlows     BotFlow[]            @relation("PublishedFlows")
   createdTemplates   BotFlowTemplate[]
   createdCampaigns   MarketingCampaign[]
+  addedTelegramAssets TelegramMediaAsset[]
 
   @@map("admin_users")
 }
@@ -219,11 +225,20 @@ model ChannelPost {
   mediaPath          String?
   mediaOriginalName  String?
   mediaMimeType      String?
-  mediaSizeBytes     Int?
+  mediaSizeBytes     BigInt?
   buttonsConfig      Json?
   disableNotification Boolean    @default(false)
   hasSpoiler          Boolean    @default(false)
   sendAsDocument      Boolean    @default(false)
+  telegramAssetId     String?
+  telegramAsset       TelegramMediaAsset? @relation(fields: [telegramAssetId], references: [id], onDelete: SetNull)
+  telegramFileId      String?
+  telegramSourceChatId String?
+  telegramSourceMessageId Int?
+  telegramReuseMethod String?         @default("SEND_VIDEO") // "SEND_VIDEO" | "FORWARD_MESSAGE"
+  telegramDuration    Int?
+  telegramVideoWidth  Int?
+  telegramVideoHeight Int?
   status              String          @default("DRAFT") // "DRAFT" | "SCHEDULED" | "SENDING" | "PUBLISHED" | "PARTIAL" | "FAILED" | "UNKNOWN" | "CANCELLED"
   scheduledAt         DateTime?
   scheduledTimezone   String?
@@ -255,7 +270,7 @@ model PostAlbumItem {
   filePath     String
   originalName String?
   mimeType     String?
-  sizeBytes    Int?
+  sizeBytes    BigInt?
   order        Int         @default(0)
   hasSpoiler   Boolean     @default(false)
   createdAt    DateTime    @default(now())
@@ -430,6 +445,41 @@ model MarketingConsentRecord {
   @@index([botId, telegramUserId])
   @@index([botId, consentStatus])
   @@map("marketing_consent_records")
+}
+
+model TelegramMediaAsset {
+  id                    String        @id @default(uuid())
+  botId                 String
+  bot                   Bot           @relation(fields: [botId], references: [id], onDelete: Cascade)
+  telegramFileId        String
+  telegramFileUniqueId  String
+  sourceChatId          String
+  sourceMessageId       Int
+  forwardFromChatId     String?
+  forwardFromMessageId  Int?
+  forwardFromChatTitle  String?
+  forwardSenderName     String?
+  fileType              String        @default("VIDEO") // "VIDEO" | "DOCUMENT"
+  mimeType              String        @default("video/mp4")
+  fileName              String?
+  fileSizeBytes         BigInt?
+  duration              Int?
+  width                 Int?
+  height                Int?
+  originalCaption       String?       @db.Text
+  senderTelegramId      BigInt
+  senderUsername        String?
+  senderFirstName       String?
+  addedByUserId         String?
+  addedByUser           AdminUser?    @relation(fields: [addedByUserId], references: [id], onDelete: SetNull)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  posts                 ChannelPost[]
+
+  @@index([botId])
+  @@index([botId, telegramFileUniqueId])
+  @@index([senderTelegramId])
+  @@map("telegram_media_assets")
 }
 
 

@@ -1,8 +1,13 @@
+import fs from "fs";
 import dotenv from "dotenv";
+
+if (fs.existsSync(".env.local")) {
+  dotenv.config({ path: ".env.local" });
+}
+dotenv.config();
+
 import { startMultiBotRunner } from "../lib/multi-bot-runner";
 import { startSchedulerWorker } from "../worker/scheduler-worker";
-
-dotenv.config();
 
 // Mode guard: Warn if TELEGRAM_MODE is explicitly set to webhook
 if (process.env.TELEGRAM_MODE === "webhook") {

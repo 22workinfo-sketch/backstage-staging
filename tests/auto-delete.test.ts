@@ -344,6 +344,7 @@ describe("Auto-Delete Reply Integration & Deletion Worker (Real PostgreSQL)", ()
   });
 
   it("should prevent duplicate processing across concurrent workers (atomic claiming)", async () => {
+    await prisma.scheduledDeletion.deleteMany({ where: { botId: testBotId } });
     const job = await prisma.scheduledDeletion.create({
       data: {
         botId: testBotId,

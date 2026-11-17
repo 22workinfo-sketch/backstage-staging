@@ -35,13 +35,35 @@ export interface AlbumItemDTO {
   hasSpoiler?: boolean;
 }
 
+export interface TelegramMediaAssetDTO {
+  id: string;
+  botId: string;
+  telegramFileId: string;
+  telegramFileUniqueId?: string | null;
+  sourceChatId?: string | null;
+  sourceMessageId?: number | null;
+  forwardFromChatTitle?: string | null;
+  forwardSenderName?: string | null;
+  fileType: string;
+  mimeType?: string | null;
+  fileName?: string | null;
+  fileSizeBytes?: number | null;
+  duration?: number | null;
+  width?: number | null;
+  height?: number | null;
+  originalCaption?: string | null;
+  senderTelegramId?: string | null;
+  senderUsername?: string | null;
+  createdAt: string;
+}
+
 export interface PostItemDTO {
   id: string;
   botId: string;
   channelId: string;
   channelName?: string;
   channelChatId?: string;
-  postType: "TEXT" | "IMAGE" | "VIDEO" | "ALBUM";
+  postType: "TEXT" | "IMAGE" | "VIDEO" | "ALBUM" | "TELEGRAM_VIDEO";
   content: string;
   mediaPath?: string | null;
   mediaOriginalName?: string | null;
@@ -54,6 +76,14 @@ export interface PostItemDTO {
   disableNotification?: boolean;
   hasSpoiler?: boolean;
   sendAsDocument?: boolean;
+  telegramAssetId?: string | null;
+  telegramFileId?: string | null;
+  telegramSourceChatId?: string | null;
+  telegramSourceMessageId?: number | null;
+  telegramReuseMethod?: "SEND_VIDEO" | "FORWARD_MESSAGE" | null;
+  telegramDuration?: number | null;
+  telegramVideoWidth?: number | null;
+  telegramVideoHeight?: number | null;
   status:
     | "DRAFT"
     | "SCHEDULED"
@@ -105,6 +135,17 @@ function getDateAndTimeInZone(date: Date, timeZone: string) {
       time: iso.slice(11, 16),
     };
   }
+}
+
+function formatFileSize(bytes?: number | null): string {
+  if (!bytes) return "";
+  if (bytes >= 1024 * 1024 * 1024) {
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  }
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+  return `${(bytes / 1024).toFixed(1)} KB`;
 }
 
 export function BotdeskPostsPage({
@@ -189,12 +230,94 @@ export function BotdeskPostsPage({
 
   // Composer Form state
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
-  const [postType, setPostType] = useState<"TEXT" | "IMAGE" | "VIDEO" | "ALBUM">("TEXT");
+  const [postType, setPostType] = useState<"TEXT" | "IMAGE" | "VIDEO" | "ALBUM" | "TELEGRAM_VIDEO">("TEXT");
   const [content, setContent] = useState("");
   const [buttons, setButtons] = useState<InlineUrlButton[]>([]);
   const [disableNotification, setDisableNotification] = useState(false);
   const [hasSpoiler, setHasSpoiler] = useState(false);
   const [sendAsDocument, setSendAsDocument] = useState(false);
+
+  // Telegram Video Reuse state
+  const [selectedTelegramAssetId, setSelectedTelegramAssetId] = useState<string | null>(null);
+  const [telegramReuseMethod, setTelegramReuseMethod] = useState<"SEND_VIDEO" | "FORWARD_MESSAGE">("SEND_VIDEO");
+  const [telegramAssets, setTelegramAssets] = useState<TelegramMediaAssetDTO[]>([]);
+  const [loadingTelegramAssets, setLoadingTelegramAssets] = useState(false);
+  const [staffLinkModalOpen, setStaffLinkModalOpen] = useState(false);
+  const [staffLinkCode, setStaffLinkCode] = useState<string | null>(null);
+  const [staffLinkExpires, setStaffLinkExpires] = useState<string | null>(null);
+  const [generatingLinkCode, setGeneratingLinkCode] = useState(false);
+
+  const selectedTelegramAsset = telegramAssets.find((a) => a.id === selectedTelegramAssetId);
+
+  // Fetch Telegram media assets for the selected bot
+  useEffect(() => {
+    if (!selectedBotId) {
+      setTelegramAssets([]);
+      return;
+    }
+    let isMounted = true;
+    setLoadingTelegramAssets(true);
+    fetch(`/api/bots/${selectedBotId}/telegram-media`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted) {
+          if (data.success && Array.isArray(data.assets)) {
+            setTelegramAssets(data.assets);
+            // If currently selected asset is not in list, auto-select first or keep if editing
+            if (!editingPostId && data.assets.length > 0) {
+              setSelectedTelegramAssetId((prev) => prev || data.assets[0].id);
+            }
+          } else {
+            setTelegramAssets([]);
+          }
+        }
+      })
+      .catch(() => {
+        if (isMounted) setTelegramAssets([]);
+      })
+      .finally(() => {
+        if (isMounted) setLoadingTelegramAssets(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedBotId, editingPostId]);
+
+  const handleGetStaffLinkCode = async () => {
+    setGeneratingLinkCode(true);
+    try {
+      const res = await fetch("/api/staff/telegram-link", { method: "POST" });
+      const data = await res.json();
+      if (data.success && data.code) {
+        setStaffLinkCode(data.code);
+        setStaffLinkExpires(data.expiresInMinutes ? `${data.expiresInMinutes} minutes` : "15 minutes");
+        setStaffLinkModalOpen(true);
+      } else {
+        alert(data.error || "Failed to generate Telegram link code.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Network error while requesting link code.");
+    } finally {
+      setGeneratingLinkCode(false);
+    }
+  };
+
+  const handleRefreshTelegramAssets = () => {
+    if (!selectedBotId) return;
+    setLoadingTelegramAssets(true);
+    fetch(`/api/bots/${selectedBotId}/telegram-media`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.assets)) {
+          setTelegramAssets(data.assets);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        setLoadingTelegramAssets(false);
+      });
+  };
 
   // Album items state (for ALBUM postType: 2 to 10 items)
   const [albumItems, setAlbumItems] = useState<AlbumItemDTO[]>([]);
@@ -314,6 +437,8 @@ export function BotdeskPostsPage({
     setMediaMimeType(null);
     setMediaSizeBytes(null);
     setAlbumItems([]);
+    setSelectedTelegramAssetId(null);
+    setTelegramReuseMethod("SEND_VIDEO");
     setUploadError(null);
     setAlbumUploadError(null);
     setPendingReplace(null);
@@ -339,6 +464,8 @@ export function BotdeskPostsPage({
     setMediaMimeType(post.mediaMimeType || null);
     setMediaSizeBytes(post.mediaSizeBytes || null);
     setAlbumItems(post.albumItems ? [...post.albumItems].sort((a, b) => a.order - b.order) : []);
+    setSelectedTelegramAssetId(post.telegramAssetId || null);
+    setTelegramReuseMethod(post.telegramReuseMethod || "SEND_VIDEO");
     setUploadError(null);
     setAlbumUploadError(null);
     setPendingReplace(null);
@@ -1021,6 +1148,14 @@ export function BotdeskPostsPage({
       return;
     }
 
+    if (postType === "TELEGRAM_VIDEO" && !selectedTelegramAssetId && !editingPostId) {
+      setStatusMessage({
+        type: "error",
+        text: "Please select an eligible Telegram video asset from the list below.",
+      });
+      return;
+    }
+
     if (postType === "ALBUM") {
       if (albumItems.length < 2) {
         setStatusMessage({
@@ -1054,16 +1189,18 @@ export function BotdeskPostsPage({
         botId: selectedBotId,
         channelId: selectedChannelId,
         postType,
-        content,
+        content: postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" ? "" : content,
         mediaPath,
         mediaOriginalName,
         mediaMimeType,
         mediaSizeBytes,
         albumItems: postType === "ALBUM" ? albumItems : undefined,
-        buttons,
+        buttons: postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" ? [] : buttons,
         disableNotification,
         hasSpoiler,
         sendAsDocument,
+        telegramAssetId: postType === "TELEGRAM_VIDEO" ? selectedTelegramAssetId : null,
+        telegramReuseMethod: postType === "TELEGRAM_VIDEO" ? telegramReuseMethod : null,
       };
 
       const url = editingPostId
@@ -1135,6 +1272,13 @@ export function BotdeskPostsPage({
         });
         return;
       }
+      if (postType === "TELEGRAM_VIDEO" && !selectedTelegramAssetId && !editingPostId) {
+        setStatusMessage({
+          type: "error",
+          text: "Please select an eligible Telegram video asset before publishing.",
+        });
+        return;
+      }
       if (postType === "ALBUM" && (albumItems.length < 2 || albumItems.length > 10)) {
         setStatusMessage({
           type: "error",
@@ -1176,16 +1320,18 @@ export function BotdeskPostsPage({
         channelName: activeChannel?.name,
         channelChatId: activeChannel?.telegramChatId,
         postType,
-        content,
+        content: postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" ? "" : content,
         mediaPath,
         mediaOriginalName,
         mediaMimeType,
         mediaSizeBytes,
         albumItems: postType === "ALBUM" ? albumItems : undefined,
-        buttonsConfig: buttons,
+        buttonsConfig: postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" ? [] : buttons,
         disableNotification,
         hasSpoiler,
         sendAsDocument,
+        telegramAssetId: postType === "TELEGRAM_VIDEO" ? selectedTelegramAssetId : null,
+        telegramReuseMethod: postType === "TELEGRAM_VIDEO" ? telegramReuseMethod : null,
         status: publishMode === "SCHEDULE" ? "SCHEDULED" : "DRAFT",
         scheduledAt: parsedUtcIso,
         scheduledTimezone: publishMode === "SCHEDULE" ? scheduledTimezone : null,
@@ -1212,16 +1358,18 @@ export function BotdeskPostsPage({
           botId: selectedBotId,
           channelId: selectedChannelId,
           postType,
-          content,
+          content: postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" ? "" : content,
           mediaPath,
           mediaOriginalName,
           mediaMimeType,
           mediaSizeBytes,
           albumItems: postType === "ALBUM" ? albumItems : undefined,
-          buttons,
+          buttons: postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" ? [] : buttons,
           disableNotification,
           hasSpoiler,
           sendAsDocument,
+          telegramAssetId: postType === "TELEGRAM_VIDEO" ? selectedTelegramAssetId : null,
+          telegramReuseMethod: postType === "TELEGRAM_VIDEO" ? telegramReuseMethod : null,
           status: "SCHEDULED",
           scheduledDate,
           scheduledTime,
@@ -1272,16 +1420,18 @@ export function BotdeskPostsPage({
             method: "POST",
             body: {
               postType,
-              content,
+              content: postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" ? "" : content,
               mediaPath,
               mediaOriginalName,
               mediaMimeType,
               mediaSizeBytes,
               albumItems: postType === "ALBUM" ? albumItems : undefined,
-              buttons,
+              buttons: postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" ? [] : buttons,
               disableNotification,
               hasSpoiler,
               sendAsDocument,
+              telegramAssetId: postType === "TELEGRAM_VIDEO" ? selectedTelegramAssetId : null,
+              telegramReuseMethod: postType === "TELEGRAM_VIDEO" ? telegramReuseMethod : null,
             },
           }
         );
@@ -1598,6 +1748,7 @@ export function BotdeskPostsPage({
                   {postType === "IMAGE" && "Single photo + caption"}
                   {postType === "VIDEO" && "Single video + caption"}
                   {postType === "ALBUM" && "Multi-media album (2–10)"}
+                  {postType === "TELEGRAM_VIDEO" && "Telegram video reuse (up to 2 GB)"}
                 </span>
               </div>
               <div className="flex p-1 bg-[#090d16] border border-slate-800 rounded-xl gap-1 overflow-x-auto">
@@ -1644,6 +1795,17 @@ export function BotdeskPostsPage({
                   }`}
                 >
                   📸 Album (2–10)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPostType("TELEGRAM_VIDEO")}
+                  className={`flex-1 min-w-[125px] text-center py-2 px-3 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                    postType === "TELEGRAM_VIDEO"
+                      ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
+                      : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
+                  }`}
+                >
+                  📥 From Telegram
                 </button>
               </div>
             </div>
@@ -1731,7 +1893,7 @@ export function BotdeskPostsPage({
                         </p>
                         <span className="text-[11px] text-slate-400">
                           {mediaSizeBytes
-                            ? `${(mediaSizeBytes / 1024).toFixed(1)} KB`
+                            ? formatFileSize(mediaSizeBytes)
                             : "Uploaded"}
                         </span>
                       </div>
@@ -1866,7 +2028,7 @@ export function BotdeskPostsPage({
                         </p>
                         <span className="text-[11px] text-slate-400">
                           {mediaSizeBytes
-                            ? `${(mediaSizeBytes / (1024 * 1024)).toFixed(2)} MB`
+                            ? formatFileSize(mediaSizeBytes)
                             : "Uploaded"}
                         </span>
                       </div>
@@ -2159,6 +2321,203 @@ export function BotdeskPostsPage({
               </div>
             )}
 
+            {/* Telegram Video Selection & Reuse Method (If postType === TELEGRAM_VIDEO) */}
+            {postType === "TELEGRAM_VIDEO" && (
+              <div className="p-4 sm:p-5 rounded-xl border border-slate-800/80 bg-[#0b0f19] space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+                      <span>📥 Reusable Telegram Video Assets</span>
+                    </label>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Videos forwarded or sent to @{activeBot?.username || "bot"} on Telegram (supports up to 2 GB)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleRefreshTelegramAssets}
+                      disabled={loadingTelegramAssets}
+                      className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-slate-200 border border-slate-700/80 transition cursor-pointer flex items-center gap-1 font-medium disabled:opacity-50"
+                      title="Check for new videos received by bot"
+                    >
+                      <span className={loadingTelegramAssets ? "animate-spin" : ""}>🔄</span>
+                      <span>Refresh</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGetStaffLinkCode}
+                      disabled={generatingLinkCode}
+                      className="text-xs py-1.5 px-3 rounded-lg bg-sky-950/40 hover:bg-sky-900/50 text-[#38bdf8] border border-sky-500/30 transition cursor-pointer flex items-center gap-1.5 font-semibold disabled:opacity-50"
+                      title="Link your Telegram account to send media"
+                    >
+                      <span>🔑</span>
+                      <span>Link Staff Account</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Architecture Note: file_id vs forwardMessage */}
+                <div className="p-3.5 rounded-xl border border-sky-500/30 bg-[#0c2538]/40 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-[#38bdf8] flex items-center gap-1.5 text-xs">
+                      <span>⚡</span>
+                      <span>Telegram Media Reuse Architecture</span>
+                    </span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">
+                      Zero Local Re-Upload
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    By reusing videos directly on Telegram servers, you bypass local browser upload bandwidth and file limits (up to 2 GB). Media file IDs are cryptographically scoped to @{activeBot?.username || "bot"}.
+                  </p>
+                </div>
+
+                {/* Dispatch Method Segmented Toggle */}
+                <div className="space-y-2 pt-1">
+                  <label className="block text-xs font-semibold text-white">
+                    Delivery Method
+                  </label>
+                  <div className="flex p-1 bg-[#090d16] border border-slate-800 rounded-xl gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setTelegramReuseMethod("SEND_VIDEO")}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                        telegramReuseMethod === "SEND_VIDEO"
+                          ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      ⚡ Direct Video (sendVideo)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTelegramReuseMethod("FORWARD_MESSAGE")}
+                      className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                        telegramReuseMethod === "FORWARD_MESSAGE"
+                          ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      ↪️ Forward Original (forwardMessage)
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    {telegramReuseMethod === "SEND_VIDEO"
+                      ? "Direct Video: Dispatches directly using Telegram file_id. Custom caption, spoiler blur, and inline URL buttons are fully supported. Clean post with no 'Forwarded from' header."
+                      : "Forward Message: Forwards the original message. Preserves sender/channel attribution. Note: Telegram restricts custom captions and inline buttons when forwarding."}
+                  </p>
+                </div>
+
+                {/* Loading state */}
+                {loadingTelegramAssets && (
+                  <div className="p-6 text-center text-xs text-[#38bdf8] italic flex items-center justify-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#38bdf8] animate-ping" />
+                    <span>Loading Telegram video assets for @{activeBot?.username || "bot"}...</span>
+                  </div>
+                )}
+
+                {/* Empty State: No Assets */}
+                {!loadingTelegramAssets && telegramAssets.length === 0 && (
+                  <div className="p-5 rounded-xl border border-slate-800 bg-[#0d121c] text-center space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-sky-500/10 text-[#38bdf8] text-2xl flex items-center justify-center mx-auto">
+                      📥
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-semibold text-white">
+                        No Telegram videos received for @{activeBot?.username || "bot"} yet
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-1 max-w-md mx-auto">
+                        To publish long videos without downloading and re-uploading:
+                      </p>
+                    </div>
+                    <ol className="text-[11px] text-slate-300 space-y-1.5 text-left max-w-sm mx-auto list-decimal pl-5">
+                      <li>Open Telegram and start chat with <strong>@{activeBot?.username || "bot"}</strong>.</li>
+                      <li>Link your staff account with <code>/link &lt;code&gt;</code> (click button below).</li>
+                      <li>Forward or send any video (up to 2 GB) to the bot.</li>
+                      <li>Click &quot;Refresh&quot; to select and publish it here.</li>
+                    </ol>
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={handleGetStaffLinkCode}
+                        className="text-xs py-2 px-4 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white font-semibold transition cursor-pointer shadow-md shadow-sky-500/20"
+                      >
+                        🔑 Get Staff Link Code
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Video Asset List / Selector */}
+                {!loadingTelegramAssets && telegramAssets.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400">
+                      <span>Available Videos ({telegramAssets.length})</span>
+                      <span className="text-[#38bdf8]">Click an item to select</span>
+                    </div>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                      {telegramAssets.map((asset) => {
+                        const isSelected = selectedTelegramAssetId === asset.id;
+                        const durationMins = asset.duration ? Math.floor(asset.duration / 60) : 0;
+                        const durationSecs = asset.duration ? (asset.duration % 60).toString().padStart(2, "0") : "00";
+                        const sizeMb = asset.fileSizeBytes ? (asset.fileSizeBytes / (1024 * 1024)).toFixed(1) : null;
+
+                        return (
+                          <div
+                            key={asset.id}
+                            onClick={() => setSelectedTelegramAssetId(asset.id)}
+                            className={`p-3 rounded-xl border transition cursor-pointer flex items-start gap-3 ${
+                              isSelected
+                                ? "border-[#38bdf8] bg-sky-500/10 shadow-md shadow-sky-500/10"
+                                : "border-slate-800 bg-[#0d121c] hover:border-slate-700 hover:bg-[#0f1522]"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="selectedTelegramAsset"
+                              checked={isSelected}
+                              onChange={() => setSelectedTelegramAssetId(asset.id)}
+                              className="mt-1 text-[#38bdf8] focus:ring-0"
+                            />
+                            <div className="w-10 h-10 rounded-lg bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-lg flex-shrink-0">
+                              🎥
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-xs font-semibold text-white truncate">
+                                  {asset.fileName || "telegram_video.mp4"}
+                                </p>
+                                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">
+                                  {durationMins}:{durationSecs}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] text-slate-400 flex-wrap">
+                                {sizeMb && <span>💾 {sizeMb} MB</span>}
+                                {asset.forwardFromChatTitle && (
+                                  <span className="truncate max-w-[180px]">
+                                    ↪️ From: {asset.forwardFromChatTitle}
+                                  </span>
+                                )}
+                                {asset.senderUsername && (
+                                  <span>👤 @{asset.senderUsername}</span>
+                                )}
+                              </div>
+                              {asset.originalCaption && (
+                                <p className="text-[10px] text-slate-400 truncate italic">
+                                  Caption: &quot;{asset.originalCaption}&quot;
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Content / Caption Input */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
@@ -2166,15 +2525,21 @@ export function BotdeskPostsPage({
                   <span>💬</span>
                   <span>{postType === "TEXT" ? "Message Text" : "Caption (Optional)"}</span>
                 </label>
-                <span
-                  className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border ${
-                    currentChars > maxChars
-                      ? "bg-rose-500/10 border-rose-500/30 text-rose-400 font-bold"
-                      : "bg-[#090d16] border-slate-800 text-slate-400"
-                  }`}
-                >
-                  {currentChars} / {maxChars}
-                </span>
+                {postType !== "TELEGRAM_VIDEO" || telegramReuseMethod !== "FORWARD_MESSAGE" ? (
+                  <span
+                    className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border ${
+                      currentChars > maxChars
+                        ? "bg-rose-500/10 border-rose-500/30 text-rose-400 font-bold"
+                        : "bg-[#090d16] border-slate-800 text-slate-400"
+                    }`}
+                  >
+                    {currentChars} / {maxChars}
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400">
+                    Forward Mode (Caption Preserved)
+                  </span>
+                )}
               </div>
               {currentChars > maxChars && (
                 <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
@@ -2184,18 +2549,29 @@ export function BotdeskPostsPage({
                   </span>
                 </div>
               )}
-              <textarea
-                rows={postType === "TEXT" ? 6 : 4}
-                maxLength={maxChars}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder={
-                  postType === "TEXT"
-                    ? "Write your channel announcement or news..."
-                    : "Add an optional caption for this media..."
-                }
-                className="w-full text-xs rounded-xl p-3.5 bg-[#0b0f19] border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition resize-y"
-              />
+              {postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" ? (
+                <div className="p-3.5 rounded-xl border border-slate-800 bg-[#0d121c] text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-semibold text-slate-300 text-[11px]">
+                    <span>ℹ️ Caption Preserved by Telegram</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Telegram does not allow modifying captions when using <code>forwardMessage</code>. The original message caption and media attribution will be forwarded exactly as received from Telegram.
+                  </p>
+                </div>
+              ) : (
+                <textarea
+                  rows={postType === "TEXT" ? 6 : 4}
+                  maxLength={maxChars}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder={
+                    postType === "TEXT"
+                      ? "Write your channel announcement or news..."
+                      : "Add an optional caption for this media..."
+                  }
+                  className="w-full text-xs rounded-xl p-3.5 bg-[#0b0f19] border border-slate-800 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-sky-500/30 transition resize-y"
+                />
+              )}
               {postType === "TEXT" && (
                 <p className="text-[11px] text-slate-400 italic mt-1.5 flex items-center gap-1.5">
                   <span className="text-[#38bdf8]">💡 Tip:</span>
@@ -2232,7 +2608,7 @@ export function BotdeskPostsPage({
                 {/* Media spoiler */}
                 <label
                   className={`flex items-start gap-3 p-3 rounded-xl border border-slate-800 bg-[#0d121c] transition ${
-                    postType === "TEXT" || postType === "ALBUM" || sendAsDocument
+                    postType === "TEXT" || postType === "ALBUM" || sendAsDocument || (postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE")
                       ? "opacity-50 cursor-not-allowed"
                       : "cursor-pointer hover:border-slate-700 hover:bg-[#0f1522]"
                   }`}
@@ -2240,7 +2616,7 @@ export function BotdeskPostsPage({
                   <input
                     type="checkbox"
                     checked={hasSpoiler}
-                    disabled={postType === "TEXT" || postType === "ALBUM" || sendAsDocument}
+                    disabled={postType === "TEXT" || postType === "ALBUM" || sendAsDocument || (postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE")}
                     onChange={(e) => setHasSpoiler(e.target.checked)}
                     className="mt-0.5 rounded border-slate-700 text-[#38bdf8] focus:ring-0"
                   />
@@ -2254,6 +2630,8 @@ export function BotdeskPostsPage({
                         ? "Telegram does not support spoiler animation on text-only messages."
                         : postType === "ALBUM"
                         ? "For albums, spoiler blur is configured per slide in the album list above."
+                        : postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE"
+                        ? "Telegram does not support spoiler blur when forwarding existing messages."
                         : sendAsDocument
                         ? "Telegram does not support spoiler animation when sending files as documents."
                         : "Blurs photo/video until channel subscribers tap to reveal."}
@@ -2274,12 +2652,14 @@ export function BotdeskPostsPage({
                   <p className="text-[11px] text-slate-400 mt-0.5">
                     {postType === "ALBUM"
                       ? "Delivered as an anchored follow-up reply message (Telegram restriction)"
+                      : postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE"
+                      ? "Disabled: Telegram does not support inline buttons when forwarding messages"
                       : "Buttons appear directly under the message in Telegram"}
                   </p>
                 </div>
                 <button
                   type="button"
-                  disabled={buttons.length >= 10}
+                  disabled={buttons.length >= 10 || (postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE")}
                   onClick={() => {
                     setBtnLabel("");
                     setBtnUrl("");
@@ -2291,6 +2671,17 @@ export function BotdeskPostsPage({
                   ＋ Add Button
                 </button>
               </div>
+
+              {postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" && (
+                <div className="p-3.5 rounded-xl border border-slate-800 bg-[#0d121c] text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-semibold text-slate-300 text-[11px]">
+                    <span>ℹ️ Buttons Disabled for Forward Mode</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Telegram does not allow attaching inline buttons to forwarded messages. To attach interactive buttons, select <strong>⚡ Direct Video (sendVideo)</strong> above.
+                  </p>
+                </div>
+              )}
 
               {postType === "ALBUM" && buttons.length > 0 && (
                 <div className="p-3 rounded-xl border border-sky-500/30 bg-[#0c2538]/40 text-xs space-y-1">
@@ -2522,7 +2913,8 @@ export function BotdeskPostsPage({
                       !scheduledTime ||
                       (postType === "TEXT" && !content.trim()) ||
                       ((postType === "IMAGE" || postType === "VIDEO") && !mediaPath) ||
-                      (postType === "ALBUM" && (albumItems.length < 2 || albumItems.length > 10))
+                      (postType === "ALBUM" && (albumItems.length < 2 || albumItems.length > 10)) ||
+                      (postType === "TELEGRAM_VIDEO" && !selectedTelegramAssetId)
                     }
                     onClick={() => handleOpenPublish()}
                     className="text-xs py-2.5 px-5 rounded-xl font-bold bg-purple-600 hover:bg-purple-500 active:scale-[0.98] text-white transition shadow-md shadow-purple-600/20 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
@@ -2548,7 +2940,8 @@ export function BotdeskPostsPage({
                       channels.length === 0 ||
                       (postType === "TEXT" && !content.trim()) ||
                       ((postType === "IMAGE" || postType === "VIDEO") && !mediaPath) ||
-                      (postType === "ALBUM" && (albumItems.length < 2 || albumItems.length > 10))
+                      (postType === "ALBUM" && (albumItems.length < 2 || albumItems.length > 10)) ||
+                      (postType === "TELEGRAM_VIDEO" && !selectedTelegramAssetId)
                     }
                     onClick={() => handleOpenPublish()}
                     className="text-xs py-2.5 px-5 rounded-xl font-bold bg-[#38bdf8] hover:bg-[#20b3f7] active:scale-[0.98] text-slate-950 transition shadow-md shadow-sky-500/25 inline-flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:pointer-events-none"
@@ -2599,6 +2992,11 @@ export function BotdeskPostsPage({
                     📄 Document
                   </span>
                 )}
+                {postType === "TELEGRAM_VIDEO" && (
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-[#0c2538] text-[#38bdf8] border border-sky-500/30">
+                    📥 TG {telegramReuseMethod === "FORWARD_MESSAGE" ? "Forward" : "Direct Video"}
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-sky-500/10 text-[#38bdf8] border border-sky-500/25">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> SIMULATED
                 </span>
@@ -2622,6 +3020,18 @@ export function BotdeskPostsPage({
                   </span>
                 </div>
               </div>
+
+              {/* Forwarded Header (If TELEGRAM_VIDEO && FORWARD_MESSAGE) */}
+              {postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" && (
+                <div className="text-[11px] text-[#38bdf8] flex items-center gap-1.5 pb-2 border-b border-white/10 font-medium">
+                  <span>↪️ Forwarded from</span>
+                  <strong className="text-white">
+                    {selectedTelegramAsset?.forwardFromChatTitle ||
+                      selectedTelegramAsset?.forwardSenderName ||
+                      (selectedTelegramAsset?.senderUsername ? `@${selectedTelegramAsset?.senderUsername}` : "Telegram User")}
+                  </strong>
+                </div>
+              )}
 
               {/* Uploaded Image Preview in Bubble */}
               {postType === "IMAGE" && (
@@ -2667,7 +3077,7 @@ export function BotdeskPostsPage({
                         <div className="flex items-center gap-2 text-[10px] text-slate-400">
                           <span>
                             {mediaSizeBytes
-                              ? `${(mediaSizeBytes / (1024 * 1024)).toFixed(2)} MB`
+                              ? formatFileSize(mediaSizeBytes)
                               : "Video Document"}
                           </span>
                           <span className="px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-400 text-[9px]">Raw Attachment</span>
@@ -2774,9 +3184,49 @@ export function BotdeskPostsPage({
                 </div>
               )}
 
+              {/* Telegram Reused Video Preview in Bubble */}
+              {postType === "TELEGRAM_VIDEO" && (
+                <div className="relative rounded-xl overflow-hidden border border-white/10 bg-black/40 p-4 flex flex-col items-center justify-center min-h-[140px] text-center space-y-2">
+                  <div className="w-14 h-14 rounded-full bg-sky-500/20 border border-sky-400/40 flex items-center justify-center text-2xl text-sky-400 shadow-inner">
+                    ▶
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-white truncate max-w-[280px]">
+                      {selectedTelegramAsset?.fileName || "telegram_video.mp4"}
+                    </p>
+                    <div className="flex items-center justify-center gap-2 text-[10px] text-slate-400">
+                      {selectedTelegramAsset?.duration && (
+                        <span className="font-mono bg-black/50 px-1.5 py-0.5 rounded border border-white/10">
+                          ⏱ {Math.floor(selectedTelegramAsset.duration / 60)}:{(selectedTelegramAsset.duration % 60).toString().padStart(2, "0")}
+                        </span>
+                      )}
+                      {selectedTelegramAsset?.fileSizeBytes && (
+                        <span>💾 {(selectedTelegramAsset.fileSizeBytes / (1024 * 1024)).toFixed(1)} MB</span>
+                      )}
+                      <span className="px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 font-mono text-[9px]">
+                        TG Video Reuse
+                      </span>
+                    </div>
+                  </div>
+                  {hasSpoiler && telegramReuseMethod === "SEND_VIDEO" && (
+                    <div className="absolute top-2 right-2 pointer-events-none">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-950/80 text-rose-300 border border-rose-700/60 shadow-md">
+                        🙈 Spoiler Blur
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Message Content or Caption */}
               <div className="text-xs text-slate-100 whitespace-pre-wrap leading-relaxed select-text">
-                {content.trim() ? (
+                {postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" ? (
+                  selectedTelegramAsset?.originalCaption ? (
+                    selectedTelegramAsset.originalCaption
+                  ) : (
+                    <span className="text-slate-400 italic">No original caption attached to message</span>
+                  )
+                ) : content.trim() ? (
                   content
                 ) : (
                   <span className="text-slate-400 italic">
@@ -2787,8 +3237,14 @@ export function BotdeskPostsPage({
                 )}
               </div>
 
+              {postType === "TELEGRAM_VIDEO" && telegramReuseMethod === "FORWARD_MESSAGE" && (
+                <div className="text-[10px] text-slate-400 italic pt-1 border-t border-white/5">
+                  ℹ️ Forwarded without modifications. Buttons & custom caption omitted.
+                </div>
+              )}
+
               {/* Inline URL Buttons in Telegram style (for single-item posts) */}
-              {postType !== "ALBUM" && buttons.length > 0 && (
+              {postType !== "ALBUM" && (postType !== "TELEGRAM_VIDEO" || telegramReuseMethod !== "FORWARD_MESSAGE") && buttons.length > 0 && (
                 <div className="space-y-1.5 pt-1">
                   {buttons.map((btn, idx) => (
                     <a
@@ -3006,6 +3462,13 @@ export function BotdeskPostsPage({
                             <span>📸 Album</span>
                             <span className="px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-400 text-[9px] border border-sky-500/20 font-mono">
                               {post.albumItems?.length || (post.albumMessageIds ? post.albumMessageIds.length : 0)} items
+                            </span>
+                          </span>
+                        ) : post.postType === "TELEGRAM_VIDEO" ? (
+                          <span className="flex items-center gap-1.5">
+                            <span>📥 TG Video</span>
+                            <span className="px-1.5 py-0.2 rounded bg-sky-500/10 text-sky-400 text-[9px] border border-sky-500/20 font-mono">
+                              {post.telegramReuseMethod === "FORWARD_MESSAGE" ? "FORWARD" : "DIRECT"}
                             </span>
                           </span>
                         ) : post.postType === "VIDEO" ? (
@@ -3292,6 +3755,10 @@ export function BotdeskPostsPage({
                       } photo(s), ${
                         postToPublish.albumItems?.filter((i) => i.mediaType === "VIDEO").length || 0
                       } video(s))`
+                    : postToPublish.postType === "TELEGRAM_VIDEO"
+                    ? postToPublish.telegramReuseMethod === "FORWARD_MESSAGE"
+                      ? "Telegram Video (Forward Original Message)"
+                      : "Telegram Video (Direct Video Reuse with file_id)"
                     : postToPublish.postType === "VIDEO"
                     ? postToPublish.sendAsDocument
                       ? "Video with Caption (Document Attachment)"
@@ -3378,6 +3845,65 @@ export function BotdeskPostsPage({
                   )}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Staff Telegram Identity Link Modal */}
+      {staffLinkModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+          <div className="w-full max-w-md rounded-2xl bg-[#0f1420] border border-slate-800 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5 text-[#38bdf8]">
+                <span className="text-2xl">🔑</span>
+                <h3 className="text-base font-bold text-white">
+                  Link Staff Telegram Account
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStaffLinkModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              To send or forward videos from Telegram to <strong>@{activeBot?.username || "bot"}</strong>, verify your staff identity using this one-time code:
+            </p>
+
+            <div className="p-4 rounded-xl border border-sky-500/30 bg-[#0c2538]/60 text-center space-y-2">
+              <span className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">
+                Your 6-Digit Link Code
+              </span>
+              <div className="text-3xl font-mono font-extrabold tracking-widest text-[#38bdf8] select-all">
+                {staffLinkCode}
+              </div>
+              <p className="text-[10px] text-slate-400">
+                Expires in {staffLinkExpires || "15 minutes"}
+              </p>
+            </div>
+
+            <div className="space-y-2 text-xs text-slate-300 bg-[#0b0f19] p-3.5 rounded-xl border border-slate-800">
+              <h4 className="font-semibold text-white text-[11px]">Instructions:</h4>
+              <ol className="list-decimal pl-4 space-y-1 text-[11px] text-slate-400">
+                <li>Open Telegram and start a chat with <strong>@{activeBot?.username || "bot"}</strong>.</li>
+                <li>Send command: <code className="text-[#38bdf8] bg-black/40 px-1 py-0.5 rounded">/link {staffLinkCode}</code></li>
+                <li>The bot will reply verifying your staff authorization.</li>
+                <li>You can now forward long videos to the bot for publishing here.</li>
+              </ol>
+            </div>
+
+            <div className="flex items-center justify-end pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setStaffLinkModalOpen(false)}
+                className="text-xs py-2 px-5 rounded-xl font-bold bg-[#0284c7] hover:bg-[#0369a1] text-white transition shadow-md shadow-sky-500/20 cursor-pointer"
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>
