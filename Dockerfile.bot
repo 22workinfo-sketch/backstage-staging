@@ -1,0 +1,54 @@
+# ============================================================
+# Botdesk Bot Runner — Docker Image
+# Node.js long-polling Telegram bot + post scheduler
+# ============================================================
+
+FROM node:20-slim AS base
+
+# Install OpenSSL (required by Prisma on Debian/Ubuntu slim)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# ---- deps stage: install production + dev deps ----
+FROM base AS deps
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# ---- builder stage: generate Prisma client ----
+FROM deps AS builder
+COPY prisma ./prisma
+RUN npx prisma generate
+
+# Copy the rest of the source
+COPY . .
+
+# ---- runner stage: lean final image ----
+FROM base AS runner
+
+WORKDIR /app
+
+# Copy node_modules (includes tsx, prisma client, grammy, etc.)
+COPY --from=builder /app/node_modules ./node_modules
+
+# Copy Prisma schema (needed at runtime for migrations check)
+COPY --from=builder /app/prisma ./prisma
+
+# Copy source files the bot needs
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/package.json ./package.json
+
+# Non-root user for security
+RUN addgroup --system --gid 1001 botgroup \
+    && adduser --system --uid 1001 botuser \
+    && chown -R botuser:botgroup /app
+
+USER botuser
+
+# Health: just keep the process alive (no HTTP port needed for long polling)
+ENV NODE_ENV=production
+
+CMD ["node", "node_modules/tsx/dist/cli.mjs", "src/bot/index.ts"]

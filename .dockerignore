@@ -1,0 +1,39 @@
+# ============================================================
+# Docker ignore — keeps the build context lean
+# ============================================================
+
+# Never bake secrets into image
+.env
+.env.local
+.env.*
+
+# Git
+.git
+.gitignore
+
+# Node
+node_modules
+
+# Next.js build output (not needed for bot runner image)
+.next
+out
+
+# Tests
+tests
+*.test.ts
+*.spec.ts
+vitest.config.ts
+
+# Dev tools
+.vscode
+.idea
+*.md
+README*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
