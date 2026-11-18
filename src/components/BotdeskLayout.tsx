@@ -185,7 +185,7 @@ export function BotdeskLayout({
         className={`sidebar-panel hidden md:flex ${isCollapsed ? "collapsed" : ""}`}
         aria-label="Sidebar navigation"
       >
-        <div className="flex items-center justify-between px-1">
+        <div className="flex items-center justify-between px-1 flex-shrink-0">
           <Link
             href="/dashboard"
             className="flex items-center gap-2 text-white font-bold text-xl tracking-tight text-decoration-none group"
@@ -244,7 +244,7 @@ export function BotdeskLayout({
           })}
         </nav>
 
-        <footer className="sidebar-footer mt-auto text-xs text-slate-500 leading-relaxed pt-4 border-t border-white/10">
+        <footer className="sidebar-footer mt-auto flex-shrink-0 text-xs text-slate-500 leading-relaxed pt-4 border-t border-white/10">
           One control center.
           <br />
           Independent bots.
@@ -270,7 +270,7 @@ export function BotdeskLayout({
         aria-hidden={!isMobileOpen}
         aria-label="Navigation drawer"
       >
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-shrink-0">
           <Link
             href="/dashboard"
             className="flex items-center gap-2 text-white font-bold text-xl tracking-tight"
@@ -293,7 +293,7 @@ export function BotdeskLayout({
           </button>
         </div>
 
-        <nav className="nav-group" aria-label="Mobile navigation">
+        <nav className="nav-group mobile-nav-group flex-1 overflow-y-auto pr-1" aria-label="Mobile navigation">
           {navLinks.map((item) => {
             const isActive = activeNav === item.id;
             return (
@@ -322,7 +322,7 @@ export function BotdeskLayout({
           })}
         </nav>
 
-        <footer className="mt-auto text-xs text-slate-400 pt-4 border-t border-white/10">
+        <footer className="mt-auto flex-shrink-0 text-xs text-slate-400 pt-4 border-t border-white/10">
           <div className="mb-3">
             <span className="font-semibold text-white block truncate">
               {userEmail}
@@ -343,7 +343,7 @@ export function BotdeskLayout({
       {/* Main Work Area */}
       <main className={`main-content ${isDashboard ? "dashboard-main-theme bg-[#0b0f19] text-white" : ""}`}>
         {/* Topline Bar */}
-        <header className="topline-bar flex items-center justify-between gap-4 mb-6">
+        <header className="topline-bar flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             {/* Mobile Hamburger Button */}
             <button
@@ -426,9 +426,12 @@ export function BotdeskLayout({
           </div>
         </header>
 
-        {/* Content Body with smooth page entry transition */}
-        <div key={activeNav} className="page-transition-wrapper">
-          {children}
+        {/* Independent Scroll Container */}
+        <div className="main-scroll-viewport" id="main-scroll-container">
+          {/* Content Body with smooth page entry transition */}
+          <div key={activeNav} className="page-transition-wrapper">
+            {children}
+          </div>
         </div>
       </main>
 
