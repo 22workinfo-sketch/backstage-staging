@@ -11,6 +11,9 @@ services:
     container_name: botdesk-bot-runner
     restart: unless-stopped
 
+    # Automatically apply any pending database migrations before starting bot runner
+    command: sh -c "npx prisma migrate deploy && node node_modules/tsx/dist/cli.mjs src/bot/index.ts"
+
     # All secrets come from the .env file on the VPS (never committed to git)
     env_file:
       - .env
