@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { getAdminSession } from "@/lib/auth";
+import { getStaffSession } from "@/lib/auth";
 
 export default async function HomePage() {
-  const session = await getAdminSession();
+  const session = await getStaffSession();
   if (session) {
-    redirect("/dashboard");
+    redirect(session.role === "SUPPORT_AGENT" ? "/inbox" : "/dashboard");
   } else {
     redirect("/login");
   }

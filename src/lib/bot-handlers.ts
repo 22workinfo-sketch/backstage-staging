@@ -18,6 +18,7 @@ import {
 } from "./channel-service";
 import { recordChannelActivityEvent } from "./activity-service";
 import { recordCampaignTouch, recordMarketingConsent } from "./marketing-service";
+import { receiveSupportUpdate } from "./inbox/receive";
 import { prisma } from "./prisma";
 import {
   isTelegramUserAuthorizedForBot,
@@ -99,6 +100,22 @@ async function dispatchFlowExecutionSteps(
  * Shared seamlessly between local long polling and cloud webhooks.
  */
 export function registerBotHandlers(bot: Bot, botId: string): void {
+  bot.use(async (ctx, next) => {
+    let waitMs = 500;
+    for (;;) {
+      try {
+        if (await receiveSupportUpdate(botId, ctx.update)) return;
+        break;
+      } catch (error) {
+        // Webhook delivery retries non-2xx. Polling must persist before the next offset.
+        if (!bot.isRunning()) throw error;
+        await new Promise(resolve => setTimeout(resolve, waitMs));
+        waitMs = Math.min(10000, waitMs * 2);
+      }
+    }
+    return next();
+  });
+
   // 1. Handle /start command
   bot.command("start", async (ctx) => {
     try {

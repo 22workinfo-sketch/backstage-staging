@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const validRoles = ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"];
+    const validRoles = ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER", "SUPPORT_AGENT"];
     const targetRole = role || "EDITOR";
     if (!validRoles.includes(targetRole)) {
       return NextResponse.json(
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
             data: {
               userId: created.id,
               botId,
-              canPublish: targetRole === "ADMIN" ? true : Boolean(canPublish),
+              canPublish: targetRole === "ADMIN" || (targetRole === "EDITOR" && Boolean(canPublish)),
             },
           });
         }

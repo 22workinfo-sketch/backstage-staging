@@ -37,6 +37,8 @@ model Bot {
   auditLogs        AuditLog[]
   staffAssignments StaffBotAssignment[]
   telegramMediaAssets TelegramMediaAsset[]
+  supportInboxEnabled Boolean @default(false)
+  supportConversations SupportConversation[]
 
   @@map("bots")
 }
@@ -104,6 +106,8 @@ model AdminUser {
   createdTemplates   BotFlowTemplate[]
   createdCampaigns   MarketingCampaign[]
   addedTelegramAssets TelegramMediaAsset[]
+  supportConversations SupportConversation[]
+  supportMessages SupportMessage[]
 
   @@map("admin_users")
 }
@@ -482,4 +486,48 @@ model TelegramMediaAsset {
   @@map("telegram_media_assets")
 }
 
+model SupportConversation {
+  id          String           @id @default(uuid())
+  botId       String
+  bot         Bot              @relation(fields: [botId], references: [id], onDelete: Cascade)
+  chatId      String
+  name        String
+  username    String?
+  ownerId     String?
+  owner       AdminUser?       @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  resolved    Boolean          @default(false)
+  lastActivityAt DateTime      @default(now())
+  messages    SupportMessage[]
 
+  @@unique([botId, chatId])
+  @@index([botId, lastActivityAt, id])
+  @@map("support_conversations")
+}
+
+model SupportMessage {
+  id                 BigInt              @id @default(autoincrement())
+  conversationId     String
+  conversation       SupportConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId           String?
+  sender             AdminUser?          @relation(fields: [senderId], references: [id], onDelete: SetNull)
+  body               String              @db.Text
+  status             String              // RECEIVED, QUEUED, SENDING, SENT, FAILED, UNCERTAIN, CANCELLED
+  telegramMessageId  Int?                // inbound only, unique within the source chat
+  updateId           BigInt?
+  attachmentId       String?
+  attachmentName     String?
+  clientKey          String?             // browser-generated idempotency key for an agent reply
+  parts              String[]            @default([])
+  sentParts          Int                 @default(0)
+  lastSentMessageId  Int?
+  availableAt        DateTime            @default(now())
+  claimId            String?
+  lastError          String?
+  createdAt          DateTime            @default(now())
+
+  @@unique([conversationId, telegramMessageId])
+  @@unique([conversationId, clientKey])
+  @@index([conversationId, id])
+  @@index([status, availableAt, id])
+  @@map("support_messages")
+}

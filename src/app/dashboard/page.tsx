@@ -1,12 +1,12 @@
 import { redirect } from "next/navigation";
-import { getAdminSession } from "@/lib/auth";
+import { getStaffSession } from "@/lib/auth";
 import { getAllBots, getBotUsers } from "@/lib/bot-service";
 import { getUserAssignedBotIds, canUserViewPhoneNumbers } from "@/lib/permissions";
 import { BotdeskLayout } from "@/components/BotdeskLayout";
 import { BotdeskDashboard, BotData, TelegramUserData } from "@/components/BotdeskDashboard";
 
 export default async function DashboardPage() {
-  const session = await getAdminSession();
+  const session = await getStaffSession();
   if (!session) {
     redirect("/login");
   }
@@ -14,6 +14,8 @@ export default async function DashboardPage() {
   if (session.mustChangePassword) {
     redirect("/login?changePassword=true");
   }
+
+  if (session.role === "SUPPORT_AGENT") redirect("/inbox");
 
   // Filter bots strictly to assigned resources
   const assignedBotIds = await getUserAssignedBotIds(session);
