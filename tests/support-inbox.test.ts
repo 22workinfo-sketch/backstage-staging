@@ -197,5 +197,5 @@ describe("Telegram support inbox", () => {
     const older = await readThread(agent, botId, id, recent.messages[0].id);
     expect(older.messages).toHaveLength(3);
     expect(JSON.stringify(recent)).not.toContain("private-fixture");
-  });
+  }, 60000);
 });

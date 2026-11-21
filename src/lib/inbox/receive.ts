@@ -47,6 +47,6 @@ export async function receiveSupportUpdate(botId: string, update: Update): Promi
     } else if (update.edited_message) {
       await tx.supportMessage.updateMany({ where: { ...source, updateId: { lt: updateId } }, data });
     }
-  });
+  }, { timeout: 15000 });
   return true;
 }

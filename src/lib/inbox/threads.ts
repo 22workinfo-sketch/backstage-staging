@@ -74,7 +74,7 @@ export async function queueReply(user: AdminSession, botId: string, threadId: st
       throw new InboxError(409, "Reopen or take ownership of this conversation before replying.");
     await tx.supportConversation.update({ where: { id: threadId }, data: { ownerId: user.id, lastActivityAt: new Date() } });
     const message = await tx.supportMessage.create({ data: { conversationId: threadId, senderId: user.id,
-      clientKey: key, body, parts, status: "QUEUED", availableAt: new Date() }, select: { id: true } });
+      clientKey: key, body, parts, status: "QUEUED", availableAt: new Date(Date.now() - 2000) }, select: { id: true } });
     return { id: message.id.toString() };
   });
 }
@@ -94,7 +94,7 @@ export async function changeThread(user: AdminSession, botId: string, threadId: 
       throw new InboxError(400, "Invalid conversation action.");
     const result = await tx.supportMessage.updateMany({
       where: { id: BigInt(messageId), conversationId: threadId, status: { in: ["FAILED", "UNCERTAIN"] } },
-      data: { status: action === "retry" ? "QUEUED" : "CANCELLED", availableAt: new Date(), lastError: null },
+      data: { status: action === "retry" ? "QUEUED" : "CANCELLED", availableAt: new Date(Date.now() - 2000), lastError: null },
     });
     if (!result.count) throw new InboxError(409, "The delivery status has changed. Refresh the conversation.");
   });
