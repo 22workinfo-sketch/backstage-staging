@@ -66,7 +66,50 @@
 .inbox-recovery { margin-top: .5rem; }
 .inbox-composer { background: #111924; padding: .8rem 1.15rem; border-top: 1px solid var(--line); }
 .inbox-composer textarea { width: 100%; min-height: 3.6rem; max-height: 22vh; resize: vertical; line-height: 1.5; }
-.inbox-composer > div { margin-top: .4rem; }
+.inbox-composer > div { margin-top: .4rem; justify-content: space-between; }
+.inbox-composer-actions { display: flex; align-items: center; gap: .5rem; }
+.inbox-attach-btn {
+  background: #152232; border: 1px solid var(--line); color: #cedce7;
+  padding: .55rem .85rem; border-radius: .55rem; cursor: pointer; font-size: .825rem;
+  display: inline-flex; align-items: center; gap: .35rem; font-weight: 500;
+}
+.inbox-attach-btn:hover:not(:disabled) { background: #1f334a; border-color: var(--cyan); color: #fff; }
+.inbox-file-chip {
+  display: inline-flex; align-items: center; gap: .5rem;
+  background: #142233; border: 1px solid #23455c; border-radius: .5rem;
+  padding: .35rem .75rem; margin-bottom: .45rem; font-size: .8rem; color: var(--ink);
+}
+.inbox-file-icon { font-size: 1rem; }
+.inbox-file-name { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.inbox-file-size { color: var(--subtle); font-size: .75rem; }
+.inbox-file-remove {
+  background: transparent; border: none; color: var(--subtle);
+  cursor: pointer; font-size: .85rem; padding: 0 .25rem; margin-left: .25rem; border-radius: .25rem;
+}
+.inbox-file-remove:hover { color: #ff7878; }
+.inbox-attachment { margin-top: .45rem; }
+.inbox-media-preview { display: flex; flex-direction: column; gap: .3rem; }
+.inbox-chat-img {
+  max-width: min(100%, 300px); max-height: 260px; border-radius: .5rem;
+  display: block; object-fit: cover; border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #090e15; cursor: pointer;
+}
+.inbox-chat-img:hover { opacity: .92; }
+.inbox-file-download { font-size: .76rem; color: var(--cyan); text-decoration: none; word-break: break-all; }
+.inbox-file-download:hover { text-decoration: underline; }
+.inbox-doc-link {
+  display: inline-flex; align-items: center; gap: .5rem;
+  background: rgba(0, 0, 0, 0.28); border: 1px solid var(--line); border-radius: .45rem;
+  padding: .45rem .75rem; color: var(--ink); text-decoration: none !important; font-size: .82rem;
+  transition: border-color .15s, background .15s;
+}
+.inbox-doc-link:hover { border-color: var(--cyan); background: rgba(99, 212, 237, 0.08); }
+.inbox-doc-badge {
+  background: #c53030; color: #fff; font-size: .65rem; font-weight: 700;
+  padding: .15rem .35rem; border-radius: .25rem; letter-spacing: .05em;
+}
+.inbox-doc-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.inbox-doc-dl { color: var(--cyan); font-size: .75rem; margin-left: .35rem; }
 .inbox-pager { align-self: center; justify-content: center; padding: .6rem; }
 @media (max-width: 850px) {
   .inbox-panes { grid-template-columns: minmax(12rem, 34%) minmax(0, 1fr); }

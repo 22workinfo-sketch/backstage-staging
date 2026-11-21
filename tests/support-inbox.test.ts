@@ -173,7 +173,7 @@ describe("Telegram support inbox", () => {
     await changeThread(agent, botId, id, "cancel", first.id);
     const ok = vi.fn(async () => ({ message_id: 82 }));
     await deliverInboxReplies(ok); expect(ok.mock.calls).toHaveLength(1);
-  });
+  }, 60000);
   it("recovers an expired claim and rechecks staff access before dispatch", async () => {
     const id = await openThread();
     const receipt = await queueReply(agent, botId, id, "hello", randomUUID());

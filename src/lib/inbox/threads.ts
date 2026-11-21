@@ -56,25 +56,29 @@ async function lockThread(tx: Prisma.TransactionClient, botId: string, threadId:
   return thread;
 }
 
-export async function queueReply(user: AdminSession, botId: string, threadId: string, body: unknown, key: unknown) {
+export async function queueReply(user: AdminSession, botId: string, threadId: string, body: unknown, key: unknown, attachment?: { attachmentId: string; attachmentName: string }) {
   await requireInboxBot(user, botId);
-  if (typeof body !== "string" || !body.trim() || body.length > MAX_REPLY_LENGTH || body.includes("\0"))
+  const text = typeof body === "string" ? body : "";
+  if (!text.trim() && !attachment)
+    throw new InboxError(400, "Enter a reply of up to 65,536 characters.");
+  if (text.length > MAX_REPLY_LENGTH || text.includes("\0"))
     throw new InboxError(400, "Enter a reply of up to 65,536 characters.");
   if (typeof key !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(key))
     throw new InboxError(400, "Invalid reply identifier.");
-  const parts = splitReply(body);
+  const parts = splitReply(text);
   return prisma.$transaction(async tx => {
     const thread = await lockThread(tx, botId, threadId);
     const old = await tx.supportMessage.findUnique({ where: { conversationId_clientKey: { conversationId: threadId, clientKey: key } } });
     if (old) {
-      if (old.senderId !== user.id || old.body !== body) throw new InboxError(409, "Reply identifier already used.");
+      if (old.senderId !== user.id || old.body !== text) throw new InboxError(409, "Reply identifier already used.");
       return { id: old.id.toString() };
     }
     if (thread.resolved || (thread.ownerId && thread.ownerId !== user.id))
       throw new InboxError(409, "Reopen or take ownership of this conversation before replying.");
     await tx.supportConversation.update({ where: { id: threadId }, data: { ownerId: user.id, lastActivityAt: new Date() } });
     const message = await tx.supportMessage.create({ data: { conversationId: threadId, senderId: user.id,
-      clientKey: key, body, parts, status: "QUEUED", availableAt: new Date(Date.now() - 2000) }, select: { id: true } });
+      clientKey: key, body: text, parts, attachmentId: attachment?.attachmentId ?? null, attachmentName: attachment?.attachmentName ?? null,
+      status: "QUEUED", availableAt: new Date(Date.now() - 2000) }, select: { id: true } });
     return { id: message.id.toString() };
   });
 }

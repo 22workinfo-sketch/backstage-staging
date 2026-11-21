@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { InputFile } from "grammy";
 import { prisma } from "../prisma";
 import { resolveBotToken } from "../bot-service";
 import { createTelegramApi } from "../telegram-client";
+import { getStorageProvider } from "../storage";
 
 type SendPart = (token: string, chatId: string, text: string) => Promise<{ message_id: number }>;
 const sendPlainText: SendPart = (token, chatId, text) =>
@@ -53,7 +55,21 @@ export async function deliverInboxReplies(send: SendPart = sendPlainText, batchS
     }
     let sent: { message_id: number };
     try {
-      sent = await send(token, chatId, message.parts[message.sentParts]);
+      if (message.attachmentId && (message.attachmentId.startsWith("inbox/") || message.attachmentId.includes("/"))) {
+        const storage = getStorageProvider();
+        const { data, mimeType } = await storage.getObject(message.attachmentId);
+        const inputFile = new InputFile(data, message.attachmentName || undefined);
+        const api = createTelegramApi(token, { timeoutSeconds: 35 });
+        const caption = message.body ? message.body.slice(0, 1024) : undefined;
+        const isPhoto = mimeType?.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(message.attachmentName || "");
+        if (isPhoto) {
+          sent = await api.sendPhoto(chatId, inputFile, { caption });
+        } else {
+          sent = await api.sendDocument(chatId, inputFile, { caption });
+        }
+      } else {
+        sent = await send(token, chatId, message.parts[message.sentParts]);
+      }
     } catch (error) {
       const apiError = error as { error_code?: number; parameters?: { retry_after?: number } } | null;
       const code = apiError?.error_code;
@@ -68,10 +84,11 @@ export async function deliverInboxReplies(send: SendPart = sendPlainText, batchS
       }
       continue;
     }
-    const sentParts = message.sentParts + 1;
+    const totalParts = Math.max(1, message.parts.length);
+    const sentParts = message.parts.length > 0 ? message.sentParts + 1 : 1;
     await prisma.supportMessage.updateMany({ where: claim,
       data: { sentParts, lastSentMessageId: sent.message_id, claimId: null, lastError: null,
-        status: sentParts === message.parts.length ? "SENT" : "QUEUED", availableAt: new Date(Date.now() + 1000) },
+        status: sentParts >= totalParts ? "SENT" : "QUEUED", availableAt: new Date(Date.now() + 3000) },
     });
   }
 }

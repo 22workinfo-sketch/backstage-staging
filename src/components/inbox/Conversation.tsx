@@ -25,10 +25,12 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
 }) {
   const storageKey = "botdesk.reply." + userId + "." + url;
   const [draft, setDraft] = useState(() => readDraft(storageKey));
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const cursor = history.at(-1);
   const snapshot = useInboxSnapshot<Thread>(cursor ? url + "?before=" + cursor : url, revision);
   const thread = snapshot?.data;
@@ -47,22 +49,117 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
       else sessionStorage.removeItem(storageKey);
     } catch { /* The in-memory draft still works. */ }
   }
-  async function mutate(method: "POST" | "PATCH", payload: Record<string, unknown>) {
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      setError("File exceeds maximum size of 20 MB.");
+      e.target.value = "";
+      return;
+    }
+    setSelectedFile(file);
+    setError("");
+  }
+  function handlePaste(e: React.ClipboardEvent) {
+    if (busy || !thread || thread.resolved || peerOwned) return;
+    const items = e.clipboardData?.items;
+    if (items) {
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === "file" && item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            if (file.size > 20 * 1024 * 1024) {
+              setError("Pasted image exceeds maximum size of 20 MB.");
+              return;
+            }
+            const ext = file.type.split("/")[1] || "jpeg";
+            const safeExt = ext.toLowerCase().includes("png") ? "png" : "jpg";
+            const filename = (file.name && file.name !== "image.png")
+              ? file.name
+              : `telegram_image_${Date.now()}.${safeExt}`;
+            const namedFile = new File([file], filename, { type: file.type || "image/jpeg" });
+            setSelectedFile(namedFile);
+            setError("");
+            return;
+          }
+        }
+      }
+    }
+    const files = e.clipboardData?.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|pdf)$/i.test(file.name)) {
+        e.preventDefault();
+        if (file.size > 20 * 1024 * 1024) {
+          setError("Pasted file exceeds maximum size of 20 MB.");
+          return;
+        }
+        setSelectedFile(file);
+        setError("");
+        return;
+      }
+    }
+  }
+  function handleDrop(e: React.DragEvent) {
+    if (busy || !thread || thread.resolved || peerOwned) return;
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/") && !/\.(jpe?g|png|webp|pdf)$/i.test(file.name)) {
+      setError("Please drop an image (JPG, PNG, WebP) or PDF file.");
+      return;
+    }
+    if (file.size > 20 * 1024 * 1024) {
+      setError("Dropped file exceeds maximum size of 20 MB.");
+      return;
+    }
+    setSelectedFile(file);
+    setError("");
+  }
+  async function mutate(method: "POST" | "PATCH", payload: Record<string, unknown> | FormData) {
     if (locked.current) return false;
     locked.current = true; setBusy(true); setError("");
     try {
-      await requestJson(url, { method, body: payload, signal: AbortSignal.timeout(15000) });
+      if (payload instanceof FormData) {
+        const res = await fetch(url, {
+          method,
+          body: payload,
+          signal: AbortSignal.timeout(60000),
+        });
+        if (!res.ok) {
+          const errJson = await res.json().catch(() => ({}));
+          throw new Error(errJson.error || `Upload failed with status ${res.status}`);
+        }
+      } else {
+        await requestJson(url, { method, body: payload, signal: AbortSignal.timeout(15000) });
+      }
       setRevision(r => r + 1); onChange(); return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection interrupted. Try again."); return false;
     } finally { locked.current = false; setBusy(false); }
   }
   async function reply() {
-    if (locked.current || !draft.text.trim() || !thread || thread.resolved || peerOwned) return;
+    if (locked.current || (!draft.text.trim() && !selectedFile) || !thread || thread.resolved || peerOwned) return;
     const key = draft.key || crypto.randomUUID();
     saveDraft({ ...draft, key, attempted: true });
-    if (await mutate("POST", { body: draft.text, clientKey: key })) {
-      saveDraft({ text: "", key: "", attempted: false }); setHistory([]); atBottom.current = true;
+    let success = false;
+    if (selectedFile) {
+      const fd = new FormData();
+      fd.append("body", draft.text);
+      fd.append("clientKey", key);
+      fd.append("file", selectedFile);
+      success = await mutate("POST", fd);
+    } else {
+      success = await mutate("POST", { body: draft.text, clientKey: key });
+    }
+    if (success) {
+      saveDraft({ text: "", key: "", attempted: false });
+      setSelectedFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setHistory([]);
+      atBottom.current = true;
     }
   }
   function change(action: string, message?: Message) {
@@ -97,7 +194,35 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
         <div className="inbox-message-meta"><strong>{m.status === "RECEIVED" ? thread.name : m.sender?.email || "Support team"}</strong>
           <time dateTime={m.createdAt} title={new Date(m.createdAt).toLocaleString()}>{timeLabel(m.createdAt)}</time></div>
         {m.body && <p dir="auto">{m.body}</p>}
-        {m.attachmentName && <a href={url + "/files/" + m.id} target="_blank" rel="noreferrer">↓ {m.attachmentName}</a>}
+        {m.attachmentName && (
+          <div className="inbox-attachment">
+            {m.attachmentName === "Photo" || /\.(jpe?g|png|webp|gif)$/i.test(m.attachmentName) ? (
+              <div className="inbox-media-preview">
+                <a href={url + "/files/" + m.id} target="_blank" rel="noreferrer">
+                  <img
+                    src={url + "/files/" + m.id}
+                    alt={m.attachmentName}
+                    className="inbox-chat-img"
+                    loading="lazy"
+                  />
+                </a>
+                <a href={url + "/files/" + m.id} target="_blank" rel="noreferrer" className="inbox-file-download">
+                  ↓ {m.attachmentName}
+                </a>
+              </div>
+            ) : /\.pdf$/i.test(m.attachmentName) ? (
+              <a href={url + "/files/" + m.id} target="_blank" rel="noreferrer" className="inbox-doc-link">
+                <span className="inbox-doc-badge">PDF</span>
+                <span className="inbox-doc-name">{m.attachmentName}</span>
+                <span className="inbox-doc-dl">↓ Open</span>
+              </a>
+            ) : (
+              <a href={url + "/files/" + m.id} target="_blank" rel="noreferrer" className="inbox-file-download">
+                ↓ {m.attachmentName}
+              </a>
+            )}
+          </div>
+        )}
         {m.status !== "RECEIVED" && <small className="inbox-delivery">{statuses[m.status]}{m.status !== "SENT" && m.sentParts > 0 ? ` · ${m.sentParts} part(s) sent` : ""}</small>}
         {m.lastError && <small className="inbox-problem">{m.lastError}</small>}
         {["FAILED", "UNCERTAIN"].includes(m.status) && (!peerOwned || supervisor) && <div className="inbox-recovery">
@@ -106,13 +231,66 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
         </div>}
       </div>)}
     </div>
-    <form className="inbox-composer" onSubmit={e => { e.preventDefault(); void reply(); }}>
-      <textarea aria-label="Reply to customer" placeholder={thread?.resolved ? "Reopen this conversation to reply" : peerOwned ? "Another agent owns this chat" : "Write a reply…"}
-        disabled={busy || !thread || thread.resolved || peerOwned} maxLength={MAX_REPLY_LENGTH} value={draft.text} dir="auto"
+    <form
+      className="inbox-composer"
+      onSubmit={e => { e.preventDefault(); void reply(); }}
+      onPaste={handlePaste}
+      onDragOver={e => e.preventDefault()}
+      onDrop={handleDrop}
+    >
+      {selectedFile && (
+        <div className="inbox-file-chip">
+          <span className="inbox-file-icon">
+            {/\.(jpe?g|png|webp|gif)$/i.test(selectedFile.name) ? "🖼️" : "📄"}
+          </span>
+          <span className="inbox-file-name" title={selectedFile.name}>{selectedFile.name}</span>
+          <span className="inbox-file-size">({(selectedFile.size / (1024 * 1024)).toFixed(1)} MB)</span>
+          <button
+            type="button"
+            className="inbox-file-remove"
+            title="Remove file"
+            onClick={() => {
+              setSelectedFile(null);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}
+          >
+            ✕
+          </button>
+        </div>
+      )}
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        accept=".pdf,image/jpeg,image/png,image/webp,image/jpg"
+        onChange={handleFileSelect}
+      />
+      <textarea
+        aria-label="Reply to customer"
+        placeholder={thread?.resolved ? "Reopen this conversation to reply" : peerOwned ? "Another agent owns this chat" : "Write a reply or paste image (Ctrl+V)…"}
+        disabled={busy || !thread || thread.resolved || peerOwned}
+        maxLength={MAX_REPLY_LENGTH}
+        value={draft.text}
+        dir="auto"
         onChange={e => saveDraft({ text: e.target.value, key: "", attempted: false })}
-        onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !e.nativeEvent.isComposing) { e.preventDefault(); void reply(); } }} />
-      <div><small>{draft.attempted && !busy ? "Retry safely with the same reply." : draft.text.length > 4096 ? "Long reply · sent in ordered parts" : "Plain text · Ctrl / ⌘ + Enter to send"}</small>
-        <button className="inbox-primary" disabled={!thread || thread.resolved || peerOwned || !draft.text.trim() || busy}>{busy ? "Working…" : draft.attempted ? "Retry reply" : "Send reply"}</button></div>
+        onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && !e.nativeEvent.isComposing) { e.preventDefault(); void reply(); } }}
+        onPaste={handlePaste}
+      />
+      <div>
+        <small>{draft.attempted && !busy ? "Retry safely with the same reply." : selectedFile ? `Attached: ${selectedFile.name} · Enter to send` : draft.text.length > 4096 ? "Long reply · sent in ordered parts" : "Plain text · Ctrl / ⌘ + Enter to send"}</small>
+        <div className="inbox-composer-actions">
+          <button
+            type="button"
+            className="inbox-attach-btn"
+            title="Attach JPG, PNG or PDF (max 20 MB)"
+            disabled={busy || !thread || thread.resolved || peerOwned}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            📎 Attach
+          </button>
+          <button className="inbox-primary" disabled={!thread || thread.resolved || peerOwned || (!draft.text.trim() && !selectedFile) || busy}>{busy ? "Working…" : draft.attempted ? "Retry reply" : "Send reply"}</button>
+        </div>
+      </div>
     </form>
   </article>;
 }
