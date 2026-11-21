@@ -551,6 +551,7 @@ describe("Multi-Bot Management, Token Security & Isolation Suite", () => {
       process.env.TELEGRAM_WEBHOOK_SECRET = "secure_webhook_secret_key_12345";
 
       const mockBot = {
+        init: vi.fn(async () => {}),
         handleUpdate: vi.fn(async () => {}),
         api: { deleteMessage: vi.fn(async () => {}) },
       } as any;

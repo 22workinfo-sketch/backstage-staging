@@ -61,7 +61,7 @@ export async function PUT(
       if (isActive !== targetUser.isActive) shouldIncrementToken = true;
     }
 
-    if (role && ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER"].includes(role)) {
+    if (role && ["SUPER_ADMIN", "ADMIN", "EDITOR", "VIEWER", "SUPPORT_AGENT"].includes(role)) {
       updateData.role = role;
       if (role !== targetUser.role) shouldIncrementToken = true;
     }
@@ -97,7 +97,7 @@ export async function PUT(
               data: {
                 userId: id,
                 botId,
-                canPublish: effectiveRole === "ADMIN" ? true : Boolean(canPublish),
+                canPublish: effectiveRole === "ADMIN" || (effectiveRole === "EDITOR" && Boolean(canPublish)),
               },
             });
           }

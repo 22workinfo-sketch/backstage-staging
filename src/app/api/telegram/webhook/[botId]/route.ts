@@ -169,6 +169,7 @@ export async function POST(
     // 5. Process update with grammY bot
     try {
       const grammyBot = getWebhookBotInstance(token, bot.id);
+      await grammyBot.init();
       await grammyBot.handleUpdate(update);
       await markTelegramUpdateCompleted(bot.id, update.update_id);
     } catch (processErr: any) {

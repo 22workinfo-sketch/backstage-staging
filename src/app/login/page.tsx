@@ -27,7 +27,7 @@ function LoginForm() {
 
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
-      setError("Please enter your admin email.");
+      setError("Please enter your staff email.");
       return;
     }
 
@@ -89,7 +89,7 @@ function LoginForm() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication error occurred");
@@ -156,7 +156,7 @@ function LoginForm() {
         return;
       }
 
-      router.push("/dashboard");
+      router.push("/");
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to change password");
@@ -177,7 +177,7 @@ function LoginForm() {
           </h1>
           <p className="mt-1 text-xs text-[var(--muted)]">
             {mode === "LOGIN"
-              ? "Sign in to manage your Telegram bots"
+              ? "Sign in to your Botdesk workspace"
               : "Security Requirement: Set a new permanent password"}
           </p>
         </div>
@@ -192,7 +192,7 @@ function LoginForm() {
           <form onSubmit={handleLoginSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
-                Admin Email
+                Staff Email
               </label>
               <input
                 type="email"
@@ -201,7 +201,7 @@ function LoginForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="botdesk-input text-xs"
-                placeholder="Enter your registered admin email"
+                placeholder="Enter your registered staff email"
               />
             </div>
 

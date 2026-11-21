@@ -88,16 +88,9 @@ export async function POST(req: NextRequest) {
         where: { id: queryBotId },
         select: { id: true, encryptedToken: true, tokenEnvVar: true, isActive: true },
       });
-      if (dbBot) {
-        if (!dbBot.isActive) {
-          return NextResponse.json(
-            { error: "Bot is inactive in BackStage." },
-            { status: 403 }
-          );
-        }
-        const resolved = resolveBotToken(dbBot);
-        if (resolved) token = resolved;
-      }
+      if (!dbBot) return NextResponse.json({ error: "Bot unavailable." }, { status: 404 });
+      if (!dbBot.isActive) return NextResponse.json({ error: "Bot is inactive." }, { status: 403 });
+      token = resolveBotToken(dbBot) ?? undefined;
     }
 
     if (!token || token.includes("placeholder") || token.trim() === "") {
@@ -151,6 +144,7 @@ export async function POST(req: NextRequest) {
     // 6. Process the update with grammY bot
     try {
       const bot = getWebhookBotInstance(token, botId);
+      await bot.init();
       await bot.handleUpdate(update);
       await markTelegramUpdateCompleted(botId, update.update_id);
     } catch (processErr: any) {

@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
 import { AdminSession } from "./auth";
 
-export type StaffRole = "SUPER_ADMIN" | "ADMIN" | "EDITOR" | "VIEWER";
+export type StaffRole = "SUPER_ADMIN" | "ADMIN" | "EDITOR" | "VIEWER" | "SUPPORT_AGENT";
 
 export function isSuperAdmin(session: AdminSession): boolean {
   return session.role === "SUPER_ADMIN";
@@ -23,6 +23,8 @@ export async function hasBotAccess(
   if (session.role === "SUPER_ADMIN") {
     return true;
   }
+
+  if (session.role === "SUPPORT_AGENT") return false;
 
   const assignment = await prisma.staffBotAssignment.findUnique({
     where: {
@@ -130,6 +132,8 @@ export async function getUserAssignedBotIds(
     });
     return allBots.map((b) => b.id);
   }
+
+  if (session.role === "SUPPORT_AGENT") return [];
 
   const assignments = await prisma.staffBotAssignment.findMany({
     where: { userId: session.id },

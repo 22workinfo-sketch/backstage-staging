@@ -86,6 +86,12 @@ export async function startMultiBotRunner(options?: {
       // 1. Initialize grammY bot
       const grammyBot = createTelegramBot(token, bot.id);
 
+      // grammY start() removes webhooks. Keep an existing integration active until
+      // the bot owner explicitly disconnects it during the handover.
+      if (!options?.isTestMode && (await grammyBot.api.getWebhookInfo()).url) {
+        throw new Error("This bot has an active webhook. Disconnect that integration before enabling polling.");
+      }
+
       // 2. Set up dedicated auto-delete sweeper for this bot
       let sweeperBusy = false;
       const sweeperInterval = setInterval(async () => {
@@ -118,6 +124,7 @@ export async function startMultiBotRunner(options?: {
         grammyBot.start({
           allowed_updates: [
             "message",
+            "edited_message",
             "callback_query",
             "chat_member",
             "my_chat_member",

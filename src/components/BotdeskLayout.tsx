@@ -11,6 +11,7 @@ export interface BotdeskLayoutProps {
     | "bots"
     | "menus"
     | "channels"
+    | "inbox"
     | "posts"
     | "marketing"
     | "staff"
@@ -88,6 +89,16 @@ export function BotdeskLayout({
           <path d="M20 14h2" />
           <path d="M15 13v2" />
           <path d="M9 13v2" />
+        </svg>
+      ),
+    },
+    {
+      id: "inbox",
+      label: "Support inbox",
+      href: "/inbox",
+      icon: (
+        <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+          <path d="M4 4h16v12H9l-5 4V4Z" /><path d="M8 8h8m-8 4h5" />
         </svg>
       ),
     },
@@ -174,7 +185,10 @@ export function BotdeskLayout({
         </svg>
       ),
     },
-  ];
+  ].filter((item) => {
+    if (role === "SUPPORT_AGENT") return item.id === "inbox";
+    return item.id !== "inbox" || role === "SUPER_ADMIN" || role === "ADMIN";
+  });
 
   const isDashboard = activeNav === "bots";
 
@@ -187,7 +201,7 @@ export function BotdeskLayout({
       >
         <div className="flex items-center justify-between px-1 flex-shrink-0">
           <Link
-            href="/dashboard"
+            href={role === "SUPPORT_AGENT" ? "/inbox" : "/dashboard"}
             className="flex items-center gap-2 text-white font-bold text-xl tracking-tight text-decoration-none group"
             title="Botdesk Backstage"
             aria-label="Botdesk Home"
@@ -272,7 +286,7 @@ export function BotdeskLayout({
       >
         <div className="flex items-center justify-between flex-shrink-0">
           <Link
-            href="/dashboard"
+            href={role === "SUPPORT_AGENT" ? "/inbox" : "/dashboard"}
             className="flex items-center gap-2 text-white font-bold text-xl tracking-tight"
             onClick={() => setIsMobileOpen(false)}
           >
@@ -341,7 +355,7 @@ export function BotdeskLayout({
       </div>
 
       {/* Main Work Area */}
-      <main className={`main-content ${isDashboard ? "dashboard-main-theme bg-[#0b0f19] text-white" : ""}`}>
+      <main className={`main-content ${activeNav === "inbox" ? "inbox-main" : ""} ${isDashboard ? "dashboard-main-theme bg-[#0b0f19] text-white" : ""}`}>
         {/* Topline Bar */}
         <header className="topline-bar flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -370,6 +384,7 @@ export function BotdeskLayout({
           </div>
 
           <div className="flex items-center gap-3">
+            {role !== "SUPPORT_AGENT" && <>
             {/* Notification Bell with Cyan Dot */}
             <button
               type="button"
@@ -391,6 +406,7 @@ export function BotdeskLayout({
 
             {/* Vertical Divider */}
             <div className={`h-5 w-[1px] ${isDashboard ? "bg-slate-800" : "bg-[var(--border)]"}`} />
+            </>}
 
             {/* User Profile Avatar with dropdown details */}
             <div className="flex items-center gap-2 group relative">

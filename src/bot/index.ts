@@ -9,13 +9,6 @@ dotenv.config();
 import { startMultiBotRunner } from "../lib/multi-bot-runner";
 import { startSchedulerWorker } from "../worker/scheduler-worker";
 
-// Mode guard: Warn if TELEGRAM_MODE is explicitly set to webhook
-if (process.env.TELEGRAM_MODE === "webhook") {
-  console.warn(
-    "⚠️ WARNING: TELEGRAM_MODE is set to 'webhook'. Running long polling simultaneously will conflict with webhook delivery. Stop this process if a webhook is active."
-  );
-}
-
 console.log("=============================================================");
 console.log(" [BackStage Multi-Bot Service Runner & Post Scheduler]");
 console.log("=============================================================");
@@ -24,6 +17,14 @@ console.log("Initializing concurrent Telegram bot pollers & post scheduler...");
 async function main() {
   // 1. Start the Background Post Scheduler Worker
   const scheduler = await startSchedulerWorker();
+
+  if (process.env.TELEGRAM_MODE === "webhook") {
+    console.log("[Bot Runner] Webhook mode. Running the scheduler and inbox delivery worker only.");
+    const stop = async () => { await scheduler.stop(); process.exit(0); };
+    process.once("SIGINT", stop);
+    process.once("SIGTERM", stop);
+    return;
+  }
 
   // 2. Start Concurrent Multi-Bot Polling Workers
   const runner = await startMultiBotRunner({

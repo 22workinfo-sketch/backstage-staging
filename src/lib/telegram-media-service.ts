@@ -62,6 +62,10 @@ export async function isTelegramUserAuthorizedForBot(
     };
   }
 
+  if (adminUser.role === "SUPPORT_AGENT") {
+    return { authorized: false, reason: "This staff role has support inbox access only." };
+  }
+
   // SuperAdmins and Admins have global access to all bots
   if (adminUser.role === "SUPER_ADMIN" || adminUser.role === "ADMIN") {
     return {

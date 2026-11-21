@@ -140,7 +140,7 @@ export async function validateSessionWithDatabase(
 
     return null;
   } catch {
-    return session;
+    return null;
   }
 }
 
@@ -161,7 +161,7 @@ export function enforcePasswordChangeStatus(session: AdminSession): NextResponse
   return null;
 }
 
-export async function getAdminSession(
+export async function getStaffSession(
   req?: {
     cookies: { get: (name: string) => { value: string } | undefined };
   },
@@ -194,6 +194,12 @@ export async function getAdminSession(
   }
 
   return verified;
+}
+
+// Existing dashboard and management endpoints accept workspace roles only.
+export async function getAdminSession(...args: Parameters<typeof getStaffSession>): Promise<AdminSession | null> {
+  const session = await getStaffSession(...args);
+  return session?.role === "SUPPORT_AGENT" ? null : session;
 }
 
 export async function requireAdminSession(

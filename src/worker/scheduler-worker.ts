@@ -12,6 +12,7 @@ import {
   claimDueScheduledPosts,
   executeClaimedScheduledPost,
 } from "../lib/post-service";
+import { deliverInboxReplies } from "../lib/inbox/delivery";
 import { redactTokens } from "../lib/token-encryption";
 
 export interface SchedulerWorkerOptions {
@@ -147,12 +148,24 @@ export async function startSchedulerWorker(options?: SchedulerWorkerOptions): Pr
       isCycleActive = false;
     });
 
+  let inboxBusy = false;
+  const tickInbox = async () => {
+    if (!isRunning || inboxBusy) return;
+    inboxBusy = true;
+    try { await deliverInboxReplies(); }
+    catch { console.error("[Inbox] Delivery cycle interrupted. Retrying on next tick."); }
+    finally { inboxBusy = false; }
+  };
+  const inboxTimer = setInterval(tickInbox, 1500);
+  void tickInbox();
+
   const stop = async () => {
     console.log(`[Scheduler Worker] Stopping worker "${workerId}"...`);
     isRunning = false;
     clearInterval(intervalTimer);
+    clearInterval(inboxTimer);
     let waitCount = 0;
-    while (isCycleActive && waitCount < 20) {
+    while ((isCycleActive || inboxBusy) && waitCount < 150) {
       await new Promise((r) => setTimeout(r, 200));
       waitCount++;
     }

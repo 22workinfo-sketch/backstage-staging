@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
-  getAdminSession,
+  getStaffSession,
   verifyPassword,
   hashPassword,
   createSessionToken,
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const session = await getAdminSession(req, { checkDb: true });
+    const session = await getStaffSession(req, { checkDb: true });
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

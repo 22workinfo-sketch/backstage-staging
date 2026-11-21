@@ -19,7 +19,7 @@ interface StaffAssignment {
 interface StaffMember {
   id: string;
   email: string;
-  role: "SUPER_ADMIN" | "ADMIN" | "EDITOR" | "VIEWER";
+  role: "SUPER_ADMIN" | "ADMIN" | "EDITOR" | "VIEWER" | "SUPPORT_AGENT";
   isActive: boolean;
   mustChangePassword: boolean;
   createdAt: string;
@@ -42,14 +42,14 @@ export function BotdeskStaffPage({
   const [showAddModal, setShowAddModal] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState<"ADMIN" | "EDITOR" | "VIEWER" | "SUPER_ADMIN">("EDITOR");
+  const [newRole, setNewRole] = useState<StaffMember["role"]>("EDITOR");
   const [newAssignedBotIds, setNewAssignedBotIds] = useState<string[]>([]);
   const [newCanPublish, setNewCanPublish] = useState(false);
   const [addingSubmitting, setAddingSubmitting] = useState(false);
 
   // Edit Staff Modal State
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
-  const [editRole, setEditRole] = useState<"ADMIN" | "EDITOR" | "VIEWER" | "SUPER_ADMIN">("EDITOR");
+  const [editRole, setEditRole] = useState<StaffMember["role"]>("EDITOR");
   const [editIsActive, setEditIsActive] = useState(true);
   const [editAssignedBotIds, setEditAssignedBotIds] = useState<string[]>([]);
   const [editCanPublish, setEditCanPublish] = useState(false);
@@ -370,7 +370,7 @@ export function BotdeskStaffPage({
                             <span className="text-[var(--muted)] text-[11px]">Drafts Only</span>
                           )
                         ) : (
-                          <span className="text-[var(--muted)] text-[11px]">Read Only</span>
+                          <span className="text-[var(--muted)] text-[11px]">{member.role === "SUPPORT_AGENT" ? "Support chat only" : "Read Only"}</span>
                         )}
                       </td>
                       <td className="py-3 px-3">
@@ -469,6 +469,7 @@ export function BotdeskStaffPage({
                   onChange={(e) => setNewRole(e.target.value as any)}
                   className="botdesk-input text-xs"
                 >
+                  <option value="SUPPORT_AGENT">Support Agent — Chat in assigned support inboxes</option>
                   <option value="EDITOR">EDITOR — Drafts & Media (Publishing optional)</option>
                   <option value="ADMIN">ADMIN — Assigned Bot Management & Publishing</option>
                   <option value="VIEWER">VIEWER — Read-Only Access (No edits or publishes)</option>
@@ -607,6 +608,7 @@ export function BotdeskStaffPage({
                   onChange={(e) => setEditRole(e.target.value as any)}
                   className="botdesk-input text-xs"
                 >
+                  <option value="SUPPORT_AGENT">Support Agent — Chat in assigned support inboxes</option>
                   <option value="EDITOR">EDITOR — Drafts & Media (Publishing optional)</option>
                   <option value="ADMIN">ADMIN — Assigned Bot Management & Publishing</option>
                   <option value="VIEWER">VIEWER — Read-Only Access (No edits or publishes)</option>
