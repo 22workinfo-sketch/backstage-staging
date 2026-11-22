@@ -58,23 +58,93 @@ export async function deliverInboxReplies(send: SendPart = sendPlainText, batchS
     const isMessenger = bot.username.startsWith("facebook:") || bot.tokenEnvVar === "MESSENGER_PAGE_ACCESS_TOKEN";
     if (isMessenger) {
       try {
-        const textToSend = message.parts[message.sentParts] || message.body;
-        const res = await fetch(`https://graph.facebook.com/v21.0/me/messages?access_token=${encodeURIComponent(token)}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            recipient: { id: chatId },
-            messaging_type: "RESPONSE",
-            message: { text: textToSend },
-          }),
-        });
+        let sentOk = false;
+        let lastFbError = "";
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          const errMsg = errData.error?.message || `Facebook delivery failed (${res.status})`;
+        if (message.attachmentId && (message.attachmentId.startsWith("inbox/") || message.attachmentId.includes("/"))) {
+          let fileData: Buffer;
+          let fileMimeType: string | undefined;
+          try {
+            const storage = getStorageProvider();
+            const { data, mimeType } = await storage.getObject(message.attachmentId);
+            fileData = data;
+            fileMimeType = mimeType;
+          } catch (storageErr) {
+            console.error(`[Facebook Storage Error] Failed to read attachment ${message.attachmentId}:`, storageErr);
+            await prisma.supportMessage.updateMany({
+              where: claim,
+              data: {
+                status: "FAILED",
+                claimId: null,
+                lastError: "Attachment file could not be read from storage. Please re-attach and try again.",
+              },
+            });
+            continue;
+          }
+
+          const isPhoto = fileMimeType?.startsWith("image/") || /\.(jpe?g|png|webp|gif)$/i.test(message.attachmentName || "");
+          const formData = new FormData();
+          formData.append("recipient", JSON.stringify({ id: chatId }));
+          formData.append("messaging_type", "RESPONSE");
+          formData.append("message", JSON.stringify({
+            attachment: {
+              type: isPhoto ? "image" : "file",
+              payload: { is_reusable: true },
+            },
+          }));
+          const blob = new Blob([fileData], { type: fileMimeType || "application/octet-stream" });
+          formData.append("filedata", blob, message.attachmentName || "image.png");
+
+          const res = await fetch(`https://graph.facebook.com/v21.0/me/messages?access_token=${encodeURIComponent(token)}`, {
+            method: "POST",
+            body: formData,
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            lastFbError = errData.error?.message || `Facebook delivery failed (${res.status})`;
+          } else {
+            sentOk = true;
+          }
+
+          // If there is also text, send it as a follow-up message
+          const textCaption = message.body?.trim();
+          if (sentOk && textCaption) {
+            await fetch(`https://graph.facebook.com/v21.0/me/messages?access_token=${encodeURIComponent(token)}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                recipient: { id: chatId },
+                messaging_type: "RESPONSE",
+                message: { text: textCaption },
+              }),
+            }).catch(() => {});
+          }
+        } else {
+          // Plain text message
+          const textToSend = message.parts[message.sentParts] || message.body;
+          const res = await fetch(`https://graph.facebook.com/v21.0/me/messages?access_token=${encodeURIComponent(token)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              recipient: { id: chatId },
+              messaging_type: "RESPONSE",
+              message: { text: textToSend },
+            }),
+          });
+
+          if (!res.ok) {
+            const errData = await res.json().catch(() => ({}));
+            lastFbError = errData.error?.message || `Facebook delivery failed (${res.status})`;
+          } else {
+            sentOk = true;
+          }
+        }
+
+        if (!sentOk) {
           await prisma.supportMessage.updateMany({
             where: claim,
-            data: { status: "FAILED", claimId: null, lastError: errMsg },
+            data: { status: "FAILED", claimId: null, lastError: lastFbError || "Facebook delivery failed" },
           });
           continue;
         }
