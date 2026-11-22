@@ -86,10 +86,17 @@ export async function startMultiBotRunner(options?: {
       // 1. Initialize grammY bot
       const grammyBot = createTelegramBot(token, bot.id);
 
-      // grammY start() removes webhooks. Keep an existing integration active until
-      // the bot owner explicitly disconnects it during the handover.
-      if (!options?.isTestMode && (await grammyBot.api.getWebhookInfo()).url) {
-        throw new Error("This bot has an active webhook. Disconnect that integration before enabling polling.");
+      // When transitioning to polling, clear any leftover webhook from prior services (e.g. tawk.to or previous integrations)
+      if (!options?.isTestMode) {
+        const webhookInfo = await grammyBot.api.getWebhookInfo().catch(() => null);
+        if (webhookInfo?.url) {
+          console.log(
+            `[Bot Runner] Clearing active webhook (${webhookInfo.url}) for "${bot.name}" (@${bot.username}) to enable long polling...`
+          );
+          await grammyBot.api.deleteWebhook({ drop_pending_updates: false }).catch((err) => {
+            console.warn(`[Bot Runner] Warning: deleteWebhook returned: ${err}`);
+          });
+        }
       }
 
       // 2. Set up dedicated auto-delete sweeper for this bot
