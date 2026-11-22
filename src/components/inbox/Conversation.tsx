@@ -30,6 +30,8 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
   const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editingNameValue, setEditingNameValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cursor = history.at(-1);
   const snapshot = useInboxSnapshot<Thread>(cursor ? url + "?before=" + cursor : url, revision);
@@ -168,12 +170,51 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
     if (action === "cancel" && !window.confirm("Stop sending the remaining parts of this reply?")) return;
     void mutate("PATCH", { action, messageId: message?.id });
   }
+  async function handleSaveName(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingNameValue.trim() || busy) return;
+    const ok = await mutate("PATCH", { action: "rename", name: editingNameValue.trim() });
+    if (ok) setIsEditingName(false);
+  }
   return <article className="inbox-thread" aria-label="Customer conversation">
     <header className="inbox-thread-head">
       <button className="inbox-back" onClick={onBack} aria-label="Back to conversations">‹</button>
       <Avatar name={thread?.name || "…"} />
-      <div className="inbox-person"><h2>{thread?.name || "Conversation"}</h2>
-        <small>{thread?.username ? "@" + thread.username + " · " : ""}{thread?.owner?.email || "Unassigned"}</small></div>
+      <div className="inbox-person">
+        {isEditingName ? (
+          <form className="inbox-name-form" onSubmit={handleSaveName}>
+            <input
+              type="text"
+              value={editingNameValue}
+              onChange={e => setEditingNameValue(e.target.value)}
+              className="inbox-name-input"
+              autoFocus
+              maxLength={100}
+              disabled={busy}
+            />
+            <button type="submit" className="inbox-name-btn inbox-name-save" disabled={busy} title="Save">✓</button>
+            <button type="button" className="inbox-name-btn inbox-name-cancel" onClick={() => setIsEditingName(false)} title="Cancel">✕</button>
+          </form>
+        ) : (
+          <div className="inbox-name-display">
+            <h2>{thread?.name || "Conversation"}</h2>
+            {thread && (
+              <button
+                type="button"
+                className="inbox-name-edit-btn"
+                onClick={() => {
+                  setEditingNameValue(thread?.name || "");
+                  setIsEditingName(true);
+                }}
+                title="Edit customer name"
+              >
+                ✏️
+              </button>
+            )}
+          </div>
+        )}
+        <small>{thread?.username ? "@" + thread.username + " · " : ""}{thread?.owner?.email || "Unassigned"}</small>
+      </div>
       {thread && <div className="inbox-thread-actions">
         {(!peerOwned || supervisor) && <button disabled={busy} onClick={() => change(thread.owner?.id === userId ? "release" : "claim")}>
           {thread.owner?.id === userId ? "Release" : peerOwned ? "Take over" : "Claim"}</button>}

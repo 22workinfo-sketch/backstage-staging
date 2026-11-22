@@ -166,7 +166,11 @@ async function fetchCustomerFacebookName(token: string, psid: string, conversati
   try {
     const url = `https://graph.facebook.com/v21.0/${encodeURIComponent(psid)}?fields=first_name,last_name,name&access_token=${encodeURIComponent(token)}`;
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return;
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      console.warn(`[Messenger Webhook] Profile fetch for PSID ${psid} failed (${res.status}):`, err?.error?.message || res.statusText);
+      return;
+    }
 
     const profile = await res.json();
     const fullName = profile.name || [profile.first_name, profile.last_name].filter(Boolean).join(" ");
@@ -175,8 +179,9 @@ async function fetchCustomerFacebookName(token: string, psid: string, conversati
         where: { id: conversationId },
         data: { name: fullName },
       });
+      console.log(`[Messenger Webhook] Updated customer name to "${fullName}" for conversation ${conversationId}`);
     }
-  } catch {
-    // Non-blocking
+  } catch (err) {
+    console.warn(`[Messenger Webhook] Profile fetch error for PSID ${psid}:`, err);
   }
 }

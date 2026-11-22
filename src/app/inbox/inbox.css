@@ -59,6 +59,18 @@
 .inbox-row:nth-child(3n+3) .inbox-avatar { background: #254435; color: #b3ebcf; }
 .inbox-row-text, .inbox-person { display: flex; min-width: 0; flex: 1; flex-direction: column; }
 .inbox-row-text > *, .inbox-person > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inbox-name-display { display: flex; align-items: center; gap: .4rem; }
+.inbox-name-display h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+.inbox-name-edit-btn { background: transparent; border: none; cursor: pointer; opacity: .6; font-size: .8rem; padding: .1rem .25rem; border-radius: .25rem; }
+.inbox-name-edit-btn:hover { opacity: 1; background: #1e2c3d; }
+.inbox-name-form { display: flex; align-items: center; gap: .35rem; }
+.inbox-name-input { background: #172433; border: 1px solid var(--line); color: #fff; border-radius: .35rem; padding: .2rem .45rem; font-size: .875rem; outline: none; }
+.inbox-name-input:focus { border-color: var(--cyan); }
+.inbox-name-btn { border: 1px solid var(--line); border-radius: .35rem; padding: .2rem .45rem; font-size: .75rem; cursor: pointer; }
+.inbox-name-save { background: #183544; color: #a6e5fa; border-color: #23546a; }
+.inbox-name-save:hover { background: #234d63; }
+.inbox-name-cancel { background: #272126; color: #fca5a5; border-color: #592929; }
+.inbox-name-cancel:hover { background: #3b2828; }
 .inbox-row time { font-size: .65rem; }
 .inbox-empty { text-align: center; display: grid; justify-items: center; align-content: center; padding: 2rem; gap: .65rem; }
 .inbox-panel { flex: 1; }

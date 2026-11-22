@@ -86,7 +86,7 @@ export async function queueReply(user: AdminSession, botId: string, threadId: st
   });
 }
 
-export async function changeThread(user: AdminSession, botId: string, threadId: string, action: unknown, messageId?: unknown) {
+export async function changeThread(user: AdminSession, botId: string, threadId: string, action: unknown, messageId?: unknown, newName?: unknown) {
   await requireInboxBot(user, botId);
   return prisma.$transaction(async tx => {
     const thread = await lockThread(tx, botId, threadId);
@@ -95,6 +95,13 @@ export async function changeThread(user: AdminSession, botId: string, threadId: 
     if (action === "claim" || action === "release" || action === "resolve" || action === "reopen") {
       const data = action === "claim" ? { ownerId: user.id } : action === "release" ? { ownerId: null } : { resolved: action === "resolve" };
       await tx.supportConversation.update({ where: { id: threadId }, data });
+      return;
+    }
+    if (action === "rename") {
+      if (typeof newName !== "string" || !newName.trim() || newName.length > 100) {
+        throw new InboxError(400, "Name must be between 1 and 100 characters.");
+      }
+      await tx.supportConversation.update({ where: { id: threadId }, data: { name: newName.trim() } });
       return;
     }
     if ((action !== "retry" && action !== "cancel") || typeof messageId !== "string" || !/^\d{1,18}$/.test(messageId))
