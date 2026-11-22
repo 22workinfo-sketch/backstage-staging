@@ -98,6 +98,7 @@ async function processInboundMessengerMessage(pageId: string, item: MessengerMes
   let bot = await prisma.bot.findFirst({
     where: {
       OR: [
+        { id: `fb-${pageId}` },
         { username: `facebook:${pageId}` },
         { description: { contains: `Page ID: ${pageId}` } },
       ],
