@@ -25,10 +25,13 @@ export async function listThreads(user: AdminSession, botId: string, query: URLS
     },
     orderBy: [{ lastActivityAt: "desc" }, { id: "asc" }], skip: page * PAGE_SIZE, take: PAGE_SIZE + 1,
     select: { id: true, name: true, username: true, lastActivityAt: true, owner,
-      messages: { orderBy: { id: "desc" }, take: 1, select: { body: true, attachmentName: true } } },
+      messages: { orderBy: { id: "desc" }, take: 1, select: { id: true, body: true, attachmentName: true, status: true } } },
   });
   return { items: rows.slice(0, PAGE_SIZE).map(({ messages, ...item }) => ({
-    ...item, preview: (messages[0]?.body || messages[0]?.attachmentName || "").slice(0, 140),
+    ...item,
+    preview: (messages[0]?.body || messages[0]?.attachmentName || "").slice(0, 140),
+    lastMessageId: messages[0]?.id ? messages[0].id.toString() : null,
+    lastMessageStatus: messages[0]?.status || null,
   })), hasMore: rows.length > PAGE_SIZE };
 }
 

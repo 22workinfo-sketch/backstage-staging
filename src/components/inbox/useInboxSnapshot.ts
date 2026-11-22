@@ -24,14 +24,14 @@ export function useInboxSnapshot<T>(url: string | null, revision: number) {
     let pending: AbortController | undefined;
     let delayMs = 3000;
     async function sync() {
-      if (busy || !active || document.hidden) return;
+      if (busy || !active) return;
       busy = true;
       clearTimeout(timer);
       pending = new AbortController();
       const timeout = setTimeout(() => pending?.abort(), 15000);
       try {
         const data = await requestJson<T>(url!, { signal: pending.signal });
-        delayMs = 3000;
+        delayMs = document.hidden ? 6000 : 3000;
         if (active) setView({ key: url!, data });
       } catch (err) {
         if (!active) return;

@@ -1,11 +1,28 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Avatar, timeLabel } from "./presentation";
 import { Conversation } from "./Conversation";
 import { requestJson, useInboxSnapshot } from "./useInboxSnapshot";
+import {
+  clearUnreadTitleAlert,
+  getNotificationPermission,
+  playNotificationChime,
+  requestDesktopNotificationPermission,
+  setUnreadTitleAlert,
+  showDesktopNotification,
+} from "./notifications";
 
 type Bot = { id: string; name: string; username: string; supportInboxEnabled: boolean };
-type ThreadList = { items: { id: string; name: string; username: string | null; preview: string; lastActivityAt: string }[]; hasMore: boolean };
+type ThreadItem = {
+  id: string;
+  name: string;
+  username: string | null;
+  preview: string;
+  lastActivityAt: string;
+  lastMessageId?: string | null;
+  lastMessageStatus?: string | null;
+};
+type ThreadList = { items: ThreadItem[]; hasMore: boolean };
 
 export function SupportInbox({ initialBots, role, userId }: { initialBots: Bot[]; role: string; userId: string }) {
   const [bots, setBots] = useState(initialBots);
@@ -17,14 +34,86 @@ export function SupportInbox({ initialBots, role, userId }: { initialBots: Bot[]
   const [revision, setRevision] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("botdesk.sound_enabled") !== "false";
+  });
+  const [desktopPermission, setDesktopPermission] = useState<NotificationPermission>(() => {
+    return getNotificationPermission();
+  });
+  const seenMessageIds = useRef<Set<string>>(new Set());
+  const initialLoadDone = useRef(false);
+
   const bot = bots.find(b => b.id === botId);
   const url = "/api/inbox/" + encodeURIComponent(botId);
   const query = new URLSearchParams({ filter, page: String(page), q });
   const list = useInboxSnapshot<ThreadList>(bot?.supportInboxEnabled ? url + "?" + query : null, revision);
+
   function refresh() { setRevision(v => v + 1); }
   function chooseBot(id: string) {
     setBotId(id); setSelected(""); setQ(""); setFilter("all"); setPage(0); setError("");
   }
+
+  // Restore document title when user focuses the tab
+  useEffect(() => {
+    const onFocus = () => clearUnreadTitleAlert();
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
+  // Monitor incoming messages for sound chime & desktop alerts
+  useEffect(() => {
+    const items = list?.data?.items;
+    if (!items || items.length === 0) return;
+
+    if (!initialLoadDone.current) {
+      items.forEach(item => {
+        if (item.lastMessageId) seenMessageIds.current.add(item.lastMessageId);
+      });
+      initialLoadDone.current = true;
+      return;
+    }
+
+    let newIncomingItem: ThreadItem | null = null;
+    for (const item of items) {
+      if (
+        item.lastMessageId &&
+        item.lastMessageStatus === "RECEIVED" &&
+        !seenMessageIds.current.has(item.lastMessageId)
+      ) {
+        seenMessageIds.current.add(item.lastMessageId);
+        newIncomingItem = item;
+      } else if (item.lastMessageId) {
+        seenMessageIds.current.add(item.lastMessageId);
+      }
+    }
+
+    if (newIncomingItem) {
+      // 1. Audio chime
+      if (soundEnabled) {
+        playNotificationChime();
+      }
+
+      // 2. Desktop notification
+      if (getNotificationPermission() === "granted") {
+        showDesktopNotification({
+          title: `💬 New message from ${newIncomingItem.name}`,
+          body: newIncomingItem.preview || "Sent a message / file",
+          tag: `chat-${newIncomingItem.id}`,
+          onClick: () => {
+            setSelected(newIncomingItem.id);
+            clearUnreadTitleAlert();
+          },
+        });
+      }
+
+      // 3. Tab title alert if not currently viewing
+      if (document.hidden || selected !== newIncomingItem.id) {
+        setUnreadTitleAlert(1, newIncomingItem.name);
+      }
+    }
+  }, [list?.data?.items, soundEnabled, selected]);
+
   async function setMode(enabled: boolean) {
     if (!bot || busy) return;
     if (!window.confirm(enabled
@@ -40,7 +129,48 @@ export function SupportInbox({ initialBots, role, userId }: { initialBots: Bot[]
   }
   return <section className="inbox-app" aria-label="Telegram support inbox">
     <div className="inbox-titlebar">
-      <h1>Support inbox</h1>
+      <div className="inbox-title-left">
+        <h1>Support inbox</h1>
+        <div className="inbox-notif-controls">
+          <button
+            type="button"
+            className={"inbox-notif-btn" + (soundEnabled ? " active" : "")}
+            title={soundEnabled ? "Mute notification sound" : "Enable notification sound"}
+            onClick={() => {
+              const next = !soundEnabled;
+              setSoundEnabled(next);
+              localStorage.setItem("botdesk.sound_enabled", String(next));
+              if (next) playNotificationChime();
+            }}
+          >
+            {soundEnabled ? "🔔 Sound On" : "🔕 Muted"}
+          </button>
+
+          {desktopPermission !== "granted" ? (
+            <button
+              type="button"
+              className="inbox-notif-btn inbox-notif-request"
+              title="Enable browser desktop notifications for incoming chats"
+              onClick={async () => {
+                const perm = await requestDesktopNotificationPermission();
+                setDesktopPermission(perm);
+                if (perm === "granted") {
+                  showDesktopNotification({
+                    title: "🔔 Notifications Enabled",
+                    body: "You will be alerted when customers send messages.",
+                  });
+                }
+              }}
+            >
+              Desktop Alerts
+            </button>
+          ) : (
+            <span className="inbox-notif-badge" title="Desktop notifications active">
+              ● Desktop Active
+            </span>
+          )}
+        </div>
+      </div>
       {bot && <label className="inbox-bot"><span>Telegram bot</span>
         <select aria-label="Telegram bot" value={botId} onChange={e => chooseBot(e.target.value)} disabled={busy}>
           {bots.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
