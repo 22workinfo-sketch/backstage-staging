@@ -25,7 +25,10 @@ export class S3StorageProvider implements StorageProvider {
     this.bucket =
       options?.bucket ||
       process.env.S3_BUCKET_NAME ||
-      (process.env.STORAGE_PROVIDER === "neon" ? "backstage-media" : "");
+      (process.env.STORAGE_PROVIDER === "neon" ||
+      (process.env.AWS_ENDPOINT_URL_S3 && process.env.AWS_ENDPOINT_URL_S3.includes(".neon.tech"))
+        ? "backstage-media"
+        : "");
 
     if (!this.bucket) {
       throw new Error(

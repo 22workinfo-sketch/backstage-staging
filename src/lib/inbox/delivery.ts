@@ -56,12 +56,30 @@ export async function deliverInboxReplies(send: SendPart = sendPlainText, batchS
     let sent: { message_id: number };
     try {
       if (message.attachmentId && (message.attachmentId.startsWith("inbox/") || message.attachmentId.includes("/"))) {
-        const storage = getStorageProvider();
-        const { data, mimeType } = await storage.getObject(message.attachmentId);
-        const inputFile = new InputFile(data, message.attachmentName || undefined);
+        let fileData: Buffer;
+        let fileMimeType: string | undefined;
+        try {
+          const storage = getStorageProvider();
+          const { data, mimeType } = await storage.getObject(message.attachmentId);
+          fileData = data;
+          fileMimeType = mimeType;
+        } catch (storageErr) {
+          console.error(`[Delivery Storage Error] Failed to read attachment ${message.attachmentId}:`, storageErr);
+          await prisma.supportMessage.updateMany({
+            where: claim,
+            data: {
+              status: "FAILED",
+              claimId: null,
+              lastError: "Attachment file could not be read from storage. Please re-attach and try again.",
+            },
+          });
+          continue;
+        }
+
+        const inputFile = new InputFile(fileData, message.attachmentName || undefined);
         const api = createTelegramApi(token, { timeoutSeconds: 35 });
         const caption = message.body ? message.body.slice(0, 1024) : undefined;
-        const isPhoto = mimeType?.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(message.attachmentName || "");
+        const isPhoto = fileMimeType?.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(message.attachmentName || "");
         if (isPhoto) {
           sent = await api.sendPhoto(chatId, inputFile, { caption });
         } else {

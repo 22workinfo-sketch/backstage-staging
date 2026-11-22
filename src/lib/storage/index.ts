@@ -23,8 +23,13 @@ export function getStorageProvider(): StorageProvider {
     return defaultProvider;
   }
 
-  const configured = (process.env.STORAGE_PROVIDER || "local").toLowerCase().trim();
-  if (configured === "s3" || configured === "r2" || configured === "neon") {
+  const configured = (process.env.STORAGE_PROVIDER || "").toLowerCase().trim();
+  if (
+    configured === "s3" ||
+    configured === "r2" ||
+    configured === "neon" ||
+    (!configured && process.env.AWS_ENDPOINT_URL_S3 && process.env.AWS_ACCESS_KEY_ID)
+  ) {
     defaultProvider = new S3StorageProvider();
   } else {
     defaultProvider = new LocalStorageProvider();
