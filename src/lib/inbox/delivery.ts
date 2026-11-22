@@ -47,11 +47,63 @@ export async function deliverInboxReplies(send: SendPart = sendPlainText, batchS
         data: { status: "CANCELLED", claimId: null, lastError: "The inbox or sender's access was disabled." } });
       continue;
     }
-    const token = resolveBotToken(bot);
+    const token = resolveBotToken(bot) || (bot.username.startsWith("facebook:") ? process.env.MESSENGER_PAGE_ACCESS_TOKEN || null : null);
     if (!token) {
       await prisma.supportMessage.updateMany({ where: claim,
         data: { status: "FAILED", claimId: null, lastError: "The bot token is unavailable." } });
       continue;
+    }
+
+    // Support delivery to Facebook Messenger
+    const isMessenger = bot.username.startsWith("facebook:") || bot.tokenEnvVar === "MESSENGER_PAGE_ACCESS_TOKEN";
+    if (isMessenger) {
+      try {
+        const textToSend = message.parts[message.sentParts] || message.body;
+        const res = await fetch(`https://graph.facebook.com/v21.0/me/messages?access_token=${encodeURIComponent(token)}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipient: { id: chatId },
+            messaging_type: "RESPONSE",
+            message: { text: textToSend },
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          const errMsg = errData.error?.message || `Facebook delivery failed (${res.status})`;
+          await prisma.supportMessage.updateMany({
+            where: claim,
+            data: { status: "FAILED", claimId: null, lastError: errMsg },
+          });
+          continue;
+        }
+
+        const totalParts = Math.max(1, message.parts.length);
+        const sentParts = message.parts.length > 0 ? message.sentParts + 1 : 1;
+        await prisma.supportMessage.updateMany({
+          where: claim,
+          data: {
+            sentParts,
+            claimId: null,
+            lastError: null,
+            status: sentParts >= totalParts ? "SENT" : "QUEUED",
+            availableAt: new Date(Date.now() + 1000),
+          },
+        });
+        continue;
+      } catch (err) {
+        console.error("[Facebook Delivery Error]", err);
+        await prisma.supportMessage.updateMany({
+          where: claim,
+          data: {
+            status: "UNCERTAIN",
+            claimId: null,
+            lastError: err instanceof Error ? err.message : "Failed to connect to Facebook API",
+          },
+        });
+        continue;
+      }
     }
     let sent: { message_id: number };
     try {
