@@ -1,0 +1,39 @@
+# ============================================================
+# Botdesk Full Stack Production — Docker Compose
+# Runs Web Dashboard (port 3000) + Telegram Bot Runner
+# Run with: docker compose -f docker-compose.prod.yml up -d --build
+# ============================================================
+
+services:
+  # Next.js Web Dashboard & Support Inbox
+  botdesk-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: botdesk-web-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # Telegram Bot Runner & Background Post Scheduler
+  botdesk-bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    container_name: botdesk-bot-runner
+    restart: unless-stopped
+    command: sh -c "npx prisma migrate deploy && node node_modules/tsx/dist/cli.mjs src/bot/index.ts"
+    env_file:
+      - .env
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
