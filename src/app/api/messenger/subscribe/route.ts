@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { resolveBotToken } from "@/lib/bot-service";
+import { encryptBotToken } from "@/lib/token-encryption";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ export const dynamic = "force-dynamic";
  */
 export async function GET(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get("secret");
+  const queryToken = req.nextUrl.searchParams.get("token")?.trim();
   const expectedSecret = process.env.MESSENGER_VERIFY_TOKEN || "botdesk_messenger_verify_2026";
 
   if (secret !== expectedSecret) {
@@ -34,9 +36,29 @@ export async function GET(req: NextRequest) {
   const results: Array<{ botId: string; pageName: string; ok: boolean; response: unknown }> = [];
 
   for (const bot of fbBots) {
-    const token = resolveBotToken(bot) || process.env.MESSENGER_PAGE_ACCESS_TOKEN;
+    // If token passed in query parameter, use it and re-encrypt directly on Hostinger
+    let token = queryToken || resolveBotToken(bot) || process.env.MESSENGER_PAGE_ACCESS_TOKEN;
+
+    if (queryToken) {
+      try {
+        const freshlyEncrypted = encryptBotToken(queryToken);
+        await prisma.bot.update({
+          where: { id: bot.id },
+          data: { encryptedToken: freshlyEncrypted },
+        });
+        token = queryToken;
+      } catch (encErr) {
+        console.warn("[Subscribe] Could not re-encrypt token on host:", encErr);
+      }
+    }
+
     if (!token) {
-      results.push({ botId: bot.id, pageName: bot.name, ok: false, response: "Missing token" });
+      results.push({
+        botId: bot.id,
+        pageName: bot.name,
+        ok: false,
+        response: "Missing or unable to decrypt token. Please provide ?token=<PAGE_ACCESS_TOKEN>",
+      });
       continue;
     }
 
