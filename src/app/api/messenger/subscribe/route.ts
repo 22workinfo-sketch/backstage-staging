@@ -63,11 +63,48 @@ export async function GET(req: NextRequest) {
     }
 
     try {
-      // Subscribe page to app webhooks
-      const url = `https://graph.facebook.com/v21.0/me/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${encodeURIComponent(token)}`;
-      const res = await fetch(url, { method: "POST" });
-      const data = await res.json();
-      results.push({ botId: bot.id, pageName: bot.name, ok: res.ok, response: data });
+      // 1. Inspect what the token is (User Token or Page Token)
+      const debugRes = await fetch(`https://graph.facebook.com/v21.0/me?access_token=${encodeURIComponent(token)}`);
+      const meData = await debugRes.json();
+
+      let actualPageToken = token;
+      let targetPageId = bot.username.replace(/^facebook:/, "");
+
+      // If this is a User Token, fetch the Page Token from /me/accounts
+      if (meData?.id && meData.id !== targetPageId) {
+        const accountsRes = await fetch(`https://graph.facebook.com/v21.0/me/accounts?access_token=${encodeURIComponent(token)}`);
+        const accountsData = await accountsRes.json();
+        const matchedPage = accountsData?.data?.find((p: any) => p.id === targetPageId) || accountsData?.data?.[0];
+        if (matchedPage?.access_token) {
+          actualPageToken = matchedPage.access_token;
+          targetPageId = matchedPage.id;
+          console.log(`[Subscribe] Extracted Page Token for page: ${matchedPage.name} (${targetPageId})`);
+        }
+      }
+
+      // 2. Encrypt and save the verified actual page token
+      const freshlyEncrypted = encryptBotToken(actualPageToken);
+      await prisma.bot.update({
+        where: { id: bot.id },
+        data: {
+          encryptedToken: freshlyEncrypted,
+          description: `Facebook Page ID: ${targetPageId}`,
+        },
+      });
+
+      // 3. Subscribe page to app webhooks
+      const subUrl = `https://graph.facebook.com/v21.0/${encodeURIComponent(targetPageId)}/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${encodeURIComponent(actualPageToken)}`;
+      const subRes = await fetch(subUrl, { method: "POST" });
+      const subData = await subRes.json();
+
+      results.push({
+        botId: bot.id,
+        pageName: bot.name,
+        ok: subRes.ok,
+        targetPageId,
+        me: meData,
+        response: subData,
+      });
     } catch (err) {
       results.push({
         botId: bot.id,
