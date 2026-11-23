@@ -5,7 +5,8 @@ import { Avatar, timeLabel } from "./presentation";
 import { requestJson, useInboxSnapshot } from "./useInboxSnapshot";
 
 type Message = { id: string; body: string; status: string; attachmentName: string | null; lastError: string | null;
-  sentParts: number; createdAt: string; sender: { email: string } | null };
+  sentParts: number; createdAt: string; sender: { email: string } | null;
+  replyToId?: string | null; replyToText?: string | null; replyToSender?: string | null };
 type Thread = { id: string; name: string; username: string | null; owner: { id: string; email: string } | null;
   resolved: boolean; messages: Message[]; hasOlder: boolean };
 const statuses: Record<string, string> = { QUEUED: "Queued", SENDING: "Sending", SENT: "Sent to Telegram",
@@ -32,6 +33,8 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
   const [error, setError] = useState("");
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingNameValue, setEditingNameValue] = useState("");
+  const [replyingTo, setReplyingTo] = useState<{ id: string; text: string; sender: string } | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cursor = history.at(-1);
   const snapshot = useInboxSnapshot<Thread>(cursor ? url + "?before=" + cursor : url, revision);
@@ -142,6 +145,32 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
       setError(err instanceof Error ? err.message : "Connection interrupted. Try again."); return false;
     } finally { locked.current = false; setBusy(false); }
   }
+  async function handleCopy(text: string, msgId: string) {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(msgId);
+      setTimeout(() => setCopiedId(null), 1500);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopiedId(msgId);
+      setTimeout(() => setCopiedId(null), 1500);
+    }
+  }
+  function handleStartReply(msg: Message) {
+    const sender = msg.status === "RECEIVED" ? (thread?.name || "Customer") : (msg.sender?.email || "Support team");
+    const text = msg.body || (msg.attachmentName ? `[${msg.attachmentName}]` : "Message");
+    setReplyingTo({ id: msg.id, text, sender });
+    setTimeout(() => {
+      const textarea = document.querySelector<HTMLTextAreaElement>(".inbox-composer textarea");
+      textarea?.focus();
+    }, 50);
+  }
   async function reply() {
     if (locked.current || (!draft.text.trim() && !selectedFile) || !thread || thread.resolved || peerOwned) return;
     const key = draft.key || crypto.randomUUID();
@@ -152,13 +181,27 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
       fd.append("body", draft.text);
       fd.append("clientKey", key);
       fd.append("file", selectedFile);
+      if (replyingTo) {
+        fd.append("replyToId", replyingTo.id);
+        fd.append("replyToText", replyingTo.text);
+        fd.append("replyToSender", replyingTo.sender);
+      }
       success = await mutate("POST", fd);
     } else {
-      success = await mutate("POST", { body: draft.text, clientKey: key });
+      success = await mutate("POST", {
+        body: draft.text,
+        clientKey: key,
+        ...(replyingTo ? {
+          replyToId: replyingTo.id,
+          replyToText: replyingTo.text,
+          replyToSender: replyingTo.sender,
+        } : {}),
+      });
     }
     if (success) {
       saveDraft({ text: "", key: "", attempted: false });
       setSelectedFile(null);
+      setReplyingTo(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
       setHistory([]);
       atBottom.current = true;
@@ -234,9 +277,52 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
         {cursor && <button onClick={() => setHistory(h => h.slice(0, -1))}>Newer messages</button>}
         {history.length > 1 && <button onClick={() => { atBottom.current = true; setHistory([]); }}>Latest</button>}
       </div>}
-      {thread?.messages.map(m => <div key={m.id} className={"inbox-message " + (m.status === "RECEIVED" ? "incoming" : "outgoing")}>
-        <div className="inbox-message-meta"><strong>{m.status === "RECEIVED" ? thread.name : m.sender?.email || "Support team"}</strong>
-          <time dateTime={m.createdAt} title={new Date(m.createdAt).toLocaleString()}>{timeLabel(m.createdAt)}</time></div>
+      {thread?.messages.map(m => (
+        <div key={m.id} id={"msg-" + m.id} className={"inbox-message " + (m.status === "RECEIVED" ? "incoming" : "outgoing")}>
+          <div className="inbox-msg-actions">
+            <button
+              type="button"
+              className="inbox-msg-action-btn"
+              title="Reply to this message"
+              onClick={() => handleStartReply(m)}
+            >
+              ↩ Reply
+            </button>
+            {m.body && (
+              <button
+                type="button"
+                className="inbox-msg-action-btn"
+                title="Copy text"
+                onClick={() => handleCopy(m.body, m.id)}
+              >
+                {copiedId === m.id ? "✓ Copied" : "📋 Copy"}
+              </button>
+            )}
+          </div>
+          {m.replyToText && (
+            <div
+              className="inbox-quote-box"
+              onClick={() => {
+                if (m.replyToId) {
+                  const el = document.getElementById("msg-" + m.replyToId);
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" });
+                    el.classList.add("inbox-msg-flash");
+                    setTimeout(() => el.classList.remove("inbox-msg-flash"), 1500);
+                  }
+                }
+              }}
+              title="Jump to quoted message"
+            >
+              <div className="inbox-quote-bar" />
+              <div className="inbox-quote-content">
+                <strong>{m.replyToSender || "Replied message"}</strong>
+                <p>{m.replyToText}</p>
+              </div>
+            </div>
+          )}
+          <div className="inbox-message-meta"><strong>{m.status === "RECEIVED" ? thread.name : m.sender?.email || "Support team"}</strong>
+            <time dateTime={m.createdAt} title={new Date(m.createdAt).toLocaleString()}>{timeLabel(m.createdAt)}</time></div>
         {m.body && <p dir="auto">{m.body}</p>}
         {m.attachmentName && (
           <div className="inbox-attachment">
@@ -287,7 +373,7 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
           <button disabled={busy} onClick={() => change("retry", m)}>Retry remaining</button>
           <button disabled={busy} onClick={() => change("cancel", m)}>Stop remainder</button>
         </div>}
-      </div>)}
+      </div>))}
     </div>
     <form
       className="inbox-composer"
@@ -323,6 +409,25 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
         accept=".pdf,image/jpeg,image/png,image/webp,image/jpg"
         onChange={handleFileSelect}
       />
+      {replyingTo && (
+        <div className="inbox-replying-banner">
+          <div className="inbox-replying-bar" />
+          <div className="inbox-replying-content">
+            <span className="inbox-replying-to">
+              Replying to <strong>{replyingTo.sender}</strong>
+            </span>
+            <p className="inbox-replying-snippet">{replyingTo.text}</p>
+          </div>
+          <button
+            type="button"
+            className="inbox-replying-cancel"
+            onClick={() => setReplyingTo(null)}
+            title="Cancel reply"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <textarea
         aria-label="Reply to customer"
         placeholder={thread?.resolved ? "Click 'Reopen' above to reply" : peerOwned ? "Click 'Take over' above to reply" : "Write a reply or paste image (Ctrl+V)…"}

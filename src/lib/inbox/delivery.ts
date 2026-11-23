@@ -5,9 +5,13 @@ import { resolveBotToken } from "../bot-service";
 import { createTelegramApi } from "../telegram-client";
 import { getStorageProvider } from "../storage";
 
-type SendPart = (token: string, chatId: string, text: string) => Promise<{ message_id: number }>;
-const sendPlainText: SendPart = (token, chatId, text) =>
-  createTelegramApi(token, { timeoutSeconds: 25 }).sendMessage(chatId, text);
+type SendPart = (token: string, chatId: string, text: string, replyToMessageId?: number) => Promise<{ message_id: number }>;
+const sendPlainText: SendPart = (token, chatId, text, replyToMessageId) =>
+  createTelegramApi(token, { timeoutSeconds: 25 }).sendMessage(
+    chatId,
+    text,
+    replyToMessageId ? { reply_parameters: { message_id: replyToMessageId } } : undefined
+  );
 
 export async function deliverInboxReplies(send: SendPart = sendPlainText, batchSize = 10) {
   // A process can die after Telegram accepts a part but before we save its ID.
@@ -198,17 +202,35 @@ export async function deliverInboxReplies(send: SendPart = sendPlainText, batchS
           continue;
         }
 
+        let telegramReplyToMessageId: number | undefined = undefined;
+        if (message.replyToId) {
+          const repliedMsg = await prisma.supportMessage.findUnique({
+            where: { id: message.replyToId },
+            select: { telegramMessageId: true, lastSentMessageId: true },
+          });
+          telegramReplyToMessageId = repliedMsg?.telegramMessageId || repliedMsg?.lastSentMessageId || undefined;
+        }
+
         const inputFile = new InputFile(fileData, message.attachmentName || undefined);
         const api = createTelegramApi(token, { timeoutSeconds: 35 });
         const caption = message.body ? message.body.slice(0, 1024) : undefined;
         const isPhoto = fileMimeType?.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(message.attachmentName || "");
+        const replyParams = telegramReplyToMessageId ? { reply_parameters: { message_id: telegramReplyToMessageId } } : {};
         if (isPhoto) {
-          sent = await api.sendPhoto(chatId, inputFile, { caption });
+          sent = await api.sendPhoto(chatId, inputFile, { caption, ...replyParams });
         } else {
-          sent = await api.sendDocument(chatId, inputFile, { caption });
+          sent = await api.sendDocument(chatId, inputFile, { caption, ...replyParams });
         }
       } else {
-        sent = await send(token, chatId, message.parts[message.sentParts]);
+        let telegramReplyToMessageId: number | undefined = undefined;
+        if (message.replyToId) {
+          const repliedMsg = await prisma.supportMessage.findUnique({
+            where: { id: message.replyToId },
+            select: { telegramMessageId: true, lastSentMessageId: true },
+          });
+          telegramReplyToMessageId = repliedMsg?.telegramMessageId || repliedMsg?.lastSentMessageId || undefined;
+        }
+        sent = await send(token, chatId, message.parts[message.sentParts], telegramReplyToMessageId);
       }
     } catch (error) {
       const apiError = error as { error_code?: number; parameters?: { retry_after?: number } } | null;

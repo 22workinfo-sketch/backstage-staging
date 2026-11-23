@@ -523,6 +523,9 @@ model SupportMessage {
   availableAt        DateTime            @default(now())
   claimId            String?
   lastError          String?
+  replyToId          BigInt?
+  replyToText        String?             @db.Text
+  replyToSender      String?
   createdAt          DateTime            @default(now())
 
   @@unique([conversationId, telegramMessageId])

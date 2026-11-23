@@ -9,6 +9,7 @@ const owner = { select: { id: true, email: true } };
 const messageFields = {
   id: true, body: true, status: true, sentParts: true, lastError: true, attachmentName: true,
   createdAt: true, sender: { select: { email: true } },
+  replyToId: true, replyToText: true, replyToSender: true,
 } satisfies Prisma.SupportMessageSelect;
 
 export async function listThreads(user: AdminSession, botId: string, query: URLSearchParams) {
@@ -47,7 +48,11 @@ export async function readThread(user: AdminSession, botId: string, threadId: st
   if (!thread) throw new InboxError(404, "Conversation unavailable.");
   const { messages, ...info } = thread;
   return { ...info, hasOlder: messages.length > PAGE_SIZE,
-    messages: messages.slice(0, PAGE_SIZE).reverse().map(m => ({ ...m, id: m.id.toString() })) };
+    messages: messages.slice(0, PAGE_SIZE).reverse().map(m => ({
+      ...m,
+      id: m.id.toString(),
+      replyToId: m.replyToId ? m.replyToId.toString() : null,
+    })) };
 }
 
 // Serialize staff actions with incoming replies, so two agents cannot both claim an open chat.
@@ -59,7 +64,15 @@ async function lockThread(tx: Prisma.TransactionClient, botId: string, threadId:
   return thread;
 }
 
-export async function queueReply(user: AdminSession, botId: string, threadId: string, body: unknown, key: unknown, attachment?: { attachmentId: string; attachmentName: string }) {
+export async function queueReply(
+  user: AdminSession,
+  botId: string,
+  threadId: string,
+  body: unknown,
+  key: unknown,
+  attachment?: { attachmentId: string; attachmentName: string },
+  replyTo?: { id?: string; text?: string; sender?: string }
+) {
   await requireInboxBot(user, botId);
   const text = typeof body === "string" ? body : "";
   if (!text.trim() && !attachment)
@@ -69,6 +82,16 @@ export async function queueReply(user: AdminSession, botId: string, threadId: st
   if (typeof key !== "string" || !/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(key))
     throw new InboxError(400, "Invalid reply identifier.");
   const parts = splitReply(text);
+
+  let replyToId: bigint | null = null;
+  let replyToText: string | null = null;
+  let replyToSender: string | null = null;
+  if (replyTo?.id && /^\d+$/.test(replyTo.id)) {
+    replyToId = BigInt(replyTo.id);
+    replyToText = typeof replyTo.text === "string" ? replyTo.text.slice(0, 300) : null;
+    replyToSender = typeof replyTo.sender === "string" ? replyTo.sender.slice(0, 100) : null;
+  }
+
   return prisma.$transaction(async tx => {
     const thread = await lockThread(tx, botId, threadId);
     const old = await tx.supportMessage.findUnique({ where: { conversationId_clientKey: { conversationId: threadId, clientKey: key } } });
@@ -79,9 +102,23 @@ export async function queueReply(user: AdminSession, botId: string, threadId: st
     if (thread.resolved || (thread.ownerId && thread.ownerId !== user.id))
       throw new InboxError(409, "Reopen or take ownership of this conversation before replying.");
     await tx.supportConversation.update({ where: { id: threadId }, data: { ownerId: user.id, lastActivityAt: new Date() } });
-    const message = await tx.supportMessage.create({ data: { conversationId: threadId, senderId: user.id,
-      clientKey: key, body: text, parts, attachmentId: attachment?.attachmentId ?? null, attachmentName: attachment?.attachmentName ?? null,
-      status: "QUEUED", availableAt: new Date(Date.now() - 2000) }, select: { id: true } });
+    const message = await tx.supportMessage.create({
+      data: {
+        conversationId: threadId,
+        senderId: user.id,
+        clientKey: key,
+        body: text,
+        parts,
+        attachmentId: attachment?.attachmentId ?? null,
+        attachmentName: attachment?.attachmentName ?? null,
+        status: "QUEUED",
+        availableAt: new Date(Date.now() - 2000),
+        replyToId,
+        replyToText,
+        replyToSender,
+      },
+      select: { id: true },
+    });
     return { id: message.id.toString() };
   });
 }

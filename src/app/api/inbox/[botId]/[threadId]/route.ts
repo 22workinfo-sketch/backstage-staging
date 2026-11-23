@@ -22,6 +22,9 @@ export async function POST(req: NextRequest, { params }: Context) {
       const body = (formData.get("body") as string) || "";
       const clientKey = (formData.get("clientKey") as string) || randomUUID();
       const file = formData.get("file") as File | null;
+      const replyToId = formData.get("replyToId") as string | null;
+      const replyToText = formData.get("replyToText") as string | null;
+      const replyToSender = formData.get("replyToSender") as string | null;
 
       let attachment: { attachmentId: string; attachmentName: string } | undefined = undefined;
       if (file && file.size > 0) {
@@ -39,12 +42,14 @@ export async function POST(req: NextRequest, { params }: Context) {
         };
       }
 
-      const receipt = await queueReply(user, params.botId, params.threadId, body, clientKey, attachment);
+      const replyTo = replyToId ? { id: replyToId, text: replyToText || undefined, sender: replyToSender || undefined } : undefined;
+      const receipt = await queueReply(user, params.botId, params.threadId, body, clientKey, attachment, replyTo);
       return NextResponse.json(receipt, { status: 202 });
     }
 
-    const { body, clientKey } = await readPayload(req);
-    const receipt = await queueReply(user, params.botId, params.threadId, body, clientKey);
+    const { body, clientKey, replyToId, replyToText, replyToSender } = await readPayload(req);
+    const replyTo = replyToId ? { id: String(replyToId), text: typeof replyToText === "string" ? replyToText : undefined, sender: typeof replyToSender === "string" ? replyToSender : undefined } : undefined;
+    const receipt = await queueReply(user, params.botId, params.threadId, body, clientKey, undefined, replyTo);
     return NextResponse.json(receipt, { status: 202 });
   });
 }
