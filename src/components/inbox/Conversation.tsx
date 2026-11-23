@@ -217,10 +217,12 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
         <small>{thread?.username ? "@" + thread.username + " · " : ""}{thread?.owner?.email || "Unassigned"}</small>
       </div>
       {thread && <div className="inbox-thread-actions">
-        {(!peerOwned || supervisor) && <button disabled={busy} onClick={() => change(thread.owner?.id === userId ? "release" : "claim")}>
-          {thread.owner?.id === userId ? "Release" : peerOwned ? "Take over" : "Claim"}</button>}
-        {(!peerOwned || supervisor) && <button disabled={busy} onClick={() => change(thread.resolved ? "reopen" : "resolve")}>
-          {thread.resolved ? "Reopen" : "Resolve"}</button>}
+        <button disabled={busy} onClick={() => change(thread.owner?.id === userId ? "release" : "claim")}>
+          {thread.owner?.id === userId ? "Release" : peerOwned ? "Take over" : "Claim"}
+        </button>
+        <button disabled={busy} onClick={() => change(thread.resolved ? "reopen" : "resolve")}>
+          {thread.resolved ? "Reopen" : "Resolve"}
+        </button>
       </div>}
     </header>
     {(snapshot?.error || error) && <p className="inbox-warning" role="status">{error || snapshot?.error}</p>}
@@ -309,7 +311,7 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
       />
       <textarea
         aria-label="Reply to customer"
-        placeholder={thread?.resolved ? "Reopen this conversation to reply" : peerOwned ? "Another agent owns this chat" : "Write a reply or paste image (Ctrl+V)…"}
+        placeholder={thread?.resolved ? "Click 'Reopen' above to reply" : peerOwned ? "Click 'Take over' above to reply" : "Write a reply or paste image (Ctrl+V)…"}
         disabled={busy || !thread || thread.resolved || peerOwned}
         maxLength={MAX_REPLY_LENGTH}
         value={draft.text}

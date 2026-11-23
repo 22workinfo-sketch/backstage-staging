@@ -91,10 +91,29 @@ export async function changeThread(user: AdminSession, botId: string, threadId: 
   return prisma.$transaction(async tx => {
     const thread = await lockThread(tx, botId, threadId);
     const supervisor = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
-    if (thread.ownerId && thread.ownerId !== user.id && !supervisor) throw new InboxError(409, "This conversation belongs to another agent.");
-    if (action === "claim" || action === "release" || action === "resolve" || action === "reopen") {
-      const data = action === "claim" ? { ownerId: user.id } : action === "release" ? { ownerId: null } : { resolved: action === "resolve" };
-      await tx.supportConversation.update({ where: { id: threadId }, data });
+
+    if (action === "claim") {
+      // Any assigned agent can claim an unassigned chat or take over any chat
+      await tx.supportConversation.update({ where: { id: threadId }, data: { ownerId: user.id } });
+      return;
+    }
+    if (action === "reopen") {
+      // Any assigned agent can reopen a resolved chat and take ownership
+      await tx.supportConversation.update({ where: { id: threadId }, data: { resolved: false, ownerId: user.id } });
+      return;
+    }
+    if (action === "resolve") {
+      if (thread.ownerId && thread.ownerId !== user.id && !supervisor) {
+        throw new InboxError(409, "Take over this conversation before resolving.");
+      }
+      await tx.supportConversation.update({ where: { id: threadId }, data: { resolved: true } });
+      return;
+    }
+    if (action === "release") {
+      if (thread.ownerId && thread.ownerId !== user.id && !supervisor) {
+        throw new InboxError(409, "This conversation belongs to another agent.");
+      }
+      await tx.supportConversation.update({ where: { id: threadId }, data: { ownerId: null } });
       return;
     }
     if (action === "rename") {
@@ -106,6 +125,9 @@ export async function changeThread(user: AdminSession, botId: string, threadId: 
     }
     if ((action !== "retry" && action !== "cancel") || typeof messageId !== "string" || !/^\d{1,18}$/.test(messageId))
       throw new InboxError(400, "Invalid conversation action.");
+    if (thread.ownerId && thread.ownerId !== user.id && !supervisor) {
+      throw new InboxError(409, "Take over this conversation before modifying its messages.");
+    }
     const result = await tx.supportMessage.updateMany({
       where: { id: BigInt(messageId), conversationId: threadId, status: { in: ["FAILED", "UNCERTAIN"] } },
       data: { status: action === "retry" ? "QUEUED" : "CANCELLED", availableAt: new Date(Date.now() - 2000), lastError: null },
