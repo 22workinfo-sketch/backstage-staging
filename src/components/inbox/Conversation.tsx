@@ -187,6 +187,7 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
               type="text"
               value={editingNameValue}
               onChange={e => setEditingNameValue(e.target.value)}
+              onKeyDown={e => { if (e.key === "Escape") setIsEditingName(false); }}
               className="inbox-name-input"
               autoFocus
               maxLength={100}
