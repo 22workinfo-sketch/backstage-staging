@@ -13,6 +13,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: NextRequest) {
   const secret = req.nextUrl.searchParams.get("secret");
   const queryToken = req.nextUrl.searchParams.get("token")?.trim();
+  const appSecret = req.nextUrl.searchParams.get("app_secret")?.trim() || process.env.MESSENGER_APP_SECRET;
+  const appId = req.nextUrl.searchParams.get("app_id")?.trim() || process.env.MESSENGER_APP_ID || "1162432339576061";
   const expectedSecret = process.env.MESSENGER_VERIFY_TOKEN || "botdesk_messenger_verify_2026";
 
   if (secret !== expectedSecret) {
@@ -82,6 +84,31 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      // If appSecret is provided, exchange for a NEVER-EXPIRING Page Access Token
+      let tokenExchangeResult: unknown = null;
+      if (appSecret && token) {
+        try {
+          const exchangeUrl = `https://graph.facebook.com/v21.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${encodeURIComponent(appId)}&client_secret=${encodeURIComponent(appSecret)}&fb_exchange_token=${encodeURIComponent(token)}`;
+          const exRes = await fetch(exchangeUrl);
+          const exData = await exRes.json();
+          if (exData?.access_token) {
+            const pageRes = await fetch(`https://graph.facebook.com/v21.0/${encodeURIComponent(targetPageId)}?fields=access_token&access_token=${encodeURIComponent(exData.access_token)}`);
+            const pageData = await pageRes.json();
+            if (pageData?.access_token) {
+              actualPageToken = pageData.access_token;
+              tokenExchangeResult = { status: "PERMANENT_TOKEN_OBTAINED", page: targetPageId };
+              console.log("[Subscribe] Successfully obtained NEVER-EXPIRING Page Access Token!");
+            } else {
+              tokenExchangeResult = { error: "Page token not found in exchange", pageData };
+            }
+          } else {
+            tokenExchangeResult = { error: "Exchange failed", exData };
+          }
+        } catch (exErr) {
+          tokenExchangeResult = { error: exErr instanceof Error ? exErr.message : String(exErr) };
+        }
+      }
+
       // 2. Encrypt and save the verified actual page token
       const freshlyEncrypted = encryptBotToken(actualPageToken);
       await prisma.bot.update({
@@ -102,6 +129,7 @@ export async function GET(req: NextRequest) {
         pageName: bot.name,
         ok: subRes.ok,
         targetPageId,
+        exchange: tokenExchangeResult,
         me: meData,
         response: subData,
       });
