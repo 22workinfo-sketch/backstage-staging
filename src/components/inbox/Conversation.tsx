@@ -240,7 +240,7 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
         {m.body && <p dir="auto">{m.body}</p>}
         {m.attachmentName && (
           <div className="inbox-attachment">
-            {m.attachmentName === "Photo" || /\.(jpe?g|png|webp|gif)$/i.test(m.attachmentName) ? (
+            {m.attachmentName === "Photo" || m.attachmentName === "Image" || /\.(jpe?g|png|webp|gif)$/i.test(m.attachmentName) ? (
               <div className="inbox-media-preview">
                 <a href={url + "/files/" + m.id} target="_blank" rel="noreferrer">
                   <img
@@ -250,6 +250,20 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
                     loading="lazy"
                   />
                 </a>
+                <a href={url + "/files/" + m.id} target="_blank" rel="noreferrer" className="inbox-file-download">
+                  ↓ {m.attachmentName}
+                </a>
+              </div>
+            ) : m.attachmentName === "Video" || /\.(mp4|webm|mov)$/i.test(m.attachmentName) ? (
+              <div className="inbox-media-preview">
+                <video src={url + "/files/" + m.id} controls className="inbox-chat-img" />
+                <a href={url + "/files/" + m.id} target="_blank" rel="noreferrer" className="inbox-file-download">
+                  ↓ {m.attachmentName}
+                </a>
+              </div>
+            ) : m.attachmentName === "Audio" || /\.(mp3|ogg|wav|m4a)$/i.test(m.attachmentName) ? (
+              <div className="inbox-media-preview">
+                <audio src={url + "/files/" + m.id} controls />
                 <a href={url + "/files/" + m.id} target="_blank" rel="noreferrer" className="inbox-file-download">
                   ↓ {m.attachmentName}
                 </a>

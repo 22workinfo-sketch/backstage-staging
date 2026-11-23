@@ -25,6 +25,9 @@ function getFileContentType(filename: string): string {
     case "txt":
       return "text/plain";
     default:
+      if (/^(image|photo)$/i.test(filename)) return "image/jpeg";
+      if (/^video$/i.test(filename)) return "video/mp4";
+      if (/^audio$/i.test(filename)) return "audio/mpeg";
       return "application/octet-stream";
   }
 }
@@ -46,6 +49,32 @@ export async function GET(req: NextRequest, { params }: { params: { botId: strin
       },
     });
     if (!item?.attachmentId) throw new InboxError(404, "Attachment unavailable.");
+
+    // Direct remote URL (e.g. Facebook Messenger attachment CDN)
+    if (item.attachmentId.startsWith("http://") || item.attachmentId.startsWith("https://")) {
+      try {
+        const download = await fetch(item.attachmentId, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(30000),
+        });
+        if (!download.ok || !download.body) {
+          throw new InboxError(502, "Could not retrieve attachment from remote server.");
+        }
+        const contentType = download.headers.get("content-type") || getFileContentType(item.attachmentName || "image.jpg");
+        const filename = (item.attachmentName || "file").replace(/[^\w.-]/g, "_");
+        return new Response(download.body, {
+          headers: {
+            "Content-Type": contentType,
+            "Content-Disposition": `inline; filename="${filename}"`,
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, max-age=86400",
+          },
+        });
+      } catch (err) {
+        if (err instanceof InboxError) throw err;
+        throw new InboxError(502, "Error downloading attachment.");
+      }
+    }
 
     // Check if attachment is stored in local/S3 storage (e.g. staff upload)
     if (item.attachmentId.startsWith("inbox/")) {
