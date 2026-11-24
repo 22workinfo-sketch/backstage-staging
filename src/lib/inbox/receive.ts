@@ -13,6 +13,61 @@ function attachment(message: Message) {
 
 // Returning true consumes private updates for a support bot before menus and automations.
 export async function receiveSupportUpdate(botId: string, update: Update): Promise<boolean> {
+  // Support message reactions from Telegram
+  if ("message_reaction" in update && (update as any).message_reaction) {
+    const mr = (update as any).message_reaction;
+    if (mr.chat?.type === "private") {
+      const chatId = String(mr.chat.id);
+      const newEmojis = ((mr.new_reaction as any[]) || [])
+        .filter((r: any) => r.type === "emoji")
+        .map((r: any) => r.emoji as string);
+
+      const msg = await prisma.supportMessage.findFirst({
+        where: {
+          conversation: { botId, chatId },
+          OR: [
+            { telegramMessageId: mr.message_id },
+            { lastSentMessageId: mr.message_id },
+          ],
+        },
+      });
+
+      if (msg) {
+        let reactions: Array<{ emoji: string; count: number; byStaff?: boolean; byCustomer?: boolean }> = [];
+        try {
+          if (msg.reactions) reactions = JSON.parse(msg.reactions);
+        } catch {}
+
+        // Reset previous customer reactions
+        reactions = reactions
+          .map(r => {
+            if (r.byCustomer) {
+              return { ...r, byCustomer: false, count: Math.max(0, r.count - 1) };
+            }
+            return r;
+          })
+          .filter(r => r.count > 0 || r.byStaff);
+
+        // Add new customer emojis
+        for (const emoji of newEmojis) {
+          const item = reactions.find(r => r.emoji === emoji);
+          if (item) {
+            item.byCustomer = true;
+            item.count += 1;
+          } else {
+            reactions.push({ emoji, count: 1, byCustomer: true });
+          }
+        }
+
+        await prisma.supportMessage.update({
+          where: { id: msg.id },
+          data: { reactions: JSON.stringify(reactions) },
+        });
+        return true;
+      }
+    }
+  }
+
   const message = update.message || update.edited_message;
   const chat = message?.chat || update.callback_query?.message?.chat;
   if (chat?.type !== "private") return false;

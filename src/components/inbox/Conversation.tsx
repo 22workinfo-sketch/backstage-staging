@@ -4,14 +4,25 @@ import { MAX_REPLY_LENGTH } from "@/lib/inbox/text";
 import { Avatar, timeLabel } from "./presentation";
 import { requestJson, useInboxSnapshot } from "./useInboxSnapshot";
 
+type Reaction = { emoji: string; count: number; byStaff?: boolean; byCustomer?: boolean };
 type Message = { id: string; body: string; status: string; attachmentName: string | null; lastError: string | null;
   sentParts: number; createdAt: string; sender: { email: string } | null;
-  replyToId?: string | null; replyToText?: string | null; replyToSender?: string | null };
+  replyToId?: string | null; replyToText?: string | null; replyToSender?: string | null;
+  reactions?: Reaction[]; };
 type Thread = { id: string; name: string; username: string | null; owner: { id: string; email: string } | null;
   resolved: boolean; messages: Message[]; hasOlder: boolean };
 const statuses: Record<string, string> = { QUEUED: "Queued", SENDING: "Sending", SENT: "Sent to Telegram",
   FAILED: "Failed", UNCERTAIN: "Delivery unconfirmed", CANCELLED: "Stopped" };
 type Draft = { text: string; key: string; attempted: boolean };
+
+const EMOJI_LIST = [
+  "👍", "❤️", "🥰", "😊", "😂", "🤣", "🙏", "👏", "🔥", "✨",
+  "😀", "😃", "😄", "😁", "😉", "😍", "🤩", "😘", "😋", "😜",
+  "😎", "🥳", "😇", "🤝", "🙌", "💪", "✌️", "👌", "🫶", "💖",
+  "🤔", "🤫", "😮", "🥺", "😢", "😭", "😱", "😬", "😴", "🫡",
+  "✅", "❌", "⚠️", "ℹ️", "💯", "🎉", "⭐", "🌟", "💡", "📦",
+  "💰", "💵", "💳", "📞", "📩", "📍", "🕒", "🚀", "🏷️", "🛒",
+];
 
 function readDraft(storageKey: string): Draft {
   try {
@@ -35,7 +46,9 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
   const [editingNameValue, setEditingNameValue] = useState("");
   const [replyingTo, setReplyingTo] = useState<{ id: string; text: string; sender: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const cursor = history.at(-1);
   const snapshot = useInboxSnapshot<Thread>(cursor ? url + "?before=" + cursor : url, revision);
   const thread = snapshot?.data;
@@ -44,6 +57,20 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
   const locked = useRef(false);
   const latest = thread?.messages.at(-1)?.id;
   const peerOwned = Boolean(thread?.owner && thread.owner.id !== userId);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (showEmojiPicker) {
+        const target = e.target as HTMLElement;
+        if (!target.closest(".inbox-emoji-wrapper")) {
+          setShowEmojiPicker(false);
+        }
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showEmojiPicker]);
+
   useEffect(() => {
     if (!cursor && atBottom.current && scroll.current) scroll.current.scrollTop = scroll.current.scrollHeight;
   }, [latest, cursor]);
@@ -171,6 +198,26 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
       textarea?.focus();
     }, 50);
   }
+  async function handleToggleReaction(messageId: string, emoji: string) {
+    if (busy || locked.current) return;
+    await mutate("PATCH", { action: "react", messageId, emoji });
+  }
+  function handleInsertEmoji(emoji: string) {
+    const textarea = textareaRef.current || document.querySelector<HTMLTextAreaElement>(".inbox-composer textarea");
+    if (!textarea) {
+      saveDraft({ text: draft.text + emoji, key: "", attempted: false });
+      return;
+    }
+    const start = textarea.selectionStart ?? draft.text.length;
+    const end = textarea.selectionEnd ?? draft.text.length;
+    const nextText = draft.text.slice(0, start) + emoji + draft.text.slice(end);
+    saveDraft({ text: nextText, key: "", attempted: false });
+    setTimeout(() => {
+      textarea.focus();
+      const newPos = start + emoji.length;
+      textarea.setSelectionRange(newPos, newPos);
+    }, 10);
+  }
   async function reply() {
     if (locked.current || (!draft.text.trim() && !selectedFile) || !thread || thread.resolved || peerOwned) return;
     const key = draft.key || crypto.randomUUID();
@@ -280,6 +327,20 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
       {thread?.messages.map(m => (
         <div key={m.id} id={"msg-" + m.id} className={"inbox-message " + (m.status === "RECEIVED" ? "incoming" : "outgoing")}>
           <div className="inbox-msg-actions">
+            <div className="inbox-msg-reactions-quick">
+              {["❤️", "👍", "😮", "🔥", "👎", "🥰"].map(emoji => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className={`inbox-msg-react-quick-btn ${m.reactions?.some(r => r.emoji === emoji && r.byStaff) ? "active" : ""}`}
+                  title={`React ${emoji}`}
+                  onClick={() => handleToggleReaction(m.id, emoji)}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+            <div className="inbox-msg-actions-divider" />
             <button
               type="button"
               className="inbox-msg-action-btn"
@@ -367,6 +428,22 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
             )}
           </div>
         )}
+        {m.reactions && m.reactions.length > 0 && (
+          <div className="inbox-reactions-pills">
+            {m.reactions.map(r => (
+              <button
+                key={r.emoji}
+                type="button"
+                className={`inbox-reaction-pill ${r.byStaff ? "reacted" : ""}`}
+                onClick={() => handleToggleReaction(m.id, r.emoji)}
+                title={r.byStaff ? `You reacted with ${r.emoji} (click to remove)` : `Click to react with ${r.emoji}`}
+              >
+                <span>{r.emoji}</span>
+                {r.count > 1 && <span className="inbox-reaction-count">{r.count}</span>}
+              </button>
+            ))}
+          </div>
+        )}
         {m.status !== "RECEIVED" && <small className="inbox-delivery">{statuses[m.status]}{m.status !== "SENT" && m.sentParts > 0 ? ` · ${m.sentParts} part(s) sent` : ""}</small>}
         {m.lastError && <small className="inbox-problem">{m.lastError}</small>}
         {["FAILED", "UNCERTAIN"].includes(m.status) && (!peerOwned || supervisor) && <div className="inbox-recovery">
@@ -429,6 +506,7 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
         </div>
       )}
       <textarea
+        ref={textareaRef}
         aria-label="Reply to customer"
         placeholder={thread?.resolved ? "Click 'Reopen' above to reply" : peerOwned ? "Click 'Take over' above to reply" : "Write a reply or paste image (Ctrl+V)…"}
         disabled={busy || !thread || thread.resolved || peerOwned}
@@ -442,10 +520,47 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
       <div>
         <small>{draft.attempted && !busy ? "Retry safely with the same reply." : selectedFile ? `Attached: ${selectedFile.name} · Enter to send` : draft.text.length > 4096 ? "Long reply · sent in ordered parts" : "Plain text · Ctrl / ⌘ + Enter to send"}</small>
         <div className="inbox-composer-actions">
+          <div className="inbox-emoji-wrapper">
+            <button
+              type="button"
+              className="inbox-emoji-toggle-btn"
+              title="Choose emoji"
+              disabled={busy || !thread || thread.resolved || peerOwned}
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            >
+              😊 Emoji
+            </button>
+            {showEmojiPicker && (
+              <div className="inbox-emoji-picker-popover">
+                <div className="inbox-emoji-picker-header">
+                  <span>Insert emoji</span>
+                  <button
+                    type="button"
+                    className="inbox-emoji-picker-close"
+                    onClick={() => setShowEmojiPicker(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="inbox-emoji-picker-grid">
+                  {EMOJI_LIST.map(emoji => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className="inbox-emoji-picker-item"
+                      onClick={() => handleInsertEmoji(emoji)}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           <button
             type="button"
             className="inbox-attach-btn"
-            title="Attach JPG, PNG or PDF (max 20 MB)"
+            title="Attach JPG, PNG, PDF or Audio (max 20 MB)"
             disabled={busy || !thread || thread.resolved || peerOwned}
             onClick={() => fileInputRef.current?.click()}
           >

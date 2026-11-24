@@ -56,8 +56,8 @@ export async function POST(req: NextRequest, { params }: Context) {
 
 export async function PATCH(req: NextRequest, { params }: Context) {
   return inboxRequest(req, async user => {
-    const { action, messageId, name } = await readPayload(req);
-    await changeThread(user, params.botId, params.threadId, action, messageId, name);
+    const { action, messageId, name, emoji } = await readPayload(req);
+    await changeThread(user, params.botId, params.threadId, action, messageId, name, emoji);
     return NextResponse.json({ ok: true });
   });
 }

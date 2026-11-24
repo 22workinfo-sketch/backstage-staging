@@ -526,6 +526,7 @@ model SupportMessage {
   replyToId          BigInt?
   replyToText        String?             @db.Text
   replyToSender      String?
+  reactions          String?             @db.Text
   createdAt          DateTime            @default(now())
 
   @@unique([conversationId, telegramMessageId])

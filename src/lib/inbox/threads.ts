@@ -3,6 +3,8 @@ import type { AdminSession } from "../auth";
 import { prisma } from "../prisma";
 import { InboxError, requireInboxBot } from "./access";
 import { MAX_REPLY_LENGTH, splitReply } from "./text";
+import { resolveBotToken } from "../bot-service";
+import { createTelegramApi } from "../telegram-client";
 
 export const PAGE_SIZE = 40;
 const owner = { select: { id: true, email: true } };
@@ -10,6 +12,7 @@ const messageFields = {
   id: true, body: true, status: true, sentParts: true, lastError: true, attachmentName: true,
   createdAt: true, sender: { select: { email: true } },
   replyToId: true, replyToText: true, replyToSender: true,
+  reactions: true,
 } satisfies Prisma.SupportMessageSelect;
 
 export async function listThreads(user: AdminSession, botId: string, query: URLSearchParams) {
@@ -48,11 +51,18 @@ export async function readThread(user: AdminSession, botId: string, threadId: st
   if (!thread) throw new InboxError(404, "Conversation unavailable.");
   const { messages, ...info } = thread;
   return { ...info, hasOlder: messages.length > PAGE_SIZE,
-    messages: messages.slice(0, PAGE_SIZE).reverse().map(m => ({
-      ...m,
-      id: m.id.toString(),
-      replyToId: m.replyToId ? m.replyToId.toString() : null,
-    })) };
+    messages: messages.slice(0, PAGE_SIZE).reverse().map(m => {
+      let parsedReactions: Array<{ emoji: string; count: number; byStaff?: boolean; byCustomer?: boolean }> = [];
+      if (m.reactions) {
+        try { parsedReactions = JSON.parse(m.reactions); } catch {}
+      }
+      return {
+        ...m,
+        id: m.id.toString(),
+        replyToId: m.replyToId ? m.replyToId.toString() : null,
+        reactions: parsedReactions,
+      };
+    }) };
 }
 
 // Serialize staff actions with incoming replies, so two agents cannot both claim an open chat.
@@ -123,11 +133,77 @@ export async function queueReply(
   });
 }
 
-export async function changeThread(user: AdminSession, botId: string, threadId: string, action: unknown, messageId?: unknown, newName?: unknown) {
+export async function changeThread(user: AdminSession, botId: string, threadId: string, action: unknown, messageId?: unknown, newName?: unknown, emoji?: unknown) {
   await requireInboxBot(user, botId);
   return prisma.$transaction(async tx => {
     const thread = await lockThread(tx, botId, threadId);
     const supervisor = user.role === "ADMIN" || user.role === "SUPER_ADMIN";
+
+    if (action === "react") {
+      if (typeof messageId !== "string" || !/^\d{1,18}$/.test(messageId)) {
+        throw new InboxError(400, "Invalid message ID.");
+      }
+      if (typeof emoji !== "string" || !emoji.trim()) {
+        throw new InboxError(400, "Invalid emoji.");
+      }
+      const targetEmoji = emoji.trim();
+      const msg = await tx.supportMessage.findFirst({
+        where: { id: BigInt(messageId), conversationId: threadId },
+        include: { conversation: { select: { chatId: true, bot: true } } },
+      });
+      if (!msg) throw new InboxError(404, "Message not found.");
+
+      let currentReactions: Array<{ emoji: string; count: number; byStaff?: boolean; byCustomer?: boolean }> = [];
+      if (msg.reactions) {
+        try { currentReactions = JSON.parse(msg.reactions); } catch {}
+      }
+
+      const existingIndex = currentReactions.findIndex(r => r.emoji === targetEmoji);
+      let newByStaff = false;
+
+      if (existingIndex >= 0) {
+        const item = currentReactions[existingIndex];
+        if (item.byStaff) {
+          item.byStaff = false;
+          item.count = Math.max(0, item.count - 1);
+          newByStaff = false;
+        } else {
+          item.byStaff = true;
+          item.count += 1;
+          newByStaff = true;
+        }
+        if (item.count <= 0 && !item.byStaff && !item.byCustomer) {
+          currentReactions.splice(existingIndex, 1);
+        }
+      } else {
+        currentReactions.push({ emoji: targetEmoji, count: 1, byStaff: true });
+        newByStaff = true;
+      }
+
+      await tx.supportMessage.update({
+        where: { id: BigInt(messageId) },
+        data: { reactions: JSON.stringify(currentReactions) },
+      });
+
+      // Call Telegram setMessageReaction
+      const tgMsgId = msg.telegramMessageId || msg.lastSentMessageId;
+      const bot = msg.conversation.bot;
+      if (tgMsgId && bot && !bot.username.startsWith("facebook:")) {
+        const token = resolveBotToken(bot);
+        if (token) {
+          try {
+            const api = createTelegramApi(token, { timeoutSeconds: 10 });
+            const reactionList = newByStaff ? [{ type: "emoji" as const, emoji: targetEmoji }] : [];
+            await api.setMessageReaction(msg.conversation.chatId, tgMsgId, reactionList).catch(err => {
+              console.warn("[Telegram Reaction] Failed to set reaction:", err);
+            });
+          } catch (tgErr) {
+            console.warn("[Telegram Reaction] API error:", tgErr);
+          }
+        }
+      }
+      return;
+    }
 
     if (action === "claim") {
       // Any assigned agent can claim an unassigned chat or take over any chat
