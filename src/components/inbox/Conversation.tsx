@@ -95,7 +95,7 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
     const files = e.clipboardData?.files;
     if (files && files.length > 0) {
       const file = files[0];
-      if (file.type.startsWith("image/") || /\.(jpe?g|png|webp|gif|pdf)$/i.test(file.name)) {
+      if (file.type.startsWith("image/") || file.type.startsWith("audio/") || /\.(jpe?g|png|webp|gif|pdf|mp3|ogg|oga|opus|wav|m4a)$/i.test(file.name)) {
         e.preventDefault();
         if (file.size > 20 * 1024 * 1024) {
           setError("Pasted file exceeds maximum size of 20 MB.");
@@ -112,8 +112,8 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith("image/") && !/\.(jpe?g|png|webp|pdf)$/i.test(file.name)) {
-      setError("Please drop an image (JPG, PNG, WebP) or PDF file.");
+    if (!file.type.startsWith("image/") && !file.type.startsWith("audio/") && !/\.(jpe?g|png|webp|pdf|mp3|ogg|oga|opus|wav|m4a)$/i.test(file.name)) {
+      setError("Please drop an image (JPG, PNG, WebP), audio (MP3, OGG, WAV, M4A) or PDF file.");
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
@@ -347,9 +347,9 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
                   ↓ {m.attachmentName}
                 </a>
               </div>
-            ) : m.attachmentName === "Audio" || /\.(mp3|ogg|wav|m4a)$/i.test(m.attachmentName) ? (
-              <div className="inbox-media-preview">
-                <audio src={url + "/files/" + m.id} controls />
+            ) : m.attachmentName === "Audio" || m.attachmentName === "Voice message" || /voice/i.test(m.attachmentName) || /\.(mp3|ogg|oga|opus|wav|m4a|aac|flac|weba)$/i.test(m.attachmentName) ? (
+              <div className="inbox-media-preview inbox-audio-preview">
+                <audio src={url + "/files/" + m.id} controls preload="metadata" />
                 <a href={url + "/files/" + m.id} target="_blank" rel="noreferrer" className="inbox-file-download">
                   ↓ {m.attachmentName}
                 </a>
@@ -406,7 +406,7 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
         type="file"
         ref={fileInputRef}
         style={{ display: "none" }}
-        accept=".pdf,image/jpeg,image/png,image/webp,image/jpg"
+        accept=".pdf,image/jpeg,image/png,image/webp,image/jpg,audio/*,.mp3,.ogg,.oga,.opus,.wav,.m4a"
         onChange={handleFileSelect}
       />
       {replyingTo && (

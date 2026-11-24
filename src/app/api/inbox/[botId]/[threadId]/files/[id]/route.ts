@@ -24,12 +24,80 @@ function getFileContentType(filename: string): string {
       return "application/pdf";
     case "txt":
       return "text/plain";
+    case "mp3":
+      return "audio/mpeg";
+    case "oga":
+    case "ogg":
+    case "opus":
+      return "audio/ogg";
+    case "wav":
+      return "audio/wav";
+    case "m4a":
+    case "aac":
+      return "audio/mp4";
+    case "flac":
+      return "audio/flac";
+    case "weba":
+      return "audio/webm";
+    case "mp4":
+      return "video/mp4";
+    case "webm":
+      return "video/webm";
+    case "mov":
+      return "video/quicktime";
     default:
       if (/^(image|photo)$/i.test(filename)) return "image/jpeg";
       if (/^video$/i.test(filename)) return "video/mp4";
       if (/^audio$/i.test(filename)) return "audio/mpeg";
+      if (/^(voice|voice message)$/i.test(filename)) return "audio/ogg";
       return "application/octet-stream";
   }
+}
+
+function makeFileResponse(
+  req: NextRequest,
+  buffer: Buffer,
+  filename: string,
+  contentType: string,
+  cacheControl = "private, max-age=86400"
+): Response {
+  const totalLength = buffer.length;
+  const range = req.headers.get("range");
+
+  if (range && range.startsWith("bytes=")) {
+    const parts = range.replace(/bytes=/, "").split("-");
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : totalLength - 1;
+
+    if (!isNaN(start) && start < totalLength && (isNaN(end) || end < totalLength) && start <= (isNaN(end) ? totalLength - 1 : end)) {
+      const actualEnd = isNaN(end) ? totalLength - 1 : end;
+      const chunk = buffer.subarray(start, actualEnd + 1);
+      return new Response(new Uint8Array(chunk), {
+        status: 206,
+        headers: {
+          "Content-Type": contentType,
+          "Content-Range": `bytes ${start}-${actualEnd}/${totalLength}`,
+          "Accept-Ranges": "bytes",
+          "Content-Length": String(chunk.length),
+          "Content-Disposition": `inline; filename="${filename}"`,
+          "X-Content-Type-Options": "nosniff",
+          "Cache-Control": cacheControl,
+        },
+      });
+    }
+  }
+
+  return new Response(new Uint8Array(buffer), {
+    status: 200,
+    headers: {
+      "Content-Type": contentType,
+      "Accept-Ranges": "bytes",
+      "Content-Length": String(totalLength),
+      "Content-Disposition": `inline; filename="${filename}"`,
+      "X-Content-Type-Options": "nosniff",
+      "Cache-Control": cacheControl,
+    },
+  });
 }
 
 export async function GET(req: NextRequest, { params }: { params: { botId: string; threadId: string; id: string } }) {
@@ -60,16 +128,14 @@ export async function GET(req: NextRequest, { params }: { params: { botId: strin
         if (!download.ok || !download.body) {
           throw new InboxError(502, "Could not retrieve attachment from remote server.");
         }
-        const contentType = download.headers.get("content-type") || getFileContentType(item.attachmentName || "image.jpg");
+        let contentType = download.headers.get("content-type") || getFileContentType(item.attachmentName || "file");
+        if (contentType.includes("octet-stream") && item.attachmentName) {
+          contentType = getFileContentType(item.attachmentName);
+        }
         const filename = (item.attachmentName || "file").replace(/[^\w.-]/g, "_");
-        return new Response(download.body, {
-          headers: {
-            "Content-Type": contentType,
-            "Content-Disposition": `inline; filename="${filename}"`,
-            "X-Content-Type-Options": "nosniff",
-            "Cache-Control": "private, max-age=86400",
-          },
-        });
+        const arrayBuffer = await download.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        return makeFileResponse(req, buffer, filename, contentType, "private, max-age=86400");
       } catch (err) {
         if (err instanceof InboxError) throw err;
         throw new InboxError(502, "Error downloading attachment.");
@@ -83,14 +149,8 @@ export async function GET(req: NextRequest, { params }: { params: { botId: strin
         const { data, mimeType } = await storage.getObject(item.attachmentId);
         const filename = (item.attachmentName || "file").replace(/[^\w.-]/g, "_");
         const contentType = mimeType || getFileContentType(filename);
-        return new Response(new Uint8Array(data), {
-          headers: {
-            "Content-Type": contentType,
-            "Content-Disposition": `inline; filename="${filename}"`,
-            "X-Content-Type-Options": "nosniff",
-            "Cache-Control": "private, max-age=3600",
-          },
-        });
+        const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data);
+        return makeFileResponse(req, buffer, filename, contentType, "private, max-age=3600");
       } catch {
         throw new InboxError(404, "Attachment unavailable in storage.");
       }
@@ -108,15 +168,19 @@ export async function GET(req: NextRequest, { params }: { params: { botId: strin
       cache: "no-store", redirect: "error", signal: AbortSignal.timeout(60000),
     });
     if (!download.ok || !download.body) throw new InboxError(502, "Telegram could not return this attachment.");
-    const filename = (item.attachmentName || file.file_path.split("/").pop() || "file").replace(/[^\w.-]/g, "_");
+
+    const rawTgFilename = file.file_path.split("/").pop() || "";
+    const tgExt = rawTgFilename.includes(".") ? rawTgFilename.split(".").pop()?.toLowerCase() : "";
+
+    let filename = item.attachmentName || rawTgFilename || "file";
+    if (!filename.includes(".") && tgExt) {
+      filename = `${filename}.${tgExt}`;
+    }
+    filename = filename.replace(/[^\w.-]/g, "_");
     const contentType = getFileContentType(filename);
-    return new Response(download.body, {
-      headers: {
-        "Content-Type": contentType,
-        "Content-Disposition": `inline; filename="${filename}"`,
-        "X-Content-Type-Options": "nosniff",
-        "Cache-Control": "private, no-store",
-      },
-    });
+
+    const arrayBuffer = await download.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    return makeFileResponse(req, buffer, filename, contentType, "private, no-store");
   });
 }
