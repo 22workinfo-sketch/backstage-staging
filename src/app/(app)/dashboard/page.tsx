@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { getStaffSession } from "@/lib/auth";
 import { getAllBots, getBotUsers } from "@/lib/bot-service";
 import { getUserAssignedBotIds, canUserViewPhoneNumbers } from "@/lib/permissions";
-import { BotdeskLayout } from "@/components/BotdeskLayout";
 import { BotdeskDashboard, BotData, TelegramUserData } from "@/components/BotdeskDashboard";
 
 export default async function DashboardPage() {
@@ -18,27 +17,33 @@ export default async function DashboardPage() {
   if (session.role === "SUPPORT_AGENT") redirect("/inbox");
 
   // Filter bots strictly to assigned resources
-  const assignedBotIds = await getUserAssignedBotIds(session);
-  const allBots = await getAllBots();
+  const [assignedBotIds, allBots] = await Promise.all([
+    getUserAssignedBotIds(session),
+    getAllBots(),
+  ]);
   const rawBots = allBots.filter((b) => assignedBotIds.includes(b.id));
 
-  // Prepare users for each assigned bot strictly isolated
+  // Prepare users for each assigned bot strictly isolated (in parallel)
   const usersByBot: Record<string, TelegramUserData[]> = {};
-  for (const bot of rawBots) {
-    const rawUsers = await getBotUsers(bot.id);
-    const allowPhone = await canUserViewPhoneNumbers(session, bot.id);
+  await Promise.all(
+    rawBots.map(async (bot) => {
+      const [rawUsers, allowPhone] = await Promise.all([
+        getBotUsers(bot.id),
+        canUserViewPhoneNumbers(session, bot.id),
+      ]);
 
-    usersByBot[bot.id] = rawUsers.map((u) => ({
-      id: u.id,
-      telegramId: u.telegramId.toString(),
-      firstName: u.firstName,
-      lastName: u.lastName,
-      username: u.username,
-      telegramPhNo: allowPhone ? u.telegramPhNo : u.telegramPhNo ? "[REDACTED]" : null,
-      firstSeenAt: u.firstSeenAt.toISOString(),
-      lastSeenAt: u.lastSeenAt.toISOString(),
-    }));
-  }
+      usersByBot[bot.id] = rawUsers.map((u) => ({
+        id: u.id,
+        telegramId: u.telegramId.toString(),
+        firstName: u.firstName,
+        lastName: u.lastName,
+        username: u.username,
+        telegramPhNo: allowPhone ? u.telegramPhNo : u.telegramPhNo ? "[REDACTED]" : null,
+        firstSeenAt: u.firstSeenAt.toISOString(),
+        lastSeenAt: u.lastSeenAt.toISOString(),
+      }));
+    })
+  );
 
   const botsData: BotData[] = rawBots.map((b) => ({
     id: b.id,
@@ -65,17 +70,10 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <BotdeskLayout
-      userEmail={session.email}
-      role={session.role}
-      activeNav="bots"
-      breadcrumb="Bots"
-    >
-      <BotdeskDashboard
-        bots={botsData}
-        initialUsersByBot={usersByBot}
-        isSuperAdmin={session.role === "SUPER_ADMIN"}
-      />
-    </BotdeskLayout>
+    <BotdeskDashboard
+      bots={botsData}
+      initialUsersByBot={usersByBot}
+      isSuperAdmin={session.role === "SUPER_ADMIN"}
+    />
   );
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { AnimatePresence, motion } from "motion/react";
 import { BotButtonDTO } from "./MenuBuilder";
 import { retryDynamicImport } from "@/lib/dynamic-retry";
 import { safeFetchJson } from "@/lib/api-client";
@@ -356,41 +357,37 @@ export function BotdeskMenuPage({
         </p>
       </div>
 
-      {/* Editor Mode Selector */}
-      <div className="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
-        <button
-          type="button"
-          onClick={() => setEditorMode("visual")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-            editorMode === "visual"
-              ? "bg-[#0c2538] text-white border border-sky-500/40 shadow-xs"
-              : "bg-[#131926] text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700"
-          }`}
-        >
-          🎨 Visual Flow Canvas V2 (Drag & Drop, Branches, Input)
-        </button>
-        <button
-          type="button"
-          onClick={() => setEditorMode("flow")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-            editorMode === "flow"
-              ? "bg-[#0c2538] text-white border border-sky-500/40 shadow-xs"
-              : "bg-[#131926] text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700"
-          }`}
-        >
-          ⚡ Tree / List Flow Editor (V1)
-        </button>
-        <button
-          type="button"
-          onClick={() => setEditorMode("legacy")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer ${
-            editorMode === "legacy"
-              ? "bg-[#0c2538] text-white border border-sky-500/40 shadow-xs"
-              : "bg-[#131926] text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700"
-          }`}
-        >
-          📋 Classic Flat Buttons (Legacy)
-        </button>
+      {/* Editor Mode Selector (Sliding Pill) */}
+      <div className="flex flex-wrap gap-1.5 p-1.5 rounded-2xl bg-[#090d16] border border-white/[0.08] w-fit shadow-inner">
+        {(
+          [
+            { id: "visual", label: "🎨 Visual Flow Canvas V2 (Drag & Drop, Branches, Input)" },
+            { id: "flow", label: "⚡ Tree / List Flow Editor (V1)" },
+            { id: "legacy", label: "📋 Classic Flat Buttons (Legacy)" },
+          ] as const
+        ).map((mode) => {
+          const active = editorMode === mode.id;
+          return (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => setEditorMode(mode.id)}
+              className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                active ? "text-white" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              {active && (
+                <motion.span
+                  layoutId="menu-editor-mode-pill"
+                  transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                  className="absolute inset-0 rounded-xl bg-gradient-to-r from-[#0f2c42] to-[#0a1d2d] border border-sky-400/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_4px_14px_rgba(56,189,248,0.15)]"
+                  aria-hidden="true"
+                />
+              )}
+              <span className="relative z-10">{mode.label}</span>
+            </button>
+          );
+        })}
       </div>
 
       {editorMode === "visual" ? (
@@ -658,9 +655,23 @@ export function BotdeskMenuPage({
       </div>
 
       {/* Add / Edit Dialog */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="modal-pop w-full max-w-md rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl">
+      <AnimatePresence>
+        {showModal && (
+          <motion.div
+            key="menu-modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ type: "spring", stiffness: 420, damping: 32 }}
+              className="w-full max-w-md rounded-2xl bg-[#0f1420] border border-white/[0.1] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_64px_rgba(0,0,0,0.75)]"
+            >
             <h2 className="text-lg font-bold text-[var(--text)] mb-1">
               {editingIndex !== null ? "Edit button" : "Add button"}
             </h2>
@@ -817,9 +828,10 @@ export function BotdeskMenuPage({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
         </>
       )}
     </div>

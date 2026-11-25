@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
 
 function LoginForm() {
   const router = useRouter();
@@ -166,135 +167,163 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-[var(--bg)]">
-      <div className="w-full max-w-md rounded-2xl bg-[var(--panel)] p-8 shadow-2xl border border-[var(--border)]">
-        <div className="mb-6 text-center">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--text)] text-[var(--bg)] font-bold text-xl mb-3 shadow-lg">
-            ↗
+    <MotionConfig reducedMotion="user">
+      <div className="relative flex min-h-screen items-center justify-center p-4 bg-[#080b12] overflow-hidden">
+        {/* Atmospheric Sky Cyan top glow */}
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_45%_at_50%_18%,rgba(56,189,248,0.14)_0%,rgba(14,165,233,0.04)_42%,transparent_75%)]"
+          aria-hidden="true"
+        />
+
+        <motion.div
+          initial={{ opacity: 0, y: 14, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: "spring", stiffness: 360, damping: 30 }}
+          className="relative z-10 w-full max-w-md hw-hero-card rounded-2xl p-8"
+        >
+          <div className="mb-7 text-center">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-b from-[#133550] to-[#0a1e30] border border-sky-400/35 text-[#38bdf8] shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_0_24px_-4px_rgba(56,189,248,0.45)] mb-3.5">
+              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M13 2L3 14h8l-1 8 11-12h-8l1-8z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-extrabold tracking-tight text-white">
+              botdesk
+            </h1>
+            <p className="mt-1.5 text-xs text-slate-400">
+              {mode === "LOGIN"
+                ? "Sign in to your Botdesk workspace"
+                : "Security Requirement: Set a new permanent password"}
+            </p>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-[var(--text)]">
-            botdesk
-          </h1>
-          <p className="mt-1 text-xs text-[var(--muted)]">
-            {mode === "LOGIN"
-              ? "Sign in to your Botdesk workspace"
-              : "Security Requirement: Set a new permanent password"}
-          </p>
-        </div>
 
-        {error && (
-          <div className="mb-4 rounded-lg bg-[var(--redbg)] border border-[var(--red)] p-3 text-xs text-[var(--red)]">
-            {error}
+          <AnimatePresence>
+            {error && (
+              <motion.div
+                key="login-error"
+                initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 420, damping: 30 }}
+                className="mb-4 rounded-xl bg-rose-950/50 border border-rose-500/40 p-3 text-xs text-rose-200 shadow-sm"
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {mode === "LOGIN" ? (
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div>
+                <label className="block font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Staff Email
+                </label>
+                <input
+                  type="email"
+                  required
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full rounded-xl border border-white/[0.09] bg-[#080d17] px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition"
+                  placeholder="Enter your registered staff email"
+                />
+              </div>
+
+              <div>
+                <label className="block font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-white/[0.09] bg-[#080d17] px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition"
+                  placeholder="Enter your password"
+                />
+              </div>
+
+              <motion.button
+                whileHover={loading ? undefined : { y: -1 }}
+                whileTap={loading ? undefined : { scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-[#38bdf8] hover:bg-[#20b3f7] text-slate-950 font-bold text-xs py-2.5 shadow-[0_6px_22px_-4px_rgba(56,189,248,0.45),inset_0_1px_0_rgba(255,255,255,0.4)] transition cursor-pointer disabled:opacity-50"
+              >
+                {loading ? "Authenticating..." : "Sign In to Botdesk"}
+              </motion.button>
+            </form>
+          ) : (
+            <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
+              <div className="p-3 rounded-xl bg-sky-500/10 border border-sky-400/25 text-xs text-sky-300 leading-relaxed">
+                Your account requires a new password before you can access the BackStage workspace.
+              </div>
+
+              <div>
+                <label className="block font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Current / Initial Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-xl border border-white/[0.09] bg-[#080d17] px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition"
+                  placeholder="••••••••••••"
+                />
+              </div>
+
+              <div>
+                <label className="block font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                  New Password (Min 8 Characters)
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full rounded-xl border border-white/[0.09] bg-[#080d17] px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition"
+                  placeholder="••••••••••••"
+                />
+              </div>
+
+              <div>
+                <label className="block font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Confirm New Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full rounded-xl border border-white/[0.09] bg-[#080d17] px-3.5 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-[#38bdf8] focus:ring-1 focus:ring-[#38bdf8] transition"
+                  placeholder="••••••••••••"
+                />
+              </div>
+
+              <motion.button
+                whileHover={loading ? undefined : { y: -1 }}
+                whileTap={loading ? undefined : { scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-[#38bdf8] hover:bg-[#20b3f7] text-slate-950 font-bold text-xs py-2.5 shadow-[0_6px_22px_-4px_rgba(56,189,248,0.45),inset_0_1px_0_rgba(255,255,255,0.4)] transition cursor-pointer disabled:opacity-50"
+              >
+                {loading ? "Saving Password..." : "Set Password & Continue"}
+              </motion.button>
+            </form>
+          )}
+
+          <div className="mt-6 border-t border-white/[0.08] pt-4 text-center">
+            <p className="font-mono text-[11px] text-slate-500">
+              One control center. Independent bots.
+            </p>
           </div>
-        )}
-
-        {mode === "LOGIN" ? (
-          <form onSubmit={handleLoginSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
-                Staff Email
-              </label>
-              <input
-                type="email"
-                required
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="botdesk-input text-xs"
-                placeholder="Enter your registered staff email"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="botdesk-input text-xs"
-                placeholder="Enter your password"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="botdesk-btn primary w-full text-xs font-semibold py-2.5"
-            >
-              {loading ? "Authenticating..." : "Sign In to Botdesk"}
-            </button>
-          </form>
-        ) : (
-          <form onSubmit={handleChangePasswordSubmit} className="space-y-4">
-            <div className="p-3 rounded-lg bg-[var(--bluebg)] border border-[var(--border)] text-xs text-[var(--accent)] leading-relaxed">
-              Your account requires a new password before you can access the BackStage workspace.
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
-                Current / Initial Password
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="botdesk-input text-xs"
-                placeholder="••••••••••••"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
-                New Password (Min 8 Characters)
-              </label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                className="botdesk-input text-xs"
-                placeholder="••••••••••••"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--muted)] mb-1">
-                Confirm New Password
-              </label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="botdesk-input text-xs"
-                placeholder="••••••••••••"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="botdesk-btn primary w-full text-xs font-semibold py-2.5"
-            >
-              {loading ? "Saving Password..." : "Set Password & Continue"}
-            </button>
-          </form>
-        )}
-
-        <div className="mt-6 border-t border-[var(--border)] pt-4 text-center">
-          <p className="text-xs text-[var(--muted)]">
-            One control center. Independent bots.
-          </p>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </MotionConfig>
   );
 }
 
@@ -302,8 +331,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[var(--background)] flex items-center justify-center p-4">
-          <div className="text-xs text-[var(--muted)]">Loading BackStage...</div>
+        <div className="min-h-screen bg-[#080b12] flex items-center justify-center p-4">
+          <div className="text-xs font-mono text-slate-400">Loading BackStage...</div>
         </div>
       }
     >

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getAdminSession } from "@/lib/auth";
 import { getBotWithConfig, getBotUsers, getBotButtons } from "@/lib/bot-service";
 import { hasBotAccess, canUserViewPhoneNumbers } from "@/lib/permissions";
-import { BotdeskLayout } from "@/components/BotdeskLayout";
+import { BotdeskBreadcrumb } from "@/components/BotdeskLayout";
 import { BotEditor } from "@/components/BotEditor";
 import { MenuBuilder } from "@/components/MenuBuilder";
 
@@ -31,35 +31,29 @@ export default async function BotDetailPage({ params }: BotPageProps) {
     redirect("/dashboard");
   }
 
-  const bot = await getBotWithConfig(id);
+  const [bot, rawUsers, allowPhone, buttons] = await Promise.all([
+    getBotWithConfig(id),
+    getBotUsers(id),
+    canUserViewPhoneNumbers(session, id),
+    getBotButtons(id),
+  ]);
+
   if (!bot) {
     notFound();
   }
-
-  // Fetch bot users strictly isolated to this botId
-  const rawUsers = await getBotUsers(id);
-  const allowPhone = await canUserViewPhoneNumbers(session, id);
 
   const users = rawUsers.map((u) => ({
     ...u,
     telegramPhNo: allowPhone ? u.telegramPhNo : u.telegramPhNo ? "[REDACTED]" : null,
   }));
 
-  // Fetch bot reply keyboard buttons
-  const buttons = await getBotButtons(id);
-
   const initialWelcomeMessage =
     bot.config?.welcomeMessage ||
     "Hello! Welcome to the bot. Tap the button below to get started.";
 
   return (
-    <BotdeskLayout
-      userEmail={session.email}
-      role={session.role}
-      activeNav="bots"
-      breadcrumb={bot.name}
-    >
-      <div className="space-y-6">
+    <div className="space-y-6">
+      <BotdeskBreadcrumb title={bot.name} />
         {/* Navigation Breadcrumb */}
         <div className="flex items-center space-x-2 text-xs text-[var(--muted)]">
           <Link href="/dashboard" className="hover:text-[var(--accent)] transition">
@@ -70,7 +64,7 @@ export default async function BotDetailPage({ params }: BotPageProps) {
         </div>
 
         {/* Bot Profile Header */}
-        <div className="mb-8 rounded-xl border border-slate-800 bg-slate-900 p-6 shadow-sm">
+        <div className="mb-8 hw-surface rounded-2xl p-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center space-x-3">
@@ -106,10 +100,10 @@ export default async function BotDetailPage({ params }: BotPageProps) {
               </div>
             </div>
 
-            <div className="flex items-center space-x-4 border-t sm:border-t-0 sm:border-l border-slate-800 pt-4 sm:pt-0 sm:pl-6">
+            <div className="flex items-center space-x-4 border-t sm:border-t-0 sm:border-l border-white/[0.08] pt-4 sm:pt-0 sm:pl-6">
               <div className="text-right">
-                <div className="text-2xl font-bold text-white">
-                  {users.length}
+                <div className="text-2xl font-bold text-white tabular-nums font-mono">
+                  {users.length.toLocaleString()}
                 </div>
                 <div className="text-xs text-slate-400">Registered Users</div>
               </div>
@@ -132,8 +126,8 @@ export default async function BotDetailPage({ params }: BotPageProps) {
           </section>
 
           {/* User List Table */}
-          <section className="rounded-xl border border-slate-800 bg-slate-900 shadow-sm overflow-hidden">
-            <div className="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+          <section className="hw-surface rounded-2xl overflow-hidden">
+            <div className="border-b border-white/[0.08] px-6 py-4 flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold text-white">
                   Registered Telegram Users
@@ -233,6 +227,5 @@ export default async function BotDetailPage({ params }: BotPageProps) {
           </section>
         </div>
       </div>
-    </BotdeskLayout>
   );
 }

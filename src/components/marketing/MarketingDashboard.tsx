@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { motion } from "motion/react";
 
 export interface BotOption {
   id: string;
@@ -277,67 +278,54 @@ export function MarketingDashboard({
           </p>
         </div>
 
-        {/* Tab Switcher - Segmented Pill Control */}
-        <div className="flex items-center p-1 rounded-xl bg-[#0b0f19] border border-slate-800/80 self-start md:self-auto overflow-x-auto max-w-full">
-          <button
-            type="button"
-            onClick={() => setActiveTab("overview")}
-            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer ${
-              activeTab === "overview"
-                ? "bg-[#38bdf8] text-slate-950 shadow-md shadow-sky-500/20 font-bold"
-                : "text-slate-400 hover:text-white hover:bg-[#141b2d]/60"
-            }`}
-          >
-            <span>📊</span>
-            <span>Growth & Metrics</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("audience")}
-            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer ${
-              activeTab === "audience"
-                ? "bg-[#38bdf8] text-slate-950 shadow-md shadow-sky-500/20 font-bold"
-                : "text-slate-400 hover:text-white hover:bg-[#141b2d]/60"
-            }`}
-          >
-            <span>👥</span>
-            <span>Audience Profiles</span>
-            <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                activeTab === "audience"
-                  ? "bg-slate-950/20 text-slate-950 font-bold"
-                  : "bg-slate-800 text-slate-400"
-              }`}
-            >
-              {audienceTotal}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("campaigns")}
-            className={`flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-all duration-150 whitespace-nowrap cursor-pointer ${
-              activeTab === "campaigns"
-                ? "bg-[#38bdf8] text-slate-950 shadow-md shadow-sky-500/20 font-bold"
-                : "text-slate-400 hover:text-white hover:bg-[#141b2d]/60"
-            }`}
-          >
-            <span>🔗</span>
-            <span>Campaign Links</span>
-            <span
-              className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                activeTab === "campaigns"
-                  ? "bg-slate-950/20 text-slate-950 font-bold"
-                  : "bg-slate-800 text-slate-400"
-              }`}
-            >
-              {campaigns.length}
-            </span>
-          </button>
+        {/* Tab Switcher - Sliding Segmented Pill Control */}
+        <div className="flex items-center p-1 rounded-xl bg-[#090d16] border border-white/[0.08] self-start md:self-auto overflow-x-auto max-w-full shadow-inner">
+          {(
+            [
+              { id: "overview", icon: "📊", label: "Growth & Metrics", count: null },
+              { id: "audience", icon: "👥", label: "Audience Profiles", count: audienceTotal },
+              { id: "campaigns", icon: "🔗", label: "Campaign Links", count: campaigns.length },
+            ] as const
+          ).map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative flex items-center gap-2 px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
+                  active ? "text-slate-950 font-bold" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="marketing-tab-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-lg bg-[#38bdf8] shadow-[0_2px_14px_rgba(56,189,248,0.35)]"
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="relative z-10">{tab.icon}</span>
+                <span className="relative z-10">{tab.label}</span>
+                {tab.count !== null && (
+                  <span
+                    className={`relative z-10 text-[10px] px-1.5 py-0.5 rounded-full font-mono tabular-nums ${
+                      active
+                        ? "bg-slate-950/20 text-slate-950 font-bold"
+                        : "bg-slate-800/80 text-slate-300"
+                    }`}
+                  >
+                    {tab.count.toLocaleString()}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Global Filter Bar */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 shadow-xl space-y-3">
+      <div className="hw-surface p-4 sm:p-5 rounded-2xl space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {/* Bot Selector */}
           <div>
@@ -432,7 +420,7 @@ export function MarketingDashboard({
           {/* KPI Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* New Bot Users */}
-            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
+            <div className="hw-surface p-5 rounded-2xl space-y-2 group">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   New Bot Users
@@ -441,7 +429,7 @@ export function MarketingDashboard({
                   Bot
                 </span>
               </div>
-              <div className="text-3xl font-extrabold tracking-tight text-white group-hover:text-[#38bdf8] transition-colors">
+              <div className="text-3xl font-extrabold tracking-tight text-white group-hover:text-[#38bdf8] transition-colors tabular-nums">
                 {metrics.newBotUsers.toLocaleString()}
               </div>
               <p className="text-[11px] text-slate-400 leading-snug">
@@ -450,7 +438,7 @@ export function MarketingDashboard({
             </div>
 
             {/* Observed Channel Joins */}
-            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
+            <div className="hw-surface p-5 rounded-2xl space-y-2 group">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Observed Joins
@@ -459,7 +447,7 @@ export function MarketingDashboard({
                   Channel
                 </span>
               </div>
-              <div className="text-3xl font-extrabold tracking-tight text-emerald-400">
+              <div className="text-3xl font-extrabold tracking-tight text-emerald-400 tabular-nums">
                 +{metrics.observedJoins.toLocaleString()}
               </div>
               <p className="text-[11px] text-slate-400 leading-snug">
@@ -468,7 +456,7 @@ export function MarketingDashboard({
             </div>
 
             {/* Observed Channel Leaves */}
-            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
+            <div className="hw-surface p-5 rounded-2xl space-y-2 group">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Observed Leaves / Removed
@@ -477,7 +465,7 @@ export function MarketingDashboard({
                   Channel
                 </span>
               </div>
-              <div className="text-3xl font-extrabold tracking-tight text-rose-400">
+              <div className="text-3xl font-extrabold tracking-tight text-rose-400 tabular-nums">
                 -{metrics.observedLeaves.toLocaleString()}
               </div>
               <p className="text-[11px] text-slate-400 leading-snug">
@@ -486,7 +474,7 @@ export function MarketingDashboard({
             </div>
 
             {/* Net Observed Joins */}
-            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
+            <div className="hw-surface p-5 rounded-2xl space-y-2 group">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Net Observed Joins
@@ -496,7 +484,7 @@ export function MarketingDashboard({
                 </span>
               </div>
               <div
-                className={`text-3xl font-extrabold tracking-tight ${
+                className={`text-3xl font-extrabold tracking-tight tabular-nums ${
                   metrics.netObservedJoins >= 0 ? "text-emerald-400" : "text-rose-400"
                 }`}
               >
@@ -509,7 +497,7 @@ export function MarketingDashboard({
             </div>
 
             {/* Channel Link Selectors */}
-            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
+            <div className="hw-surface p-5 rounded-2xl space-y-2 group">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Unique Channel Selectors
@@ -518,7 +506,7 @@ export function MarketingDashboard({
                   Intent
                 </span>
               </div>
-              <div className="text-3xl font-extrabold tracking-tight text-purple-400">
+              <div className="text-3xl font-extrabold tracking-tight text-purple-400 tabular-nums">
                 {metrics.uniqueChannelSelectors.toLocaleString()}
               </div>
               <p className="text-[11px] text-slate-400 leading-snug">
@@ -527,7 +515,7 @@ export function MarketingDashboard({
             </div>
 
             {/* Verified Channel Members */}
-            <div className="p-5 rounded-2xl bg-[#0f1420] border border-slate-800/80 hover:border-slate-700/80 transition-all shadow-md space-y-2 group">
+            <div className="hw-surface p-5 rounded-2xl space-y-2 group">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                   Confirmed Members
@@ -536,7 +524,7 @@ export function MarketingDashboard({
                   Verified
                 </span>
               </div>
-              <div className="text-3xl font-extrabold tracking-tight text-[#38bdf8]">
+              <div className="text-3xl font-extrabold tracking-tight text-[#38bdf8] tabular-nums">
                 {metrics.uniqueMembershipConfirmed.toLocaleString()}
               </div>
               <p className="text-[11px] text-slate-400 leading-snug">
@@ -546,7 +534,7 @@ export function MarketingDashboard({
           </div>
 
           {/* Marketing Consent Breakdown */}
-          <div className="p-5 sm:p-6 rounded-2xl bg-[#0f1420] border border-slate-800/80 shadow-xl space-y-4">
+          <div className="hw-surface p-5 sm:p-6 rounded-2xl space-y-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-base">🛡️</span>

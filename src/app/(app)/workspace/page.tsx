@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getAdminSession } from "@/lib/auth";
-import { BotdeskLayout } from "@/components/BotdeskLayout";
 
 export default async function WorkspacePage() {
   const session = await getAdminSession();
@@ -13,13 +12,7 @@ export default async function WorkspacePage() {
   }
 
   return (
-    <BotdeskLayout
-      userEmail={session.email}
-      role={session.role}
-      activeNav="workspace"
-      breadcrumb="Workspace"
-    >
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text)]">
             Workspace
@@ -29,7 +22,7 @@ export default async function WorkspacePage() {
           </p>
         </div>
 
-        <div className="botdesk-card">
+        <div className="hw-surface rounded-2xl overflow-hidden">
           <div className="card-header">
             <h2 className="text-base font-bold text-[var(--text)]">
               Environment & Infrastructure Status
@@ -106,7 +99,7 @@ export default async function WorkspacePage() {
         </div>
 
         {/* Multi-bot Roadmap Card */}
-        <div className="botdesk-card">
+        <div className="hw-surface rounded-2xl overflow-hidden">
           <div className="card-header">
             <h2 className="text-base font-bold text-[var(--text)]">
               Multi-Bot Production Roadmap
@@ -130,6 +123,5 @@ export default async function WorkspacePage() {
           </div>
         </div>
       </div>
-    </BotdeskLayout>
   );
 }

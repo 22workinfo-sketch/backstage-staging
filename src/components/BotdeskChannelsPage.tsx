@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { ChannelInput } from "@/lib/channel-service";
 
 export interface BotOption {
@@ -242,62 +243,69 @@ export function BotdeskChannelsPage({
       </div>
 
       {/* Administrator Setup Advice Banner */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-[#0f172a]/60 border border-slate-800/80 text-xs text-slate-300 leading-relaxed space-y-3 shadow-lg backdrop-blur-sm">
+      <div className="hw-surface p-4 sm:p-5 rounded-2xl text-xs text-slate-300 leading-relaxed space-y-3">
         <div className="flex items-center gap-2 text-[#38bdf8] font-semibold text-xs">
           <span className="text-base">ℹ️</span>
           <span>Administrator Setup Guide for Channel Verification</span>
         </div>
         <p className="text-[11px] text-slate-400">
-          For reliable membership verification via the Telegram Bot API, ensure your bot (<code className="font-semibold text-[#38bdf8] font-mono bg-[#090d16] px-1.5 py-0.5 rounded border border-slate-800">@{activeBot?.username || "your_bot"}</code>) is added as an <strong className="text-white font-semibold">Administrator</strong> in each channel or supergroup.
+          For reliable membership verification via the Telegram Bot API, ensure your bot (<code className="font-semibold text-[#38bdf8] font-mono bg-[#090d16] px-1.5 py-0.5 rounded border border-white/[0.08]">@{activeBot?.username || "your_bot"}</code>) is added as an <strong className="text-white font-semibold">Administrator</strong> in each channel or supergroup.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-slate-800/80 text-[11px]">
-          <div className="p-3 rounded-xl bg-[#0b0f19] border border-slate-800/80 hover:border-slate-700 transition">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 border-t border-white/[0.07] text-[11px]">
+          <div className="p-3 rounded-xl bg-[#090d16]/80 border border-white/[0.07] hover:border-sky-400/30 transition">
             <span className="font-semibold text-white block mb-0.5">📢 Public Channels</span>
             <span className="text-slate-400 font-mono text-[10px]">@mychannel</span>
           </div>
-          <div className="p-3 rounded-xl bg-[#0b0f19] border border-slate-800/80 hover:border-slate-700 transition">
+          <div className="p-3 rounded-xl bg-[#090d16]/80 border border-white/[0.07] hover:border-sky-400/30 transition">
             <span className="font-semibold text-white block mb-0.5">🔒 Private Channels</span>
             <span className="text-slate-400 font-mono text-[10px]">-1001234567890</span>
           </div>
-          <div className="p-3 rounded-xl bg-[#0b0f19] border border-slate-800/80 hover:border-slate-700 transition">
+          <div className="p-3 rounded-xl bg-[#090d16]/80 border border-white/[0.07] hover:border-sky-400/30 transition">
             <span className="font-semibold text-white block mb-0.5">🛡️ Voluntary Opt-In</span>
             <span className="text-slate-400 text-[10px]">Users tap &quot;Check Joined&quot;</span>
           </div>
         </div>
       </div>
 
-      {statusMessage && (
-        <div
-          className={`p-4 rounded-xl text-xs border flex items-center justify-between gap-3 shadow-md ${
-            statusMessage.type === "success"
-              ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-200"
-              : "bg-rose-950/40 border-rose-800/60 text-rose-200"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <span>{statusMessage.type === "success" ? "✅" : "⚠️"}</span>
-            <span className="font-medium">{statusMessage.text}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setStatusMessage(null)}
-            className="text-xs opacity-70 hover:opacity-100 p-1 cursor-pointer"
+      <AnimatePresence>
+        {statusMessage && (
+          <motion.div
+            key="channels-status"
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+            className={`p-4 rounded-xl text-xs border flex items-center justify-between gap-3 shadow-md ${
+              statusMessage.type === "success"
+                ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-200"
+                : "bg-rose-950/40 border-rose-800/60 text-rose-200"
+            }`}
           >
-            ✕
-          </button>
-        </div>
-      )}
+            <div className="flex items-center gap-2">
+              <span>{statusMessage.type === "success" ? "✅" : "⚠️"}</span>
+              <span className="font-medium">{statusMessage.text}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStatusMessage(null)}
+              className="text-xs opacity-70 hover:opacity-100 p-1 cursor-pointer"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Channels Card */}
-      <div className="p-5 sm:p-6 rounded-2xl border border-slate-800/80 bg-[#0f1420] shadow-xl space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-slate-800/80">
+      <div className="hw-surface p-5 sm:p-6 rounded-2xl space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-white/[0.07]">
           <div>
             <div className="flex items-center gap-2.5">
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <span>📢</span>
                 <span>Configured Channels</span>
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold bg-[#0c2538] text-[#38bdf8] border border-sky-500/30">
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-semibold tabular-nums bg-[#0c2538] text-[#38bdf8] border border-sky-500/30">
                 {channels.length} / 20
               </span>
             </div>
@@ -344,16 +352,45 @@ export function BotdeskChannelsPage({
             </div>
           ) : (
             <div className="space-y-3">
-              {channels.map((ch, idx) => (
-                <div
-                  key={idx}
-                  className={`p-4 sm:p-5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all shadow-sm ${
-                    ch.isEnabled
-                      ? "bg-[#131926] border-slate-800/80 hover:border-sky-500/40 hover:shadow-md"
-                      : "bg-[#131926]/40 border-slate-800/40 opacity-60"
-                  }`}
-                >
-                  <div className="space-y-2 min-w-0 flex-1">
+              <AnimatePresence initial={false}>
+                {channels.map((ch, idx) => (
+                  <motion.div
+                    layout
+                    initial={{ opacity: 0, y: 8, scale: 0.985 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.97 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    key={ch.id || `${ch.telegramChatId}-${idx}`}
+                    className={`group p-4 sm:p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all duration-200 ${
+                      ch.isEnabled
+                        ? "bg-gradient-to-b from-[#141c2c] to-[#0f1522] border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_10px_24px_-10px_rgba(0,0,0,0.5)] hover:-translate-y-0.5 hover:border-sky-400/35 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_16px_32px_-12px_rgba(0,0,0,0.6),0_0_24px_-8px_rgba(56,189,248,0.22)]"
+                        : "bg-[#111622]/45 border-white/[0.05] opacity-60"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                      {/* Tactile 3D-style Channel Folder Tile (lifts & glows on hover) */}
+                      <div
+                        className={`relative hidden sm:flex w-12 h-11 rounded-xl flex-shrink-0 items-center justify-center border transition-all duration-200 mt-0.5 ${
+                          ch.isEnabled
+                            ? "bg-gradient-to-b from-[#13324b] to-[#0c2032] border-sky-400/30 text-[#38bdf8] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)] group-hover:-translate-y-1 group-hover:shadow-[0_6px_18px_-4px_rgba(56,189,248,0.45)]"
+                            : "bg-[#131926] border-white/[0.07] text-slate-500"
+                        }`}
+                        aria-hidden="true"
+                      >
+                        <span
+                          className={`absolute -top-1.5 left-1.5 w-5 h-1.5 rounded-t-md border-t border-x transition-colors ${
+                            ch.isEnabled
+                              ? "bg-[#38bdf8]/40 border-sky-400/40 group-hover:bg-[#38bdf8]/70"
+                              : "bg-slate-700/50 border-white/10"
+                          }`}
+                        />
+                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m3 11 18-5v12L3 14v-3z" />
+                          <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+                        </svg>
+                      </div>
+
+                      <div className="space-y-2 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-[#090d16] text-slate-400 border border-slate-800 font-mono">
                         #{idx + 1}
@@ -458,8 +495,10 @@ export function BotdeskChannelsPage({
                       Delete
                     </button>
                   </div>
-                </div>
-              ))}
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
 
@@ -494,9 +533,23 @@ export function BotdeskChannelsPage({
       </div>
 
       {/* Add / Edit Channel Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
-          <div className="w-full max-w-lg rounded-2xl bg-[#0f1420] border border-slate-800 p-6 shadow-2xl space-y-5 text-slate-200">
+      <AnimatePresence>
+        {showModal && (
+          <motion.div
+            key="channel-modal-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ type: "spring", stiffness: 420, damping: 32 }}
+              className="w-full max-w-lg rounded-2xl bg-[#0f1420] border border-white/[0.1] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_64px_rgba(0,0,0,0.75)] space-y-5 text-slate-200"
+            >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3.5">
               <div>
                 <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -629,9 +682,10 @@ export function BotdeskChannelsPage({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

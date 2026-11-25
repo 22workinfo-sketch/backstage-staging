@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { MAX_REPLY_LENGTH } from "@/lib/inbox/text";
 import { Avatar, timeLabel } from "./presentation";
 import { requestJson, useInboxSnapshot } from "./useInboxSnapshot";
@@ -266,7 +267,13 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
     const ok = await mutate("PATCH", { action: "rename", name: editingNameValue.trim() });
     if (ok) setIsEditingName(false);
   }
-  return <article className="inbox-thread" aria-label="Customer conversation">
+  return <motion.article
+    initial={{ opacity: 0, x: 8 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+    className="inbox-thread"
+    aria-label="Customer conversation"
+  >
     <header className="inbox-thread-head">
       <button className="inbox-back" onClick={onBack} aria-label="Back to conversations">‹</button>
       <Avatar name={thread?.name || "…"} />
@@ -324,8 +331,16 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
         {cursor && <button onClick={() => setHistory(h => h.slice(0, -1))}>Newer messages</button>}
         {history.length > 1 && <button onClick={() => { atBottom.current = true; setHistory([]); }}>Latest</button>}
       </div>}
-      {thread?.messages.map(m => (
-        <div key={m.id} id={"msg-" + m.id} className={"inbox-message " + (m.status === "RECEIVED" ? "incoming" : "outgoing")}>
+      <AnimatePresence initial={false}>
+        {thread?.messages.map(m => (
+          <motion.div
+            key={m.id}
+            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: "spring", stiffness: 450, damping: 32 }}
+            id={"msg-" + m.id}
+            className={"inbox-message " + (m.status === "RECEIVED" ? "incoming" : "outgoing")}
+          >
           <div className="inbox-msg-actions">
             <div className="inbox-msg-reactions-quick">
               {["❤️", "👍", "😮", "🔥", "👎", "🥰"].map(emoji => (
@@ -450,7 +465,9 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
           <button disabled={busy} onClick={() => change("retry", m)}>Retry remaining</button>
           <button disabled={busy} onClick={() => change("cancel", m)}>Stop remainder</button>
         </div>}
-      </div>))}
+          </motion.div>
+        ))}
+      </AnimatePresence>
     </div>
     <form
       className="inbox-composer"
@@ -530,32 +547,40 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
             >
               😊 Emoji
             </button>
-            {showEmojiPicker && (
-              <div className="inbox-emoji-picker-popover">
-                <div className="inbox-emoji-picker-header">
-                  <span>Insert emoji</span>
-                  <button
-                    type="button"
-                    className="inbox-emoji-picker-close"
-                    onClick={() => setShowEmojiPicker(false)}
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="inbox-emoji-picker-grid">
-                  {EMOJI_LIST.map(emoji => (
+            <AnimatePresence>
+              {showEmojiPicker && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                  transition={{ type: "spring", stiffness: 440, damping: 30 }}
+                  className="inbox-emoji-picker-popover"
+                >
+                  <div className="inbox-emoji-picker-header">
+                    <span>Insert emoji</span>
                     <button
-                      key={emoji}
                       type="button"
-                      className="inbox-emoji-picker-item"
-                      onClick={() => handleInsertEmoji(emoji)}
+                      className="inbox-emoji-picker-close"
+                      onClick={() => setShowEmojiPicker(false)}
                     >
-                      {emoji}
+                      ✕
                     </button>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </div>
+                  <div className="inbox-emoji-picker-grid">
+                    {EMOJI_LIST.map(emoji => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        className="inbox-emoji-picker-item"
+                        onClick={() => handleInsertEmoji(emoji)}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
           <button
             type="button"
@@ -570,5 +595,5 @@ export function Conversation({ url, userId, supervisor, onBack, onChange }: {
         </div>
       </div>
     </form>
-  </article>;
+  </motion.article>;
 }

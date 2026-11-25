@@ -5,7 +5,6 @@ import { getBotChannels } from "@/lib/channel-service";
 import { getChannelPosts } from "@/lib/post-service";
 import { getUserAssignedBotIds } from "@/lib/permissions";
 import { runSchedulerCycle } from "@/worker/scheduler-worker";
-import { BotdeskLayout } from "@/components/BotdeskLayout";
 import {
   BotdeskPostsPage,
   BotOption,
@@ -23,8 +22,10 @@ export default async function ChannelPostsPage() {
     redirect("/login?changePassword=true");
   }
 
-  const assignedIds = await getUserAssignedBotIds(session);
-  const allBots = await getAllBots();
+  const [assignedIds, allBots] = await Promise.all([
+    getUserAssignedBotIds(session),
+    getAllBots(),
+  ]);
   const rawBots = allBots.filter((b) => assignedIds.includes(b.id));
 
   if (rawBots.length === 0) {
@@ -38,20 +39,25 @@ export default async function ChannelPostsPage() {
   }));
 
   const channelsByBot: Record<string, ChannelOption[]> = {};
-  for (const bot of rawBots) {
-    const rawChannels = await getBotChannels(bot.id);
-    channelsByBot[bot.id] = rawChannels.map((c) => ({
-      id: c.id,
-      botId: c.botId,
-      name: c.name,
-      telegramChatId: c.telegramChatId,
-    }));
-  }
-
   const initialBotId = rawBots[0].id;
-  // Trigger opportunistic scheduler check for due posts
-  await runSchedulerCycle().catch(() => {});
-  const rawPosts = await getChannelPosts(initialBotId);
+
+  // Trigger opportunistic scheduler check & load channels in parallel
+  const [, rawPosts] = await Promise.all([
+    Promise.all(
+      rawBots.map(async (bot) => {
+        const rawChannels = await getBotChannels(bot.id);
+        channelsByBot[bot.id] = rawChannels.map((c) => ({
+          id: c.id,
+          botId: c.botId,
+          name: c.name,
+          telegramChatId: c.telegramChatId,
+        }));
+      })
+    ),
+    runSchedulerCycle()
+      .catch(() => {})
+      .then(() => getChannelPosts(initialBotId)),
+  ]);
 
   const initialPosts: PostItemDTO[] = rawPosts.map((p) => ({
     id: p.id,
@@ -100,18 +106,11 @@ export default async function ChannelPostsPage() {
   }));
 
   return (
-    <BotdeskLayout
-      userEmail={session.email}
-      role={session.role}
-      activeNav="posts"
-      breadcrumb="Channel posts"
-    >
-      <BotdeskPostsPage
-        bots={botsOptions}
-        initialBotId={initialBotId}
-        channelsByBot={channelsByBot}
-        initialPosts={initialPosts}
-      />
-    </BotdeskLayout>
+    <BotdeskPostsPage
+      bots={botsOptions}
+      initialBotId={initialBotId}
+      channelsByBot={channelsByBot}
+      initialPosts={initialPosts}
+    />
   );
 }

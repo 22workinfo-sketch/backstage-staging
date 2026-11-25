@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { AnimatePresence, motion } from "motion/react";
 import { InlineUrlButton, ChannelPermissionResult } from "@/lib/post-service";
 import {
   COMMON_TIMEZONES,
@@ -10,6 +11,13 @@ import {
   validateFutureSchedule,
 } from "@/lib/schedule-utils";
 import { safeFetchJson } from "@/lib/api-client";
+import {
+  MediaDropzone,
+  UploadQueueItem,
+  UploadQueueList,
+  extractFileExt,
+  uploadWithProgress,
+} from "@/components/posts/MediaDropzone";
 
 export interface BotOption {
   id: string;
@@ -357,6 +365,19 @@ export function BotdeskPostsPage({
   const [mediaSizeBytes, setMediaSizeBytes] = useState<number | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadQueue, setUploadQueue] = useState<UploadQueueItem[]>([]);
+
+  const dismissUploadQueueItem = (id: string) => {
+    setUploadQueue((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const scheduleQueueAutoDismiss = (ids: string[]) => {
+    setTimeout(() => {
+      setUploadQueue((prev) =>
+        prev.filter((item) => !ids.includes(item.id) || item.status !== "done")
+      );
+    }, 3800);
+  };
 
   // Clipboard & Drag-Drop states
   const [canUseClipboardRead, setCanUseClipboardRead] = useState(false);
@@ -594,20 +615,48 @@ export function BotdeskPostsPage({
     formData.append("file", file);
     if (selectedBotId) formData.append("botId", selectedBotId);
 
+    const queueId = `up-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setUploadQueue((prev) => [
+      {
+        id: queueId,
+        name: file.name,
+        ext: extractFileExt(file.name, file.type),
+        sizeBytes: file.size,
+        progress: 4,
+        speedLabel: "Starting...",
+        status: "uploading",
+      },
+      ...prev.slice(0, 4),
+    ]);
+
     try {
-      const { ok, data, error } = await safeFetchJson<{
+      const { ok, data, error } = await uploadWithProgress<{
         filename: string;
         originalName?: string | null;
         mimeType?: string | null;
         sizeBytes?: number | null;
-      }>("/api/posts/upload", {
-        method: "POST",
-        body: formData,
+      }>("/api/posts/upload", formData, (percent, speedLabel) => {
+        setUploadQueue((prev) =>
+          prev.map((q) =>
+            q.id === queueId
+              ? { ...q, progress: percent, speedLabel }
+              : q
+          )
+        );
       });
 
       if (!ok || !data) {
         throw new Error(error || "File upload failed");
       }
+
+      setUploadQueue((prev) =>
+        prev.map((q) =>
+          q.id === queueId
+            ? { ...q, progress: 100, speedLabel: "Uploaded", status: "done" }
+            : q
+        )
+      );
+      scheduleQueueAutoDismiss([queueId]);
 
       setMediaPath(data.filename);
       setMediaOriginalName(data.originalName || null);
@@ -627,7 +676,15 @@ export function BotdeskPostsPage({
       });
       return true;
     } catch (err: any) {
-      setUploadError(err.message || "Failed to upload file.");
+      const errMsg = err.message || "Failed to upload file.";
+      setUploadQueue((prev) =>
+        prev.map((q) =>
+          q.id === queueId
+            ? { ...q, status: "error", error: errMsg }
+            : q
+        )
+      );
+      setUploadError(errMsg);
       return false;
     } finally {
       setUploadingImage(false);
@@ -685,17 +742,43 @@ export function BotdeskPostsPage({
     files.forEach((f) => formData.append("files", f));
     if (selectedBotId) formData.append("botId", selectedBotId);
 
+    const queueBatch: UploadQueueItem[] = files.map((f, idx) => ({
+      id: `alb-${Date.now()}-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+      name: f.name,
+      ext: extractFileExt(f.name, f.type),
+      sizeBytes: f.size,
+      progress: 4,
+      speedLabel: "Queued...",
+      status: "uploading",
+    }));
+    const batchIds = queueBatch.map((q) => q.id);
+    setUploadQueue((prev) => [...queueBatch, ...prev.slice(0, 4)]);
+
     try {
-      const { ok, data, error } = await safeFetchJson<{
+      const { ok, data, error } = await uploadWithProgress<{
         items?: any[];
-      }>("/api/posts/upload", {
-        method: "POST",
-        body: formData,
+      }>("/api/posts/upload", formData, (percent, speedLabel) => {
+        setUploadQueue((prev) =>
+          prev.map((q) =>
+            batchIds.includes(q.id)
+              ? { ...q, progress: percent, speedLabel }
+              : q
+          )
+        );
       });
 
       if (!ok || !data) {
         throw new Error(error || "Album files upload failed.");
       }
+
+      setUploadQueue((prev) =>
+        prev.map((q) =>
+          batchIds.includes(q.id)
+            ? { ...q, progress: 100, speedLabel: "Uploaded", status: "done" }
+            : q
+        )
+      );
+      scheduleQueueAutoDismiss(batchIds);
 
       const uploadedList: AlbumItemDTO[] = (data.items || []).map(
         (it: any, idx: number) => ({
@@ -716,7 +799,15 @@ export function BotdeskPostsPage({
       });
       return true;
     } catch (err: any) {
-      setAlbumUploadError(err.message || "Failed to upload album files.");
+      const errMsg = err.message || "Failed to upload album files.";
+      setUploadQueue((prev) =>
+        prev.map((q) =>
+          batchIds.includes(q.id)
+            ? { ...q, status: "error", error: errMsg }
+            : q
+        )
+      );
+      setAlbumUploadError(errMsg);
       return false;
     } finally {
       setUploadingAlbum(false);
@@ -1708,7 +1799,7 @@ export function BotdeskPostsPage({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Compose Area */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="p-5 sm:p-6 rounded-2xl border border-slate-800/80 bg-[#0f1420] shadow-xl space-y-5">
+          <div className="p-5 sm:p-6 rounded-2xl hw-surface space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
               <div>
                 <h2 className="text-base font-bold text-white flex items-center gap-2">
@@ -1751,62 +1842,40 @@ export function BotdeskPostsPage({
                   {postType === "TELEGRAM_VIDEO" && "Telegram video reuse (up to 2 GB)"}
                 </span>
               </div>
-              <div className="flex p-1 bg-[#090d16] border border-slate-800 rounded-xl gap-1 overflow-x-auto">
-                <button
-                  type="button"
-                  onClick={() => setPostType("TEXT")}
-                  className={`flex-1 min-w-[95px] text-center py-2 px-3 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                    postType === "TEXT"
-                      ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
-                      : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
-                  }`}
-                >
-                  📝 Text-Only
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPostType("IMAGE")}
-                  className={`flex-1 min-w-[95px] text-center py-2 px-3 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                    postType === "IMAGE"
-                      ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
-                      : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
-                  }`}
-                >
-                  🖼️ Photo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPostType("VIDEO")}
-                  className={`flex-1 min-w-[95px] text-center py-2 px-3 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                    postType === "VIDEO"
-                      ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
-                      : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
-                  }`}
-                >
-                  🎥 Video
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPostType("ALBUM")}
-                  className={`flex-1 min-w-[110px] text-center py-2 px-3 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                    postType === "ALBUM"
-                      ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
-                      : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
-                  }`}
-                >
-                  📸 Album (2–10)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPostType("TELEGRAM_VIDEO")}
-                  className={`flex-1 min-w-[125px] text-center py-2 px-3 rounded-lg text-xs font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                    postType === "TELEGRAM_VIDEO"
-                      ? "bg-[#0284c7] text-white shadow-md shadow-sky-500/25 border border-sky-400/40"
-                      : "text-slate-400 hover:text-white hover:bg-slate-800/40 border border-transparent"
-                  }`}
-                >
-                  📥 From Telegram
-                </button>
+              <div className="flex p-1 bg-[#090d16] border border-white/[0.08] rounded-xl gap-1 overflow-x-auto shadow-inner">
+                {(
+                  [
+                    { id: "TEXT", label: "📝 Text-Only", minW: "min-w-[95px]" },
+                    { id: "IMAGE", label: "🖼️ Photo", minW: "min-w-[95px]" },
+                    { id: "VIDEO", label: "🎥 Video", minW: "min-w-[95px]" },
+                    { id: "ALBUM", label: "📸 Album (2–10)", minW: "min-w-[110px]" },
+                    { id: "TELEGRAM_VIDEO", label: "📥 From Telegram", minW: "min-w-[125px]" },
+                  ] as const
+                ).map((tab) => {
+                  const active = postType === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setPostType(tab.id)}
+                      className={`relative flex-1 ${tab.minW} text-center py-2 px-3 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
+                        active
+                          ? "text-white"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      {active && (
+                        <motion.span
+                          layoutId="post-type-pill"
+                          transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                          className="absolute inset-0 rounded-lg bg-gradient-to-b from-[#0ea5e9] to-[#0284c7] shadow-[0_2px_12px_rgba(56,189,248,0.35),inset_0_1px_0_rgba(255,255,255,0.25)] border border-sky-400/50"
+                          aria-hidden="true"
+                        />
+                      )}
+                      <span className="relative z-10">{tab.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1824,59 +1893,20 @@ export function BotdeskPostsPage({
 
                 {/* Drop & Paste Zone if no image attached */}
                 {!mediaPath ? (
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setIsDragOver(true);
-                    }}
-                    onDragLeave={() => setIsDragOver(false)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setIsDragOver(false);
-                      const files = Array.from(e.dataTransfer.files || []);
-                      if (files.length > 0) handlePastedMediaFiles(files);
-                    }}
-                    className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-                      isDragOver
-                        ? "border-[#38bdf8] bg-sky-500/10 shadow-lg shadow-sky-500/10 scale-[1.01]"
-                        : "border-slate-800 bg-[#0d121c] hover:border-slate-700"
-                    }`}
-                  >
-                    <div className="flex flex-col items-center justify-center gap-1">
-                      <span className="text-3xl mb-1">📋</span>
-                      <p className="text-xs font-semibold text-white">
-                        Paste screenshot (Ctrl+V) or drag & drop photo here
-                      </p>
-                      <p className="text-[11px] text-slate-400">
-                        Supports clipboard screenshots (Win+Shift+S) & files
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-center gap-2 pt-3 flex-wrap">
-                      {canUseClipboardRead && (
-                        <button
-                          type="button"
-                          disabled={pastingMedia || uploadingImage}
-                          onClick={handleClipboardButtonClick}
-                          className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 flex items-center gap-1.5 font-medium transition cursor-pointer"
-                          title="Read image from system clipboard"
-                        >
-                          <span>📋 Paste from Clipboard</span>
-                        </button>
-                      )}
-
-                      <label className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-slate-200 border border-slate-700/80 cursor-pointer flex items-center gap-1.5 font-medium transition">
-                        <span>📁 Choose File</span>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          onChange={handleFileChange}
-                          disabled={uploadingImage || pastingMedia}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  </div>
+                  <MediaDropzone
+                    title="Paste screenshot (Ctrl+V) or drag & drop photo here"
+                    subtitle="Supports clipboard screenshots (Win+Shift+S) & JPEG, PNG, WebP files"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={uploadingImage || pastingMedia}
+                    isDragOver={isDragOver}
+                    canUseClipboardRead={canUseClipboardRead}
+                    browseLabel="Choose File"
+                    clipboardTitle="Read image from system clipboard"
+                    onDragOverChange={setIsDragOver}
+                    onDropFiles={handlePastedMediaFiles}
+                    onFileInputChange={handleFileChange}
+                    onClipboardClick={handleClipboardButtonClick}
+                  />
                 ) : (
                   <div className="flex items-center justify-between text-xs text-slate-300 bg-[#0d121c] p-3 rounded-xl border border-slate-800 gap-3 flex-wrap shadow-sm">
                     <div className="flex items-center gap-3 truncate min-w-0">
@@ -1937,11 +1967,10 @@ export function BotdeskPostsPage({
                   </div>
                 )}
 
-                {(uploadingImage || pastingMedia) && (
-                  <p className="text-[11px] text-[#38bdf8] italic flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> Processing and uploading image to local storage...
-                  </p>
-                )}
+                <UploadQueueList
+                  items={uploadQueue}
+                  onDismiss={dismissUploadQueueItem}
+                />
 
                 {uploadError && (
                   <p className="text-[11px] text-rose-400">{uploadError}</p>
@@ -1963,59 +1992,20 @@ export function BotdeskPostsPage({
 
                 {/* Drop & Paste Zone if no video attached */}
                 {!mediaPath ? (
-                  <div
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setIsDragOver(true);
-                    }}
-                    onDragLeave={() => setIsDragOver(false)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setIsDragOver(false);
-                      const files = Array.from(e.dataTransfer.files || []);
-                      if (files.length > 0) handlePastedMediaFiles(files);
-                    }}
-                    className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-                      isDragOver
-                        ? "border-[#38bdf8] bg-sky-500/10 shadow-lg shadow-sky-500/10 scale-[1.01]"
-                        : "border-slate-800 bg-[#0d121c] hover:border-slate-700"
-                    }`}
-                  >
-                    <div className="flex flex-col items-center justify-center gap-1">
-                      <span className="text-3xl mb-1">🎥</span>
-                      <p className="text-xs font-semibold text-white">
-                        Paste video (Ctrl+V) or drag & drop video file here
-                      </p>
-                      <p className="text-[11px] text-slate-400">
-                        MP4, WebM, MOV up to 25 MB
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-center gap-2 pt-3 flex-wrap">
-                      {canUseClipboardRead && (
-                        <button
-                          type="button"
-                          disabled={pastingMedia || uploadingImage}
-                          onClick={handleClipboardButtonClick}
-                          className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 flex items-center gap-1.5 font-medium transition cursor-pointer"
-                          title="Read video from clipboard if available"
-                        >
-                          <span>📋 Paste from Clipboard</span>
-                        </button>
-                      )}
-
-                      <label className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-slate-200 border border-slate-700/80 cursor-pointer flex items-center gap-1.5 font-medium transition">
-                        <span>📁 Choose Video File</span>
-                        <input
-                          type="file"
-                          accept="video/mp4,video/webm,video/quicktime"
-                          onChange={handleFileChange}
-                          disabled={uploadingImage || pastingMedia}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  </div>
+                  <MediaDropzone
+                    title="Paste video (Ctrl+V) or drag & drop video file here"
+                    subtitle="MP4, WebM, MOV up to 25 MB"
+                    accept="video/mp4,video/webm,video/quicktime"
+                    disabled={uploadingImage || pastingMedia}
+                    isDragOver={isDragOver}
+                    canUseClipboardRead={canUseClipboardRead}
+                    browseLabel="Choose Video File"
+                    clipboardTitle="Read video from clipboard if available"
+                    onDragOverChange={setIsDragOver}
+                    onDropFiles={handlePastedMediaFiles}
+                    onFileInputChange={handleFileChange}
+                    onClipboardClick={handleClipboardButtonClick}
+                  />
                 ) : (
                   <div className="flex items-center justify-between text-xs text-slate-300 bg-[#0d121c] p-3 rounded-xl border border-slate-800 gap-3 flex-wrap shadow-sm">
                     <div className="flex items-center gap-3 truncate min-w-0">
@@ -2072,11 +2062,10 @@ export function BotdeskPostsPage({
                   </div>
                 )}
 
-                {(uploadingImage || pastingMedia) && (
-                  <p className="text-[11px] text-[#38bdf8] italic flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> Processing and uploading video to local storage...
-                  </p>
-                )}
+                <UploadQueueList
+                  items={uploadQueue}
+                  onDismiss={dismissUploadQueueItem}
+                />
 
                 {uploadError && (
                   <p className="text-[11px] text-rose-400">{uploadError}</p>
@@ -2136,66 +2125,26 @@ export function BotdeskPostsPage({
                 </div>
 
                 {/* Drop & Paste Zone for Album */}
-                <div
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setIsDragOver(true);
-                  }}
-                  onDragLeave={() => setIsDragOver(false)}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    setIsDragOver(false);
-                    const files = Array.from(e.dataTransfer.files || []);
-                    if (files.length > 0) handlePastedMediaFiles(files);
-                  }}
-                  className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${
-                    isDragOver
-                      ? "border-[#38bdf8] bg-sky-500/10 shadow-lg shadow-sky-500/10 scale-[1.01]"
-                      : "border-slate-800 bg-[#0d121c] hover:border-slate-700"
-                  }`}
-                >
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <span className="text-3xl mb-1">📸</span>
-                    <p className="text-xs font-semibold text-white">
-                      Paste screenshots or media (Ctrl+V) to append to album
-                    </p>
-                    <p className="text-[11px] text-slate-400">
-                      Paste photos one-by-one or in batches • Current slides: {albumItems.length} / 10
-                    </p>
-                  </div>
+                <MediaDropzone
+                  title="Paste screenshots or media (Ctrl+V) to append to album"
+                  subtitle={`Paste or drop files one-by-one or in batches • Current slides: ${albumItems.length} / 10`}
+                  accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
+                  multiple
+                  disabled={uploadingAlbum || pastingMedia || albumItems.length >= 10}
+                  isDragOver={isDragOver}
+                  canUseClipboardRead={canUseClipboardRead}
+                  browseLabel="Browse Files (Multi-select)"
+                  clipboardTitle="Read image from clipboard and append to album"
+                  onDragOverChange={setIsDragOver}
+                  onDropFiles={handlePastedMediaFiles}
+                  onFileInputChange={handleAlbumFilesChange}
+                  onClipboardClick={handleClipboardButtonClick}
+                />
 
-                  <div className="flex items-center justify-center gap-2 pt-3 flex-wrap">
-                    {canUseClipboardRead && (
-                      <button
-                        type="button"
-                        disabled={uploadingAlbum || pastingMedia || albumItems.length >= 10}
-                        onClick={handleClipboardButtonClick}
-                        className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-[#38bdf8] border border-sky-500/30 flex items-center gap-1.5 font-medium disabled:opacity-50 transition cursor-pointer"
-                        title="Read image from clipboard and append to album"
-                      >
-                        <span>📋 Paste from Clipboard</span>
-                      </button>
-                    )}
-
-                    <label className="text-xs py-1.5 px-3 rounded-lg bg-[#162032] hover:bg-[#1e2c44] text-slate-200 border border-slate-700/80 cursor-pointer flex items-center gap-1.5 font-medium transition">
-                      <span>📁 Browse Files (Multi-select)</span>
-                      <input
-                        type="file"
-                        multiple
-                        accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"
-                        onChange={handleAlbumFilesChange}
-                        disabled={uploadingAlbum || pastingMedia || albumItems.length >= 10}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                {(uploadingAlbum || pastingMedia) && (
-                  <p className="text-[11px] text-[#38bdf8] italic flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> Uploading media items to local non-public storage...
-                  </p>
-                )}
+                <UploadQueueList
+                  items={uploadQueue}
+                  onDismiss={dismissUploadQueueItem}
+                />
 
                 {albumUploadError && (
                   <p className="text-[11px] text-rose-400">{albumUploadError}</p>
@@ -2223,15 +2172,21 @@ export function BotdeskPostsPage({
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      {albumItems.map((item, idx) => (
-                        <div
-                          key={item.filePath || idx}
-                          className={`flex items-center justify-between p-3 rounded-xl border text-xs gap-3 transition-all ${
-                            idx === 0
-                              ? "bg-[#0e1726] border-sky-500/50 shadow-md ring-1 ring-sky-500/30"
-                              : "bg-[#0d121c] border-slate-800"
-                          }`}
-                        >
+                      <AnimatePresence initial={false}>
+                        {albumItems.map((item, idx) => (
+                          <motion.div
+                            layout
+                            initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.96 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                            key={item.filePath || idx}
+                            className={`flex items-center justify-between p-3 rounded-xl border text-xs gap-3 transition-colors ${
+                              idx === 0
+                                ? "bg-[#0e1726] border-sky-500/50 shadow-md ring-1 ring-sky-500/30"
+                                : "bg-[#0d121c] border-slate-800"
+                            }`}
+                          >
                           {/* Slide thumbnail / badge & name */}
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <span
@@ -2313,8 +2268,9 @@ export function BotdeskPostsPage({
                               ✕
                             </button>
                           </div>
-                        </div>
-                      ))}
+                        </motion.div>
+                        ))}
+                      </AnimatePresence>
                     </div>
                   )}
                 </div>

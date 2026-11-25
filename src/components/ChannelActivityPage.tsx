@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { motion } from "motion/react";
 import { SerializedActivityEvent } from "@/lib/activity-service";
 
 export interface BotOption {
@@ -195,40 +196,56 @@ export function ChannelActivityPage({
   return (
     <div className="space-y-6">
       {/* Top Banner / Navigation Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/[0.08] pb-4">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text)]">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-sky-500/10 text-[#38bdf8] border border-sky-500/25 mb-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#38bdf8] animate-pulse" /> Live Audit & Telemetry
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
             Channel Activity & Audit
           </h1>
-          <p className="text-xs text-[var(--muted)]">
+          <p className="text-xs text-slate-400 mt-1">
             Track user interactions, joins, leaves, and membership verifications across bot-managed channels.
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex items-center bg-[var(--surface)] p-1 rounded-lg border border-[var(--border)]">
-          <button
-            type="button"
-            onClick={() => setActiveTab("activity")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              activeTab === "activity"
-                ? "bg-[var(--accent)] text-white shadow-sm"
-                : "text-[var(--muted)] hover:text-[var(--text)]"
-            }`}
-          >
-            📡 Channel Activity ({total})
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("audit")}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              activeTab === "audit"
-                ? "bg-[var(--accent)] text-white shadow-sm"
-                : "text-[var(--muted)] hover:text-[var(--text)]"
-            }`}
-          >
-            🛡️ Administrative Audit ({auditLogs.length})
-          </button>
+        {/* Sliding Tab Switcher */}
+        <div className="flex items-center bg-[#090d16] p-1 rounded-xl border border-white/[0.08] shadow-inner self-start sm:self-auto">
+          {(
+            [
+              { id: "activity", label: "📡 Channel Activity", count: total },
+              { id: "audit", label: "🛡️ Administrative Audit", count: auditLogs.length },
+            ] as const
+          ).map((tab) => {
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`relative px-3.5 py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer flex items-center gap-2 ${
+                  active ? "text-slate-950 font-bold" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                {active && (
+                  <motion.span
+                    layoutId="activity-tab-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-lg bg-[#38bdf8] shadow-[0_2px_14px_rgba(56,189,248,0.35)]"
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="relative z-10">{tab.label}</span>
+                <span
+                  className={`relative z-10 text-[10px] px-1.5 py-0.5 rounded-full font-mono tabular-nums ${
+                    active ? "bg-slate-950/20 text-slate-950 font-bold" : "bg-slate-800/80 text-slate-300"
+                  }`}
+                >
+                  {tab.count.toLocaleString()}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -236,7 +253,7 @@ export function ChannelActivityPage({
       {activeTab === "activity" && (
         <div className="space-y-5">
           {/* Filter Bar */}
-          <div className="p-4 rounded-xl bg-[var(--card)] border border-[var(--border)] shadow-sm space-y-3">
+          <div className="hw-surface p-4 rounded-2xl space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               {/* Bot Selector */}
               <div>
@@ -379,8 +396,8 @@ export function ChannelActivityPage({
           )}
 
           {/* Informational Guidance Callout */}
-          <div className="p-3.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--muted)] space-y-1">
-            <div className="font-semibold text-[var(--text)] flex items-center gap-1.5">
+          <div className="p-3.5 rounded-xl bg-[#0d121d] border border-white/[0.08] text-xs text-slate-400 space-y-1">
+            <div className="font-semibold text-white flex items-center gap-1.5">
               <span>ℹ️</span> Channel Activity Notes & Guidelines
             </div>
             <ul className="list-disc list-inside space-y-0.5 pl-1">
@@ -397,7 +414,7 @@ export function ChannelActivityPage({
           </div>
 
           {/* Events Table / Timeline */}
-          <div className="rounded-xl bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-sm">
+          <div className="hw-surface rounded-2xl overflow-hidden">
             {loading && events.length === 0 ? (
               <div className="p-12 text-center text-sm text-[var(--muted)]">
                 <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent mb-2" />
@@ -558,20 +575,20 @@ export function ChannelActivityPage({
       {/* TAB 2: SYSTEM AUDIT LOG */}
       {activeTab === "audit" && (
         <div className="space-y-4">
-          <div className="p-3.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--muted)]">
-            <strong>System Audit Log:</strong> Immutable audit trail of administrative actions, staff logins, post broadcasts, and configuration updates.
+          <div className="p-3.5 rounded-xl bg-[#0d121d] border border-white/[0.08] text-xs text-slate-400">
+            <strong className="text-white">System Audit Log:</strong> Immutable audit trail of administrative actions, staff logins, post broadcasts, and configuration updates.
           </div>
 
-          <div className="rounded-xl bg-[var(--card)] border border-[var(--border)] overflow-hidden shadow-sm">
+          <div className="hw-surface rounded-2xl overflow-hidden">
             {auditLogs.length === 0 ? (
-              <div className="p-10 text-center text-xs text-[var(--muted)]">
+              <div className="p-10 text-center text-xs text-slate-400">
                 No administrative audit logs found.
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse text-xs">
                   <thead>
-                    <tr className="border-b border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] uppercase font-mono tracking-wider text-[10px]">
+                    <tr className="border-b border-white/[0.08] bg-[#090d16]/80 text-slate-400 uppercase font-mono tracking-wider text-[10px]">
                       <th className="py-2.5 px-3">Time</th>
                       <th className="py-2.5 px-3">Action</th>
                       <th className="py-2.5 px-3">Admin</th>
@@ -579,13 +596,13 @@ export function ChannelActivityPage({
                       <th className="py-2.5 px-3">Details</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[var(--border)]">
+                  <tbody className="divide-y divide-white/[0.06]">
                     {auditLogs.map((log) => (
                       <tr
                         key={log.id}
-                        className="hover:bg-[var(--surface)]/50 transition-colors"
+                        className="hover:bg-white/[0.03] transition-colors"
                       >
-                        <td className="py-3 px-3 whitespace-nowrap text-[var(--muted)] font-mono">
+                        <td className="py-3 px-3 whitespace-nowrap text-slate-400 font-mono tabular-nums">
                           {new Date(log.createdAt).toLocaleString(undefined, {
                             month: "short",
                             day: "numeric",

@@ -47,9 +47,9 @@ export function ChunkLoadRecovery() {
 
     const attemptReload = (chunkInfo: string) => {
       let targetRoute: string | null = null;
-      const match = String(chunkInfo).match(/\/chunks\/app\/([a-zA-Z0-9_\-[\]/]+)\/page/);
+      const match = String(chunkInfo).match(/\/chunks\/app\/([a-zA-Z0-9_\-[\]()/]+)\/page/);
       if (match && match[1]) {
-        targetRoute = "/" + match[1];
+        targetRoute = "/" + match[1].replace(/^\([^)]+\)\//, "").replace(/\/\([^)]+\)\//g, "/");
       }
 
       const storageKey = `backstage_chunk_reload_${targetRoute || window.location.pathname}`;

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { LayoutGroup, motion } from "motion/react";
 import { Avatar, timeLabel } from "./presentation";
 import { Conversation } from "./Conversation";
 import { requestJson, useInboxSnapshot } from "./useInboxSnapshot";
@@ -190,18 +191,56 @@ export function SupportInbox({ initialBots, role, userId }: { initialBots: Bot[]
             <button className="inbox-quiet" disabled={busy} onClick={() => setMode(false)} title="Turn off support mode for this bot">Turn off inbox</button>}</div>
           <input type="search" placeholder="Search conversations" aria-label="Search conversations" value={q}
             onChange={e => { setQ(e.target.value); setPage(0); }} />
-          <div className="inbox-filters">{[["all","Open"],["mine","Mine"],["resolved","Resolved"]].map(([key, label]) =>
-            <button key={key} aria-pressed={filter === key} onClick={() => { setFilter(key); setPage(0); }}>{label}</button>
-          )}</div>
+          <LayoutGroup id="inbox-filters">
+            <div className="inbox-filters">{[["all","Open"],["mine","Mine"],["resolved","Resolved"]].map(([key, label]) => {
+              const active = filter === key;
+              return (
+                <button key={key} aria-pressed={active} onClick={() => { setFilter(key); setPage(0); }}>
+                  {active && (
+                    <motion.span
+                      layoutId="inbox-filter-pill"
+                      transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                      className="absolute inset-0 rounded-[0.42rem] bg-[#0f2c42] border border-sky-400/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span className="relative z-10">{label}</span>
+                </button>
+              );
+            })}</div>
+          </LayoutGroup>
         </div>
         {list?.error && <p className="inbox-warning" role="status">{list.error}</p>}
-        <div className="inbox-list-scroll">
-          {list?.data?.items.map(t => <button className="inbox-row" aria-current={selected === t.id} key={t.id} onClick={() => setSelected(t.id)}>
-            <Avatar name={t.name} /><span className="inbox-row-text"><strong>{t.name}</strong><small>{t.preview}</small></span>
-            <time dateTime={t.lastActivityAt}>{timeLabel(t.lastActivityAt)}</time>
-          </button>)}
-          {!list?.data?.items.length && !list?.error && <p className="inbox-list-empty">{list?.data ? "No conversations here." : "Loading conversations…"}</p>}
-        </div>
+        <LayoutGroup id="inbox-threads">
+          <div className="inbox-list-scroll">
+            {list?.data?.items.map(t => {
+              const isSelected = selected === t.id;
+              return (
+                <motion.button
+                  layout="position"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                  className="inbox-row"
+                  aria-current={isSelected}
+                  key={t.id}
+                  onClick={() => setSelected(t.id)}
+                >
+                  {isSelected && (
+                    <motion.span
+                      layoutId="inbox-active-thread-bar"
+                      transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                      className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-[#38bdf8] shadow-[0_0_10px_rgba(56,189,248,0.85)]"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <Avatar name={t.name} />
+                  <span className="inbox-row-text"><strong>{t.name}</strong><small>{t.preview}</small></span>
+                  <time className="tabular-nums" dateTime={t.lastActivityAt}>{timeLabel(t.lastActivityAt)}</time>
+                </motion.button>
+              );
+            })}
+            {!list?.data?.items.length && !list?.error && <p className="inbox-list-empty">{list?.data ? "No conversations here." : "Loading conversations…"}</p>}
+          </div>
+        </LayoutGroup>
         {(page > 0 || list?.data?.hasMore) && <div className="inbox-pager"><button disabled={!page} onClick={() => setPage(p => p - 1)}>Previous</button>
           <span>{page + 1}</span><button disabled={!list?.data?.hasMore} onClick={() => setPage(p => p + 1)}>Next</button></div>}
       </aside>

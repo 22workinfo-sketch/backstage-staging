@@ -1,6 +1,21 @@
 import type { Metadata } from "next";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ChunkLoadRecovery } from "@/components/ChunkLoadRecovery";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+  weight: ["400", "500", "600", "700", "800"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+  weight: ["400", "500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   title: "Telegram Bot Backstage",
@@ -13,7 +28,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html
+      lang="en"
+      className={`dark ${plusJakartaSans.variable} ${jetbrainsMono.variable}`}
+    >
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -29,9 +47,9 @@ export default function RootLayout({
                 function handleChunkFailure(chunkInfo) {
                   try {
                     var targetRoute = null;
-                    var match = String(chunkInfo).match(/\\/chunks\\/app\\/([a-zA-Z0-9_\\-\\[\\]\\/]+)\\/page/);
+                    var match = String(chunkInfo).match(/\\/chunks\\/app\\/([a-zA-Z0-9_\\-\\[\\]\\(\\)\\/]+)\\/page/);
                     if (match && match[1]) {
-                      targetRoute = "/" + match[1];
+                      targetRoute = "/" + match[1].replace(/^\\([^)]+\\)\\//, "").replace(/\\/\\([^)]+\\)\\//g, "/");
                     }
                     var key = "backstage_last_chunk_recovery";
                     var last = sessionStorage.getItem(key);
@@ -67,7 +85,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-screen antialiased bg-slate-950 text-slate-100">
+      <body className="min-h-screen font-sans antialiased bg-[#080b12] text-slate-100 selection:bg-sky-500/30 selection:text-sky-100">
         <ChunkLoadRecovery />
         {children}
       </body>

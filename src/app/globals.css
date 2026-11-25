@@ -4,20 +4,20 @@
 
 :root {
   color-scheme: dark;
-  --bg: #191919;
-  --panel: #202020;
-  --surface: #30302e;
-  --text: #f6f5f2;
-  --muted: #b9b6af;
-  --border: #3f3f3a;
-  --accent: #8cc2ff;
-  --bluebg: #203346;
-  --green: #93d7b0;
-  --greenbg: #23392d;
-  --orange: #f4bf8c;
-  --orangebg: #3d2d20;
-  --red: #ffaaa2;
-  --redbg: #422823;
+  --bg: #080b12;
+  --panel: #0f141f;
+  --surface: #151c2b;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #38bdf8;
+  --bluebg: rgba(56, 189, 248, 0.12);
+  --green: #4ade80;
+  --greenbg: rgba(34, 197, 94, 0.12);
+  --orange: #fbbf24;
+  --orangebg: rgba(245, 158, 11, 0.12);
+  --red: #f87171;
+  --redbg: rgba(239, 68, 68, 0.12);
   --background: var(--bg);
   --foreground: var(--text);
 }
@@ -26,8 +26,38 @@ body {
   margin: 0;
   color: var(--text);
   background: var(--bg);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Hardware Surface System */
+.hw-surface {
+  background: linear-gradient(180deg, rgba(20, 27, 42, 0.92) 0%, rgba(13, 18, 29, 0.96) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 12px 28px -8px rgba(0, 0, 0, 0.48);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.hw-surface:hover {
+  border-color: rgba(56, 189, 248, 0.24);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 16px 34px -10px rgba(0, 0, 0, 0.58), 0 0 24px -10px rgba(56, 189, 248, 0.18);
+}
+
+.hw-hero-card {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 88% 0%, rgba(56, 189, 248, 0.22) 0%, rgba(14, 165, 233, 0.08) 38%, rgba(13, 18, 29, 0) 72%),
+    linear-gradient(135deg, #0d1320 0%, #0b101b 55%, #0e1a2b 100%);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    inset 0 0 40px rgba(56, 189, 248, 0.04),
+    0 20px 44px -14px rgba(0, 0, 0, 0.6);
 }
 
 /* Botdesk UI Foundations */
@@ -120,14 +150,15 @@ body {
   max-height: 100vh;
   overflow: hidden;
   transition: grid-template-columns 0.22s cubic-bezier(0.2, 0, 0, 1);
-  background: #0b0f19;
+  background: #080b12;
 }
 .app-shell.sidebar-collapsed {
   grid-template-columns: 72px minmax(0, 1fr);
 }
 .sidebar-panel {
-  background: #080c14;
+  background: linear-gradient(180deg, #06090f 0%, #070a11 100%);
   border-right: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.02);
   padding: 20px 14px 16px;
   display: flex;
   flex-direction: column;
@@ -154,7 +185,9 @@ body {
 
 /* Dashboard Dark Main Theme */
 .dashboard-main-theme {
-  background-color: #0b0f19;
+  background:
+    radial-gradient(80% 45% at 50% 0%, rgba(56, 189, 248, 0.04) 0%, transparent 70%),
+    #080b12;
   color: #f8fafc;
 }
 
@@ -190,9 +223,6 @@ body {
 }
 .sidebar-panel.collapsed .nav-link:hover {
   transform: none;
-}
-.sidebar-panel.collapsed .nav-link.active::before {
-  left: 2px;
 }
 
 .sidebar-collapse-toggle {
@@ -299,8 +329,8 @@ body {
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.nav-link:hover {
-  background: var(--surface);
+.nav-link:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.045);
   color: var(--text);
   transform: translateX(2px);
 }
@@ -312,21 +342,8 @@ body {
   outline-offset: 2px;
 }
 .nav-link.active {
-  background: linear-gradient(90deg, rgba(32, 51, 70, 0.9) 0%, rgba(32, 51, 70, 0.45) 100%);
-  color: var(--accent);
-  border-color: rgba(140, 194, 255, 0.15);
+  color: #ffffff;
   font-weight: 600;
-}
-.nav-link.active::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 7px;
-  bottom: 7px;
-  width: 3px;
-  border-radius: 0 4px 4px 0;
-  background: var(--accent);
-  box-shadow: 0 0 10px rgba(140, 194, 255, 0.65);
 }
 .nav-icon {
   font-size: 17px;
@@ -338,21 +355,9 @@ body {
   transform: scale(1.1);
 }
 
-/* Page Transitions */
+/* Page Transitions (handled by Motion in BotdeskLayout) */
 .page-transition-wrapper {
-  animation: botdeskPageFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
   will-change: opacity, transform;
-}
-
-@keyframes botdeskPageFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 /* Skeletons & Loading Indicators */
@@ -399,7 +404,7 @@ body {
   padding: 16px 36px;
   margin-bottom: 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-  background: rgba(11, 15, 25, 0.85);
+  background: rgba(8, 11, 18, 0.82);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   flex-shrink: 0;
@@ -473,27 +478,29 @@ body {
 }
 .metric-box {
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   padding: 18px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  background: var(--panel);
+  background: linear-gradient(180deg, rgba(20, 27, 42, 0.92) 0%, rgba(13, 18, 29, 0.96) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 26px -8px rgba(0, 0, 0, 0.42);
   transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
   position: relative;
   overflow: hidden;
 }
 .metric-box:hover {
   transform: translateY(-2px);
-  border-color: rgba(140, 194, 255, 0.35);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 0 1px rgba(140, 194, 255, 0.2);
+  border-color: rgba(56, 189, 248, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 14px 30px rgba(0, 0, 0, 0.45), 0 0 20px -6px rgba(56, 189, 248, 0.2);
 }
 .metric-box strong {
   font-size: 26px;
   line-height: 1;
   font-weight: 700;
   letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
 }
 .metric-box span {
   font-size: 13px;
@@ -503,14 +510,15 @@ body {
 
 .botdesk-card {
   border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--panel);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(19, 25, 38, 0.94) 0%, rgba(12, 16, 26, 0.98) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055), 0 12px 30px -10px rgba(0, 0, 0, 0.45);
   overflow: hidden;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .botdesk-card:hover {
-  border-color: rgba(140, 194, 255, 0.25);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  border-color: rgba(56, 189, 248, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 16px 36px -10px rgba(0, 0, 0, 0.52);
 }
 
 /* Modals & Notices Animations */

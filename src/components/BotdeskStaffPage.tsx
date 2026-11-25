@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { AdminSession } from "@/lib/auth";
 
 interface StaffBot {
@@ -252,32 +253,32 @@ export function BotdeskStaffPage({
 
       {/* Quick Metrics */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-        <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--panel)]">
-          <span className="text-[var(--muted)] block">Total Staff</span>
-          <strong className="text-lg font-bold text-[var(--text)]">{staffList.length}</strong>
+        <div className="hw-surface p-3.5 rounded-xl">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-slate-400 block">Total Staff</span>
+          <strong className="text-xl font-extrabold text-white tabular-nums mt-0.5 block">{staffList.length.toLocaleString()}</strong>
         </div>
-        <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--panel)]">
-          <span className="text-[var(--muted)] block">Super Admins</span>
-          <strong className="text-lg font-bold text-[var(--text)]">
-            {staffList.filter((s) => s.role === "SUPER_ADMIN" && s.isActive).length}
+        <div className="hw-surface p-3.5 rounded-xl">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-slate-400 block">Super Admins</span>
+          <strong className="text-xl font-extrabold text-white tabular-nums mt-0.5 block">
+            {staffList.filter((s) => s.role === "SUPER_ADMIN" && s.isActive).length.toLocaleString()}
           </strong>
         </div>
-        <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--panel)]">
-          <span className="text-[var(--muted)] block">Editors & Viewers</span>
-          <strong className="text-lg font-bold text-[var(--text)]">
-            {staffList.filter((s) => s.role === "EDITOR" || s.role === "VIEWER").length}
+        <div className="hw-surface p-3.5 rounded-xl">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-slate-400 block">Editors & Viewers</span>
+          <strong className="text-xl font-extrabold text-white tabular-nums mt-0.5 block">
+            {staffList.filter((s) => s.role === "EDITOR" || s.role === "VIEWER").length.toLocaleString()}
           </strong>
         </div>
-        <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--panel)]">
-          <span className="text-[var(--muted)] block">Active Accounts</span>
-          <strong className="text-lg font-bold text-emerald-400">
-            {staffList.filter((s) => s.isActive).length}
+        <div className="hw-surface p-3.5 rounded-xl">
+          <span className="font-mono text-[10px] uppercase tracking-wider text-slate-400 block">Active Accounts</span>
+          <strong className="text-xl font-extrabold text-emerald-400 tabular-nums mt-0.5 block">
+            {staffList.filter((s) => s.isActive).length.toLocaleString()}
           </strong>
         </div>
       </div>
 
       {/* Staff Accounts Table */}
-      <div className="botdesk-card overflow-hidden">
+      <div className="hw-surface rounded-2xl overflow-hidden">
         <div className="card-header">
           <div>
             <h2 className="text-base font-bold text-[var(--text)]">Team Accounts</h2>
@@ -411,9 +412,23 @@ export function BotdeskStaffPage({
       </div>
 
       {/* Add Staff Account Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="modal-pop w-full max-w-lg rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
+      <AnimatePresence>
+        {showAddModal && (
+          <motion.div
+            key="staff-add-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ type: "spring", stiffness: 420, damping: 32 }}
+              className="w-full max-w-lg rounded-2xl bg-[#0f1420] border border-white/[0.1] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_64px_rgba(0,0,0,0.75)] space-y-4"
+            >
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <h3 className="text-base font-bold text-[var(--text)]">
                 Add New Staff Account
@@ -558,14 +573,29 @@ export function BotdeskStaffPage({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Staff Account Modal */}
-      {editingStaff && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-          <div className="modal-pop w-full max-w-lg rounded-xl bg-[var(--panel)] border border-[var(--border)] p-6 shadow-2xl space-y-4">
+      <AnimatePresence>
+        {editingStaff && (
+          <motion.div
+            key="staff-edit-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ type: "spring", stiffness: 420, damping: 32 }}
+              className="w-full max-w-lg rounded-2xl bg-[#0f1420] border border-white/[0.1] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_64px_rgba(0,0,0,0.75)] space-y-4"
+            >
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <div>
                 <h3 className="text-base font-bold text-[var(--text)]">
@@ -708,9 +738,10 @@ export function BotdeskStaffPage({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

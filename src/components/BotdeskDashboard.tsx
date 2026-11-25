@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "motion/react";
 import { safeFetchJson } from "@/lib/api-client";
 
 export interface BotData {
@@ -539,6 +540,15 @@ export function BotdeskDashboard({
   };
 
   const activeBotUsers = initialUsersByBot[activeBotId] || [];
+  const totalBotsCount = bots.length;
+  const activeBotsCount = bots.filter((b) => b.isActive).length;
+  const standbyBotsCount = Math.max(0, totalBotsCount - activeBotsCount);
+  const totalUsersCount = bots.reduce((acc, b) => acc + (b._count?.users || 0), 0);
+  const activeFleetPercent =
+    totalBotsCount > 0 ? Math.round((activeBotsCount / totalBotsCount) * 100) : 0;
+  const healthyConnectionsCount = bots.filter(
+    (b) => b.connectionStatus === "CONNECTED"
+  ).length;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -586,32 +596,133 @@ export function BotdeskDashboard({
       </div>
 
       {/* Global Notice Alert if active */}
-      {globalNotice && (
-        <div
-          className={`p-3.5 rounded-xl text-xs flex items-center justify-between border shadow-xs ${
-            globalNotice.type === "success"
-              ? "bg-emerald-950/60 border-emerald-500/40 text-emerald-300"
-              : globalNotice.type === "error"
-              ? "bg-rose-950/60 border-rose-500/40 text-rose-300"
-              : "bg-sky-950/60 border-sky-500/40 text-sky-300"
-          }`}
-        >
-          <span>{globalNotice.text}</span>
-          <button
-            type="button"
-            onClick={() => setGlobalNotice(null)}
-            className="text-xs font-bold hover:underline ml-4 cursor-pointer"
+      <AnimatePresence>
+        {globalNotice && (
+          <motion.div
+            key="global-notice"
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+            className={`p-3.5 rounded-xl text-xs flex items-center justify-between border shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${
+              globalNotice.type === "success"
+                ? "bg-emerald-950/60 border-emerald-500/40 text-emerald-300"
+                : globalNotice.type === "error"
+                ? "bg-rose-950/60 border-rose-500/40 text-rose-300"
+                : "bg-sky-950/60 border-sky-500/40 text-sky-300"
+            }`}
           >
-            Dismiss
-          </button>
-        </div>
-      )}
+            <span>{globalNotice.text}</span>
+            <button
+              type="button"
+              onClick={() => setGlobalNotice(null)}
+              className="text-xs font-bold hover:underline ml-4 cursor-pointer"
+            >
+              Dismiss
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* 2. Metric Cards (3 columns) */}
+      {/* 2. Signature Hero Fleet Card (Hardware-grade Sky Cyan Glow) */}
+      <section
+        aria-label="Bot fleet overview"
+        className="hw-hero-card rounded-2xl p-6 sm:p-7"
+      >
+        <div className="relative z-10 flex flex-col gap-5">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+              <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-sky-400/90 block">
+                Fleet Telemetry
+              </span>
+              <div className="flex items-baseline gap-2.5 mt-2 flex-wrap">
+                <strong className="text-4xl sm:text-[44px] font-extrabold text-white tracking-tight leading-none tabular-nums">
+                  {activeBotsCount}
+                </strong>
+                <span className="text-lg sm:text-xl font-medium text-slate-400 tabular-nums">
+                  of {totalBotsCount} {totalBotsCount === 1 ? "bot" : "bots"} active
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2.5 self-start sm:self-end">
+              <div className="px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#38bdf8] shadow-[0_0_8px_rgba(56,189,248,0.8)]" />
+                <span className="font-mono text-xs font-semibold text-slate-200 tabular-nums">
+                  {activeFleetPercent}% active
+                </span>
+              </div>
+              {healthyConnectionsCount > 0 && (
+                <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className="font-mono text-xs font-medium text-emerald-300 tabular-nums">
+                    {healthyConnectionsCount} verified
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Animated Sky Cyan Capacity / Active Bar */}
+          <div className="h-2.5 w-full rounded-full bg-slate-950/80 border border-white/[0.07] p-[2px] overflow-hidden shadow-inner">
+            <motion.div
+              initial={{ scaleX: 0 }}
+              animate={{ scaleX: activeFleetPercent / 100 }}
+              transition={{ type: "spring", stiffness: 220, damping: 28, mass: 0.9 }}
+              style={{ transformOrigin: "left center" }}
+              className="h-full w-full rounded-full bg-gradient-to-r from-sky-500 via-[#38bdf8] to-cyan-300 shadow-[0_0_16px_rgba(56,189,248,0.65)]"
+            />
+          </div>
+
+          {/* Bottom Legend Strip */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs text-slate-400">
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <span className="inline-flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#38bdf8]" />
+                <span>
+                  Active{" "}
+                  <strong className="font-mono text-slate-200 font-semibold tabular-nums">
+                    {activeBotsCount}
+                  </strong>
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                <span>
+                  Standby{" "}
+                  <strong className="font-mono text-slate-200 font-semibold tabular-nums">
+                    {standbyBotsCount}
+                  </strong>
+                </span>
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span>
+                  Audience{" "}
+                  <strong className="font-mono text-slate-200 font-semibold tabular-nums">
+                    {totalUsersCount.toLocaleString()}
+                  </strong>
+                </span>
+              </span>
+            </div>
+
+            {activeBot && (
+              <span className="font-mono text-[11px] text-slate-400 truncate max-w-full">
+                Selected:{" "}
+                <strong className="text-sky-300 font-semibold">
+                  @{activeBot.username}
+                </strong>
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Metric Cards (3 columns - Hardware Surface + Tabular Nums) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {/* Card 1: Connected bots */}
-        <div className="bg-[#131926] border border-slate-800/80 rounded-2xl p-5 shadow-xs flex items-center gap-4 hover:border-slate-700 transition-all">
-          <div className="w-12 h-12 rounded-xl bg-[#0c2538] border border-sky-500/30 flex items-center justify-center text-[#38bdf8] flex-shrink-0">
+        <div className="hw-surface rounded-2xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-b from-[#12334d] to-[#0b2032] border border-sky-400/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] flex items-center justify-center text-[#38bdf8] flex-shrink-0">
             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 8V4H8" />
               <rect width="16" height="12" x="4" y="8" rx="2" />
@@ -622,31 +733,35 @@ export function BotdeskDashboard({
             </svg>
           </div>
           <div>
-            <span className="text-xs text-slate-400 font-medium block">Connected bots</span>
-            <strong className="text-3xl font-extrabold text-white leading-tight block mt-0.5">
-              {bots.length}
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
+              Connected bots
+            </span>
+            <strong className="text-3xl font-extrabold text-white leading-tight block mt-1 tabular-nums">
+              {totalBotsCount.toLocaleString()}
             </strong>
           </div>
         </div>
 
         {/* Card 2: Automation enabled */}
-        <div className="bg-[#131926] border border-slate-800/80 rounded-2xl p-5 shadow-xs flex items-center gap-4 hover:border-slate-700 transition-all">
-          <div className="w-12 h-12 rounded-xl bg-[#0c2538] border border-sky-500/30 flex items-center justify-center text-[#38bdf8] flex-shrink-0">
+        <div className="hw-surface rounded-2xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-b from-[#12334d] to-[#0b2032] border border-sky-400/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] flex items-center justify-center text-[#38bdf8] flex-shrink-0">
             <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
               <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
           </div>
           <div>
-            <span className="text-xs text-slate-400 font-medium block">Automation enabled</span>
-            <strong className="text-3xl font-extrabold text-white leading-tight block mt-0.5">
-              {bots.filter((b) => b.isActive).length}
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
+              Automation enabled
+            </span>
+            <strong className="text-3xl font-extrabold text-white leading-tight block mt-1 tabular-nums">
+              {activeBotsCount.toLocaleString()}
             </strong>
           </div>
         </div>
 
         {/* Card 3: Registered users */}
-        <div className="bg-[#131926] border border-slate-800/80 rounded-2xl p-5 shadow-xs flex items-center gap-4 hover:border-slate-700 transition-all">
-          <div className="w-12 h-12 rounded-xl bg-[#0c2538] border border-sky-500/30 flex items-center justify-center text-[#38bdf8] flex-shrink-0">
+        <div className="hw-surface rounded-2xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-b from-[#12334d] to-[#0b2032] border border-sky-400/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] flex items-center justify-center text-[#38bdf8] flex-shrink-0">
             <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
               <circle cx="9" cy="7" r="4" />
@@ -655,16 +770,18 @@ export function BotdeskDashboard({
             </svg>
           </div>
           <div>
-            <span className="text-xs text-slate-400 font-medium block">Registered users</span>
-            <strong className="text-3xl font-extrabold text-white leading-tight block mt-0.5">
-              {bots.reduce((acc, b) => acc + (b._count?.users || 0), 0)}
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 block">
+              Registered users
+            </span>
+            <strong className="text-3xl font-extrabold text-white leading-tight block mt-1 tabular-nums">
+              {totalUsersCount.toLocaleString()}
             </strong>
           </div>
         </div>
       </div>
 
-      {/* 3. "Your bots" Section & Table */}
-      <div className="bg-[#131926] border border-slate-800/80 rounded-2xl p-6 shadow-xs">
+      {/* 4. "Your bots" Section & Table */}
+      <div className="hw-surface rounded-2xl p-6">
         {/* Table Top Header: Title & Search */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
           <div>
@@ -732,15 +849,15 @@ export function BotdeskDashboard({
                   return (
                     <tr
                       key={b.id}
-                      className={`hover:bg-slate-800/40 transition-colors ${
-                        isViewing ? "bg-slate-800/25" : ""
+                      className={`group hover:bg-white/[0.03] transition-colors duration-150 ${
+                        isViewing ? "bg-sky-500/[0.05] shadow-[inset_3px_0_0_#38bdf8]" : ""
                       }`}
                     >
                       {/* Bot Info */}
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <div
-                            className={`w-10 h-10 rounded-xl ${palette.bg} ${palette.text} flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-xs border border-white/5`}
+                            className={`w-10 h-10 rounded-xl ${palette.bg} ${palette.text} flex items-center justify-center font-bold text-sm flex-shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] border border-white/10 transition-all duration-200 group-hover:scale-105 group-hover:shadow-[0_0_18px_-4px_rgba(56,189,248,0.35)]`}
                           >
                             {palette.icon === "game" ? (
                               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -790,25 +907,30 @@ export function BotdeskDashboard({
                               : "bg-amber-500/15 text-amber-400 border border-amber-500/30"
                           }`}
                         >
-                          <span
-                            className={`w-1.5 h-1.5 rounded-full ${
-                              b.isActive ? "bg-emerald-400" : "bg-amber-400"
-                            }`}
-                          />
+                          <span className="relative flex h-2 w-2">
+                            {b.isActive && (
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+                            )}
+                            <span
+                              className={`relative inline-flex rounded-full h-2 w-2 ${
+                                b.isActive ? "bg-emerald-400" : "bg-amber-400"
+                              }`}
+                            />
+                          </span>
                           {b.isActive ? "Active" : "Standby"}
                         </span>
                       </td>
 
                       {/* Users */}
                       <td className="py-4 px-4">
-                        <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium">
+                        <div className="flex items-center gap-1.5 text-xs text-slate-300 font-medium font-mono tabular-nums">
                           <svg className="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                             <circle cx="9" cy="7" r="4" />
                             <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
                             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                           </svg>
-                          <span>{b._count?.users || 0}</span>
+                          <span>{(b._count?.users || 0).toLocaleString()}</span>
                         </div>
                       </td>
 
@@ -858,14 +980,14 @@ export function BotdeskDashboard({
                           <button
                             type="button"
                             onClick={() => handleSelectBot(b.id)}
-                            className={`border text-xs font-semibold px-3 py-1.5 rounded-lg shadow-xs flex items-center gap-1 transition cursor-pointer ${
+                            className={`border text-xs font-semibold px-3 py-1.5 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] flex items-center gap-1 transition-all active:scale-95 cursor-pointer ${
                               isViewing
-                                ? "bg-[#0c2538] border-sky-500/40 text-[#38bdf8]"
-                                : "bg-[#0d121c] border-slate-800 text-slate-300 hover:bg-slate-800/60 hover:text-white"
+                                ? "bg-[#0c2538] border-sky-400/40 text-[#38bdf8] shadow-[0_0_16px_-4px_rgba(56,189,248,0.35)]"
+                                : "bg-[#0d121c] border-white/[0.08] text-slate-300 hover:bg-slate-800/70 hover:border-sky-400/30 hover:text-white"
                             }`}
                           >
                             <span>Manage</span>
-                            <span className="text-[10px]">›</span>
+                            <span className="text-[10px] transition-transform duration-150 group-hover:translate-x-0.5">›</span>
                           </button>
                         </div>
                       </td>
@@ -882,8 +1004,8 @@ export function BotdeskDashboard({
       {activeBot && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
           {/* Left Card: Bot Configuration */}
-          <section className="lg:col-span-7 bg-[#131926] border border-slate-800/80 rounded-2xl shadow-xs overflow-hidden">
-            <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
+          <section className="lg:col-span-7 hw-surface rounded-2xl overflow-hidden">
+            <div className="p-5 border-b border-white/[0.07] flex items-center justify-between">
               <div>
                 <h2 className="text-base font-bold text-white">
                   {activeBot.name}
@@ -901,29 +1023,47 @@ export function BotdeskDashboard({
               </span>
             </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-slate-800/80 px-5 py-2.5 gap-2 bg-[#0e1422]/60">
+            {/* Sliding Tabs */}
+            <div className="flex border-b border-white/[0.07] px-5 py-2.5 gap-2 bg-[#0a0f19]/70">
               <button
                 type="button"
                 onClick={() => setActiveTab("settings")}
-                className={`py-1.5 px-3.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+                className={`relative py-1.5 px-3.5 text-xs font-semibold rounded-full transition-colors cursor-pointer ${
                   activeTab === "settings"
-                    ? "bg-[#131926] text-white border border-slate-700 shadow-xs"
+                    ? "text-white"
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                Welcome Message
+                {activeTab === "settings" && (
+                  <motion.span
+                    layoutId="dashboard-detail-tab-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-full bg-[#151e30] border border-sky-400/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="relative z-10">Welcome Message</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab("users")}
-                className={`py-1.5 px-3.5 text-xs font-semibold rounded-full transition-all cursor-pointer ${
+                className={`relative py-1.5 px-3.5 text-xs font-semibold rounded-full transition-colors cursor-pointer tabular-nums ${
                   activeTab === "users"
-                    ? "bg-[#131926] text-white border border-slate-700 shadow-xs"
+                    ? "text-white"
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
-                Registered Users ({activeBotUsers.length})
+                {activeTab === "users" && (
+                  <motion.span
+                    layoutId="dashboard-detail-tab-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 rounded-full bg-[#151e30] border border-sky-400/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                    aria-hidden="true"
+                  />
+                )}
+                <span className="relative z-10">
+                  Registered Users ({activeBotUsers.length.toLocaleString()})
+                </span>
               </button>
             </div>
 
@@ -984,8 +1124,8 @@ export function BotdeskDashboard({
                     <span className="text-xs text-slate-300">
                       Users who interacted with <strong className="text-white">{activeBot.name}</strong>
                     </span>
-                    <span className="text-xs text-slate-400 font-mono">
-                      {activeBotUsers.length} total
+                    <span className="text-xs text-slate-400 font-mono tabular-nums">
+                      {activeBotUsers.length.toLocaleString()} total
                     </span>
                   </div>
 
@@ -1036,8 +1176,8 @@ export function BotdeskDashboard({
           </section>
 
           {/* Right Card: Interactive Telegram Simulator */}
-          <section className="lg:col-span-5 bg-[#131926] border border-slate-800/80 rounded-2xl shadow-xs overflow-hidden flex flex-col">
-            <div className="p-5 border-b border-slate-800/80 flex items-center justify-between">
+          <section className="lg:col-span-5 hw-surface rounded-2xl overflow-hidden flex flex-col">
+            <div className="p-5 border-b border-white/[0.07] flex items-center justify-between">
               <div>
                 <h2 className="text-base font-bold text-white">
                   Chat Simulator
@@ -1064,26 +1204,31 @@ export function BotdeskDashboard({
             </div>
 
             <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
-              <div className="chat-window bg-[#0d121c] border border-slate-800 rounded-xl p-3 min-h-[180px] max-h-[260px] overflow-y-auto space-y-2">
-                {chatMessages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`text-xs p-2.5 rounded-xl max-w-[85%] leading-relaxed ${
-                      msg.sender === "user"
-                        ? "bg-[#0c2538] border border-sky-500/30 text-white ml-auto"
-                        : msg.sender === "note"
-                        ? "bg-slate-800/50 text-slate-400 text-center mx-auto text-[11px]"
-                        : "bg-[#161f30] text-slate-200 border border-slate-800 shadow-xs mr-auto"
-                    }`}
-                  >
-                    {msg.text}
-                  </div>
-                ))}
+              <div className="chat-window bg-[#0a0f19] border border-white/[0.08] rounded-xl p-3 min-h-[180px] max-h-[260px] overflow-y-auto space-y-2 shadow-inner">
+                <AnimatePresence initial={false}>
+                  {chatMessages.map((msg) => (
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                      className={`text-xs p-2.5 rounded-xl max-w-[85%] leading-relaxed ${
+                        msg.sender === "user"
+                          ? "bg-[#0c2538] border border-sky-500/30 text-white ml-auto shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+                          : msg.sender === "note"
+                          ? "bg-slate-800/50 text-slate-400 text-center mx-auto text-[11px]"
+                          : "bg-[#151e30] text-slate-200 border border-white/[0.08] shadow-xs mr-auto"
+                      }`}
+                    >
+                      {msg.text}
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
 
               {/* Simulated Reply Keyboard */}
               {simActiveButtons.length > 0 && (
-                <div className="p-2.5 rounded-xl bg-[#0d121c] border border-slate-800">
+                <div className="p-2.5 rounded-xl bg-[#0a0f19] border border-white/[0.08]">
                   <div className="text-[10px] uppercase font-bold text-slate-400 mb-1.5 flex justify-between">
                     <span>
                       Menu: {simCurrentMenuId === "root" ? "Main Menu" : simCurrentMenuId}
@@ -1092,15 +1237,17 @@ export function BotdeskDashboard({
                   </div>
                   <div className="grid grid-cols-2 gap-1.5">
                     {simActiveButtons.map((btn) => (
-                      <button
+                      <motion.button
+                        whileHover={{ y: -1 }}
+                        whileTap={{ scale: 0.96 }}
                         key={btn.id}
                         type="button"
                         onClick={() => handleSimulateAction(btn.label)}
-                        className="py-1.5 px-2 rounded-lg bg-[#161f30] hover:bg-slate-800 text-slate-200 text-xs font-medium text-center border border-slate-700/80 truncate transition active:scale-95 cursor-pointer shadow-2xs"
+                        className="py-1.5 px-2 rounded-lg bg-[#151e30] hover:bg-[#1c2840] hover:border-sky-400/30 text-slate-200 text-xs font-medium text-center border border-white/[0.08] truncate transition-colors cursor-pointer shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
                         title={btn.label}
                       >
                         {btn.label}
-                      </button>
+                      </motion.button>
                     ))}
                   </div>
                 </div>
@@ -1131,9 +1278,23 @@ export function BotdeskDashboard({
       )}
 
       {/* Modal: Add Telegram Bot */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
-          <div className="botdesk-modal-anim w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[#0f1420] border border-slate-800 p-6 shadow-2xl space-y-4">
+      <AnimatePresence>
+        {showAddModal && (
+          <motion.div
+            key="add-bot-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ type: "spring", stiffness: 420, damping: 32 }}
+              className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[#0f1420] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_64px_rgba(0,0,0,0.75)] p-6 space-y-4"
+            >
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -1240,14 +1401,29 @@ export function BotdeskDashboard({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Modal: Edit Bot / Replace Token */}
-      {editingBot && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-fade-in">
-          <div className="botdesk-modal-anim w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[#0f1420] border border-slate-800 p-6 shadow-2xl space-y-4">
+      <AnimatePresence>
+        {editingBot && (
+          <motion.div
+            key="edit-bot-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ type: "spring", stiffness: 420, damping: 32 }}
+              className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[#0f1420] border border-white/[0.1] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_64px_rgba(0,0,0,0.75)] p-6 space-y-4"
+            >
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div>
                 <h2 className="text-lg font-bold text-white">
@@ -1361,9 +1537,10 @@ export function BotdeskDashboard({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
