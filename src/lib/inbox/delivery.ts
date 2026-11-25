@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { InputFile } from "grammy";
 import { prisma } from "../prisma";
 import { resolveBotToken } from "../bot-service";
+import { redactTokens } from "../token-encryption";
 import { createTelegramApi } from "../telegram-client";
 import { getStorageProvider } from "../storage";
 
@@ -233,16 +234,29 @@ export async function deliverInboxReplies(send: SendPart = sendPlainText, batchS
         sent = await send(token, chatId, message.parts[message.sentParts], telegramReplyToMessageId);
       }
     } catch (error) {
-      const apiError = error as { error_code?: number; parameters?: { retry_after?: number } } | null;
+      const apiError = error as { error_code?: number; description?: string; parameters?: { retry_after?: number } } | null;
       const code = apiError?.error_code;
+      const desc = typeof apiError?.description === "string" ? redactTokens(apiError.description) : "";
       if (code === 429) {
         const delay = Math.max(1, apiError?.parameters?.retry_after || 5);
         await prisma.supportMessage.updateMany({ where: claim, data: { status: "QUEUED", claimId: null,
           availableAt: new Date(Date.now() + delay * 1000), lastError: "Waiting for Telegram's rate limit." } });
       } else {
         const rejected = typeof code === "number" && code >= 400 && code < 500;
+        let reason = `Telegram declined this part (${code}).`;
+        if (code === 403) {
+          if (/blocked/i.test(desc)) {
+            reason = "Customer blocked the bot on Telegram (403). They must unblock and send /start to receive replies.";
+          } else if (/deactivated/i.test(desc)) {
+            reason = "Customer's Telegram account was deactivated or deleted (403).";
+          } else if (desc) {
+            reason = `Telegram declined (${code}): ${desc}`;
+          }
+        } else if (rejected && desc) {
+          reason = `Telegram declined (${code}): ${desc}`;
+        }
         await prisma.supportMessage.updateMany({ where: claim, data: { status: rejected ? "FAILED" : "UNCERTAIN", claimId: null,
-          lastError: rejected ? `Telegram declined this part (${code}).` : "No delivery confirmation. Check with the recipient before retrying." } });
+          lastError: rejected ? reason : "No delivery confirmation. Check with the recipient before retrying." } });
       }
       continue;
     }

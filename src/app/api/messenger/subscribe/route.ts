@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: "No active Facebook page bots found in database" }, { status: 404 });
   }
 
-  const results: Array<{ botId: string; pageName: string; ok: boolean; response: unknown }> = [];
+  const results: Array<{ botId: string; pageName: string; ok: boolean; targetPageId?: string; exchange?: unknown; me?: unknown; response: unknown }> = [];
 
   for (const bot of fbBots) {
     // If token passed in query parameter, use it and re-encrypt directly on Hostinger

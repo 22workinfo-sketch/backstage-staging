@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import type { ReactionTypeEmoji } from "grammy/types";
 import type { AdminSession } from "../auth";
 import { prisma } from "../prisma";
 import { InboxError, requireInboxBot } from "./access";
@@ -193,7 +194,8 @@ export async function changeThread(user: AdminSession, botId: string, threadId: 
         if (token) {
           try {
             const api = createTelegramApi(token, { timeoutSeconds: 10 });
-            const reactionList = newByStaff ? [{ type: "emoji" as const, emoji: targetEmoji }] : [];
+            const tgEmoji = targetEmoji.replace(/\uFE0F/g, "") as ReactionTypeEmoji["emoji"];
+            const reactionList = newByStaff ? [{ type: "emoji" as const, emoji: tgEmoji }] : [];
             await api.setMessageReaction(msg.conversation.chatId, tgMsgId, reactionList).catch(err => {
               console.warn("[Telegram Reaction] Failed to set reaction:", err);
             });
