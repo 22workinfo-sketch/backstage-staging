@@ -742,13 +742,14 @@ export function formatSafePost<T extends Record<string, any>>(post: T): T {
 /**
  * Retrieves channel posts scoped to bot and optionally channel.
  */
-export async function getChannelPosts(botId: string, channelId?: string) {
+export async function getChannelPosts(botId: string, channelId?: string, limit = 100) {
   const posts = await prisma.channelPost.findMany({
     where: {
       botId,
       ...(channelId ? { channelId } : {}),
     },
     orderBy: { createdAt: "desc" },
+    take: limit,
     include: {
       channel: {
         select: {
@@ -2042,6 +2043,14 @@ export async function recoverStalledScheduledPosts(options?: {
     where: {
       status: "SENDING",
       claimLeaseExpiresAt: { lte: now },
+    },
+    select: {
+      id: true,
+      telegramMessageId: true,
+      albumMessageIds: true,
+      buttonsConfig: true,
+      buttonMessageId: true,
+      retryCount: true,
     },
   });
 

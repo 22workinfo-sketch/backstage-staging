@@ -207,7 +207,11 @@ export async function getAllBots() {
   return prisma.bot.findMany({
     orderBy: { createdAt: "asc" },
     include: {
-      config: true,
+      config: {
+        select: {
+          welcomeMessage: true,
+        },
+      },
       _count: {
         select: { users: true },
       },
@@ -667,12 +671,25 @@ export async function deleteBot(botId: string, adminUserId?: string) {
 
 /**
  * Retrieves users strictly isolated by botId.
- * No data leakage between different bots.
+ * Selects only profile columns needed by dashboard/API to avoid transferring wide flow JSON blobs.
  */
-export async function getBotUsers(botId: string) {
+export async function getBotUsers(botId: string, options?: { limit?: number }) {
   return prisma.telegramUser.findMany({
     where: { botId },
     orderBy: { lastSeenAt: "desc" },
+    take: options?.limit ?? 500,
+    select: {
+      id: true,
+      botId: true,
+      telegramId: true,
+      firstName: true,
+      lastName: true,
+      username: true,
+      telegramPhNo: true,
+      languageCode: true,
+      firstSeenAt: true,
+      lastSeenAt: true,
+    },
   });
 }
 

@@ -16,6 +16,62 @@ const messageFields = {
   reactions: true,
 } satisfies Prisma.SupportMessageSelect;
 
+export async function getThreadsEtag(user: AdminSession, botId: string, query: URLSearchParams): Promise<string | null> {
+  await requireInboxBot(user, botId);
+  const filter = query.get("filter") || "all";
+  const search = query.get("q")?.trim().slice(0, 120) || "";
+  const page = Number(query.get("page") || "0");
+  if (!Number.isSafeInteger(page) || page < 0 || page > 100000) throw new InboxError(400, "Invalid page.");
+  try {
+    const [row] = await prisma.$queryRaw<{ sig: string }[]>`
+      SELECT (
+        COALESCE((
+          SELECT COUNT(*)::text || ':' || COALESCE(MAX("lastActivityAt")::text, '') || ':' ||
+            COALESCE(BIT_XOR(hashtext(id || ':' || COALESCE("ownerId", '') || ':' || name || ':' || resolved::text))::text, '0')
+          FROM support_conversations WHERE "botId" = ${botId}
+        ), '0::0')
+        || '|' ||
+        COALESCE((
+          SELECT COUNT(*)::text || ':' || COALESCE(MAX(m.id)::text, '0') || ':' ||
+            COALESCE(BIT_XOR(hashtext(m.id::text || ':' || m.status || ':' || COALESCE(m.reactions, '') || ':' || LENGTH(m.body)::text))::text, '0')
+          FROM support_messages m
+          INNER JOIN support_conversations sc ON sc.id = m."conversationId"
+          WHERE sc."botId" = ${botId}
+        ), '0:0:0')
+      ) AS sig
+    `;
+    if (!row?.sig) return null;
+    return `W/"list:${filter}:${page}:${search}:${row.sig}"`;
+  } catch {
+    return null;
+  }
+}
+
+export async function getThreadEtag(user: AdminSession, botId: string, threadId: string, before: string | null): Promise<string | null> {
+  await requireInboxBot(user, botId);
+  if (before && !/^[1-9]\d{0,17}$/.test(before)) throw new InboxError(400, "Invalid message cursor.");
+  try {
+    const [row] = await prisma.$queryRaw<{ sig: string | null }[]>`
+      SELECT (
+        c.id || ':' || COALESCE(c."ownerId", '') || ':' || c.name || ':' || c.resolved::text || '|' ||
+        COALESCE((
+          SELECT COUNT(*)::text || ':' || COALESCE(MAX(m.id)::text, '0') || ':' ||
+            COALESCE(BIT_XOR(hashtext(m.id::text || ':' || m.status || ':' || COALESCE(m.reactions, '') || ':' || md5(m.body)))::text, '0')
+          FROM support_messages m
+          WHERE m."conversationId" = c.id
+        ), '0:0:0')
+      ) AS sig
+      FROM support_conversations c
+      WHERE c.id = ${threadId} AND c."botId" = ${botId}
+      LIMIT 1
+    `;
+    if (!row?.sig) return null;
+    return `W/"thread:${before || "latest"}:${row.sig}"`;
+  } catch {
+    return null;
+  }
+}
+
 export async function listThreads(user: AdminSession, botId: string, query: URLSearchParams) {
   await requireInboxBot(user, botId);
   const filter = query.get("filter");

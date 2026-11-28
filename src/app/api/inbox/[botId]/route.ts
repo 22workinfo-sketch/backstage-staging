@@ -1,15 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { inboxRequest, readPayload } from "@/lib/inbox/http";
 import { InboxError } from "@/lib/inbox/access";
-import { listThreads } from "@/lib/inbox/threads";
+import { getThreadsEtag, listThreads } from "@/lib/inbox/threads";
 import { prisma } from "@/lib/prisma";
 
 type Context = { params: { botId: string } };
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest, { params }: Context) {
-  return inboxRequest(req, async user =>
-    NextResponse.json(await listThreads(user, params.botId, req.nextUrl.searchParams)));
+  return inboxRequest(req, async user => {
+    const etag = await getThreadsEtag(user, params.botId, req.nextUrl.searchParams);
+    const ifNoneMatch = req.headers.get("if-none-match");
+    if (etag && ifNoneMatch === etag) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: { ETag: etag, "Cache-Control": "no-store" },
+      });
+    }
+    const data = await listThreads(user, params.botId, req.nextUrl.searchParams);
+    return NextResponse.json(data, {
+      headers: etag ? { ETag: etag, "Cache-Control": "no-store" } : { "Cache-Control": "no-store" },
+    });
+  });
 }
 
 export async function PUT(req: NextRequest, { params }: Context) {

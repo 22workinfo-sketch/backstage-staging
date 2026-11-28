@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { inboxRequest, readPayload } from "@/lib/inbox/http";
-import { readThread, queueReply, changeThread } from "@/lib/inbox/threads";
+import { getThreadEtag, readThread, queueReply, changeThread } from "@/lib/inbox/threads";
 import { InboxError } from "@/lib/inbox/access";
 import { getStorageProvider } from "@/lib/storage";
 
@@ -9,9 +9,21 @@ type Context = { params: { botId: string; threadId: string } };
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest, { params }: Context) {
-  return inboxRequest(req, async user => NextResponse.json(
-    await readThread(user, params.botId, params.threadId, req.nextUrl.searchParams.get("before"))
-  ));
+  return inboxRequest(req, async user => {
+    const before = req.nextUrl.searchParams.get("before");
+    const etag = await getThreadEtag(user, params.botId, params.threadId, before);
+    const ifNoneMatch = req.headers.get("if-none-match");
+    if (etag && ifNoneMatch === etag) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: { ETag: etag, "Cache-Control": "no-store" },
+      });
+    }
+    const data = await readThread(user, params.botId, params.threadId, before);
+    return NextResponse.json(data, {
+      headers: etag ? { ETag: etag, "Cache-Control": "no-store" } : { "Cache-Control": "no-store" },
+    });
+  });
 }
 
 export async function POST(req: NextRequest, { params }: Context) {

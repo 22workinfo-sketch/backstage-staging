@@ -10,6 +10,7 @@ export interface ApiResponse<T = any> {
   status: number;
   data?: T;
   error?: string;
+  etag?: string | null;
   validationErrors?: string[];
 }
 
@@ -49,9 +50,14 @@ export async function safeFetchJson<T = any>(
       body,
     });
 
-    // 204 No Content has no body
-    if (res.status === 204) {
-      return { ok: true, status: 204, data: {} as T };
+    // 204 No Content / 304 Not Modified have no body
+    if (res.status === 204 || res.status === 304) {
+      return {
+        ok: true,
+        status: res.status,
+        data: res.status === 204 ? ({} as T) : undefined,
+        etag: res.headers.get("etag"),
+      };
     }
 
     const contentType = res.headers.get("content-type") || "";
@@ -89,6 +95,7 @@ export async function safeFetchJson<T = any>(
           ok: true,
           status: res.status,
           data: json,
+          etag: res.headers.get("etag"),
         };
       } catch (jsonErr: any) {
         return {

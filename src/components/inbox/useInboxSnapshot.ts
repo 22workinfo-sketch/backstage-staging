@@ -12,6 +12,10 @@ export async function requestJson<T>(url: string, options?: ApiRequestInit): Pro
   return res.data;
 }
 
+const ACTIVE_BASE_MS = 5000;
+const ACTIVE_MAX_IDLE_MS = 15000;
+const HIDDEN_POLL_MS = 30000;
+
 // Each snapshot is a complete, paginated database view. Reconnect never depends
 // on socket events that might have been missed while the tab was offline.
 export function useInboxSnapshot<T>(url: string | null, revision: number) {
@@ -22,40 +26,80 @@ export function useInboxSnapshot<T>(url: string | null, revision: number) {
     let busy = false;
     let timer: ReturnType<typeof setTimeout>;
     let pending: AbortController | undefined;
-    let delayMs = 3000;
-    async function sync() {
+    let currentEtag: string | null = null;
+    let idlePolls = 0;
+
+    function nextDelayMs() {
+      if (document.hidden) return HIDDEN_POLL_MS;
+      if (idlePolls <= 0) return ACTIVE_BASE_MS;
+      if (idlePolls === 1) return 8000;
+      if (idlePolls === 2) return 12000;
+      return ACTIVE_MAX_IDLE_MS;
+    }
+
+    async function sync(resetBackoff = false) {
       if (busy || !active) return;
+      if (resetBackoff) idlePolls = 0;
       busy = true;
       clearTimeout(timer);
       pending = new AbortController();
       const timeout = setTimeout(() => pending?.abort(), 15000);
       try {
-        const data = await requestJson<T>(url!, { signal: pending.signal });
-        delayMs = document.hidden ? 6000 : 3000;
-        if (active) setView({ key: url!, data });
+        const headers: Record<string, string> = {};
+        if (currentEtag) {
+          headers["If-None-Match"] = currentEtag;
+        }
+        const res = await safeFetchJson<T>(url!, {
+          cache: "no-store",
+          headers,
+          signal: pending.signal,
+        });
+
+        if (res.status === 304) {
+          idlePolls += 1;
+          if (active) {
+            setView(previous => (previous?.key === url && previous.error ? { key: url!, data: previous.data } : previous));
+          }
+          return;
+        }
+
+        if (!res.ok || res.data == null) {
+          throw new RequestError(res.status, res.error || "Request failed.");
+        }
+
+        if (res.etag) {
+          currentEtag = res.etag;
+        }
+        idlePolls = 0;
+        if (active) setView({ key: url!, data: res.data });
       } catch (err) {
         if (!active) return;
-        delayMs = Math.min(30000, delayMs * 2);
+        idlePolls += 1;
         const denied = err instanceof RequestError && [401, 403, 404].includes(err.status);
         const error = denied ? (err as Error).message : "Connection interrupted. Reconnecting…";
         setView(previous => ({ key: url!, data: !denied && previous?.key === url ? previous.data : undefined, error }));
       } finally {
         clearTimeout(timeout);
         busy = false;
-        if (active) timer = setTimeout(sync, delayMs);
+        if (active) timer = setTimeout(() => void sync(false), nextDelayMs());
       }
     }
-    void sync();
-    document.addEventListener("visibilitychange", sync);
-    window.addEventListener("online", sync);
-    window.addEventListener("focus", sync);
+
+    const onWake = () => {
+      if (!document.hidden) void sync(true);
+    };
+
+    void sync(true);
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("online", onWake);
+    window.addEventListener("focus", onWake);
     return () => {
       active = false;
       pending?.abort();
-      document.removeEventListener("visibilitychange", sync);
+      document.removeEventListener("visibilitychange", onWake);
       clearTimeout(timer);
-      window.removeEventListener("online", sync);
-      window.removeEventListener("focus", sync);
+      window.removeEventListener("online", onWake);
+      window.removeEventListener("focus", onWake);
     };
   }, [url, revision]);
   return view?.key === url ? view : undefined;

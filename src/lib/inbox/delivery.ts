@@ -14,13 +14,22 @@ const sendPlainText: SendPart = (token, chatId, text, replyToMessageId) =>
     replyToMessageId ? { reply_parameters: { message_id: replyToMessageId } } : undefined
   );
 
-export async function deliverInboxReplies(send: SendPart = sendPlainText, batchSize = 10) {
+export async function deliverInboxReplies(
+  send: SendPart = sendPlainText,
+  batchSize = 10,
+  options?: { skipRecoveryCheck?: boolean }
+): Promise<{ processed: number; recovered: number }> {
   // A process can die after Telegram accepts a part but before we save its ID.
   // Telegram offers no idempotency key for sendMessage. Leave that part for staff review.
-  await prisma.supportMessage.updateMany({
-    where: { status: "SENDING", availableAt: { lte: new Date() } },
-    data: { status: "UNCERTAIN", claimId: null, lastError: "No delivery confirmation. Check with the recipient before retrying." },
-  });
+  let recovered = 0;
+  if (!options?.skipRecoveryCheck) {
+    const rec = await prisma.supportMessage.updateMany({
+      where: { status: "SENDING", availableAt: { lte: new Date() } },
+      data: { status: "UNCERTAIN", claimId: null, lastError: "No delivery confirmation. Check with the recipient before retrying." },
+    });
+    recovered = rec.count;
+  }
+  let processed = 0;
   for (let i = 0; i < batchSize; i++) {
     const claimId = randomUUID();
     const [row] = await prisma.$queryRaw<{ id: bigint }[]>`
@@ -266,5 +275,7 @@ export async function deliverInboxReplies(send: SendPart = sendPlainText, batchS
       data: { sentParts, lastSentMessageId: sent.message_id, claimId: null, lastError: null,
         status: sentParts >= totalParts ? "SENT" : "QUEUED", availableAt: new Date(Date.now() + 3000) },
     });
+    processed += 1;
   }
+  return { processed, recovered };
 }

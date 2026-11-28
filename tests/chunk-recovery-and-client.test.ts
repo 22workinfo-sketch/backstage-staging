@@ -22,6 +22,22 @@ describe("Safe API Client & CSRF Dev Tunnel Verification", () => {
       expect(res.data).toEqual({});
     });
 
+    it("handles 304 Not Modified and preserves ETag without JSON parsing", async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 304,
+        headers: new Headers({ etag: 'W/"list:all:0::sig1"' }),
+      } as any);
+
+      const res = await safeFetchJson("/api/inbox/bot-1", {
+        headers: { "If-None-Match": 'W/"list:all:0::sig1"' },
+      });
+      expect(res.ok).toBe(true);
+      expect(res.status).toBe(304);
+      expect(res.data).toBeUndefined();
+      expect(res.etag).toBe('W/"list:all:0::sig1"');
+    });
+
     it("handles non-JSON 403 Forbidden without throwing JSON parse error", async () => {
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,

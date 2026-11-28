@@ -26,8 +26,9 @@ async function main() {
     return;
   }
 
-  // 2. Start Concurrent Multi-Bot Polling Workers
+  // 2. Start Concurrent Multi-Bot Polling Workers (scheduler already started above)
   const runner = await startMultiBotRunner({
+    enableScheduler: false,
     onBotStarted: (botId, username) => {
       console.log(`[Bot Ready] Bot @${username} (${botId}) is now listening for messages.`);
     },

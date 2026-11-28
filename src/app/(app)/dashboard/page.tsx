@@ -23,12 +23,12 @@ export default async function DashboardPage() {
   ]);
   const rawBots = allBots.filter((b) => assignedBotIds.includes(b.id));
 
-  // Prepare users for each assigned bot strictly isolated (in parallel)
+  // Prepare users for each assigned bot strictly isolated (in parallel, bounded)
   const usersByBot: Record<string, TelegramUserData[]> = {};
   await Promise.all(
     rawBots.map(async (bot) => {
       const [rawUsers, allowPhone] = await Promise.all([
-        getBotUsers(bot.id),
+        getBotUsers(bot.id, { limit: 200 }),
         canUserViewPhoneNumbers(session, bot.id),
       ]);
 

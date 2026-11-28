@@ -27,6 +27,8 @@ export interface MultiBotRunnerState {
  */
 export async function startMultiBotRunner(options?: {
   pollIntervalMs?: number;
+  maxPollIntervalMs?: number;
+  enableScheduler?: boolean;
   onBotStarted?: (botId: string, username: string) => void;
   onBotFailed?: (botId: string, error: string) => void;
   isTestMode?: boolean;
@@ -99,32 +101,60 @@ export async function startMultiBotRunner(options?: {
         }
       }
 
-      // 2. Set up dedicated auto-delete sweeper for this bot
+      // 2. Set up dedicated auto-delete sweeper for this bot with adaptive idle backoff
       let sweeperBusy = false;
-      const sweeperInterval = setInterval(async () => {
-        if (sweeperBusy) return;
+      let sweeperActive = true;
+      let sweeperIdleStreak = 0;
+      let lastSweepRecoveryAt = 0;
+      const baseSweepMs = options?.pollIntervalMs || 5000;
+      const maxSweepMs = Math.max(baseSweepMs, options?.maxPollIntervalMs || 30000);
+      let sweeperTimer: NodeJS.Timeout;
+
+      const runSweepTick = async () => {
+        if (!sweeperActive || sweeperBusy) return;
         sweeperBusy = true;
         try {
+          const now = Date.now();
+          const shouldRecover = now - lastSweepRecoveryAt >= 60000;
+          if (shouldRecover) lastSweepRecoveryAt = now;
+
           const sweepRes = await processDueDeletions({
             botId: bot.id,
+            skipRecoveryCheck: !shouldRecover,
             deleteMessageFn: async (chatId, messageId) => {
               await grammyBot.api.deleteMessage(chatId, messageId);
             },
           });
+          if (sweepRes.claimedCount > 0) {
+            sweeperIdleStreak = 0;
+          } else {
+            sweeperIdleStreak += 1;
+          }
           if (sweepRes.completedCount > 0 || sweepRes.failedCount > 0) {
             console.log(
               `[AutoDelete Sweeper - ${bot.name}] Batch complete: ${sweepRes.completedCount} deleted, ${sweepRes.failedCount} failed`
             );
           }
         } catch (sweepErr) {
+          sweeperIdleStreak += 1;
           console.error(
             `[AutoDelete Sweeper Error - ${bot.name}]`,
             redactTokens(sweepErr instanceof Error ? sweepErr.message : String(sweepErr))
           );
         } finally {
           sweeperBusy = false;
+          if (sweeperActive) {
+            const delay =
+              sweeperIdleStreak <= 0
+                ? baseSweepMs
+                : Math.min(maxSweepMs, baseSweepMs * Math.pow(2, Math.min(sweeperIdleStreak - 1, 3)));
+            sweeperTimer = setTimeout(() => void runSweepTick(), delay);
+          }
         }
-      }, options?.pollIntervalMs || 3000);
+      };
+
+      sweeperTimer = setTimeout(() => void runSweepTick(), baseSweepMs);
+      const sweeperInterval = sweeperTimer;
 
       // 3. Start long polling (unless in test mode where we mock polling)
       if (!options?.isTestMode) {
@@ -180,7 +210,8 @@ export async function startMultiBotRunner(options?: {
         grammyBot,
         sweeperInterval,
         stop: async () => {
-          clearInterval(sweeperInterval);
+          sweeperActive = false;
+          clearTimeout(sweeperTimer);
           try {
             await grammyBot.stop();
           } catch {}
@@ -207,31 +238,44 @@ export async function startMultiBotRunner(options?: {
     }
   }
 
-  // 4. Background Scheduled Channel Post Dispatcher
-  let schedulerInterval: NodeJS.Timeout | null = null;
-  if (!options?.isTestMode) {
+  // 4. Optional Background Scheduled Channel Post Dispatcher (disabled when startSchedulerWorker runs)
+  let schedulerTimer: NodeJS.Timeout | null = null;
+  let schedulerActive = !options?.isTestMode && options?.enableScheduler !== false;
+  if (schedulerActive) {
     let schedulerBusy = false;
-    schedulerInterval = setInterval(async () => {
-      if (schedulerBusy) return;
+    let schedulerIdleStreak = 0;
+    const runSchedLoop = async () => {
+      if (!schedulerActive || schedulerBusy) return;
       schedulerBusy = true;
       try {
-        await runSchedulerCycle({
+        const res = await runSchedulerCycle({
           workerId: `bot-runner-${process.pid}`,
           batchSize: 5,
+          recoverStalled: schedulerIdleStreak % 4 === 0,
         });
-      } catch (schedErr) {
-        // Suppress scheduled cycle errors in runner loop
+        schedulerIdleStreak = res.claimedCount > 0 || res.recoveredCount > 0 ? 0 : schedulerIdleStreak + 1;
+      } catch {
+        schedulerIdleStreak += 1;
       } finally {
         schedulerBusy = false;
+        if (schedulerActive) {
+          const delay =
+            schedulerIdleStreak <= 0
+              ? 5000
+              : Math.min(60000, 15000 * Math.pow(2, Math.min(schedulerIdleStreak - 1, 2)));
+          schedulerTimer = setTimeout(() => void runSchedLoop(), delay);
+        }
       }
-    }, 5000);
+    };
+    schedulerTimer = setTimeout(() => void runSchedLoop(), 15000);
   }
 
   const stopAll = async () => {
     console.log("[Bot Runner] Gracefully stopping all active bot instances...");
-    if (schedulerInterval) {
-      clearInterval(schedulerInterval);
-      schedulerInterval = null;
+    schedulerActive = false;
+    if (schedulerTimer) {
+      clearTimeout(schedulerTimer);
+      schedulerTimer = null;
     }
     for (const [id, instance] of activeInstances.entries()) {
       try {

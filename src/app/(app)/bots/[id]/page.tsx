@@ -33,7 +33,7 @@ export default async function BotDetailPage({ params }: BotPageProps) {
 
   const [bot, rawUsers, allowPhone, buttons] = await Promise.all([
     getBotWithConfig(id),
-    getBotUsers(id),
+    getBotUsers(id, { limit: 200 }),
     canUserViewPhoneNumbers(session, id),
     getBotButtons(id),
   ]);
